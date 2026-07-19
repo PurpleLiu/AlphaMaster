@@ -50,17 +50,16 @@ def send_text(
         with urllib.request.urlopen(req, timeout=timeout_s) as resp:
             res = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
-        try:
-            detail = json.loads(exc.read().decode("utf-8")).get("description", "")
-        except Exception:
-            detail = str(exc)
-        return False, f"Telegram HTTP {exc.code}: {detail}"
+        return False, f"Telegram API 回應錯誤（HTTP {exc.code}）"
+    except urllib.error.URLError as exc:
+        reason_type = type(exc.reason).__name__
+        return False, f"Telegram 網路連線失敗（{reason_type}）"
     except Exception as exc:
-        return False, f"Telegram 連線失敗: {exc}"
+        return False, f"Telegram 傳送失敗（{type(exc).__name__}）"
 
     if res.get("ok"):
         return True, "ok"
-    return False, str(res.get("description", "未知錯誤"))
+    return False, "Telegram API 未確認訊息已送出"
 
 
 def notify_direction_flip(

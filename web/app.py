@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, File, HTTPException, Query, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -152,7 +153,12 @@ async def log_requests(request: Request, call_next):
     try:
         response = await call_next(request)
     except Exception as exc:
-        log_error(f"{request.method} {request.url.path} unhandled", exc)
+        if _is_telegram_credential_route(request.url.path):
+            log_error(
+                f"{request.method} {request.url.path} unhandled {type(exc).__name__}"
+            )
+        else:
+            log_error(f"{request.method} {request.url.path} unhandled", exc)
         raise
     elapsed_ms = (time.perf_counter() - started) * 1000
     if is_debug_mode():
@@ -170,6 +176,12 @@ async def log_requests(request: Request, call_next):
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
+    if _is_telegram_credential_route(request.url.path):
+        log_error(f"{request.method} {request.url.path} HTTP {exc.status_code}")
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": _safe_telegram_http_detail(exc.status_code)},
+        )
     log_error(f"{request.method} {request.url.path} HTTP {exc.status_code}: {exc.detail}")
     detail = exc.detail
     if not isinstance(detail, str):
@@ -177,8 +189,44 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     return JSONResponse(status_code=exc.status_code, content={"detail": detail})
 
 
+def _is_telegram_credential_route(path: str) -> bool:
+    return path in {
+        "/api/realtime/telegram",
+        "/api/realtime/telegram/test",
+    }
+
+
+def _safe_telegram_http_detail(status_code: int) -> str:
+    if status_code == 422:
+        return "Telegram 設定格式不正確，請檢查欄位格式。"
+    if status_code == 400:
+        return "Telegram 測試訊息傳送失敗，請檢查網路、Bot Token 與 Chat ID。"
+    return "Telegram 設定處理失敗，請稍後再試。"
+
+
+@app.exception_handler(RequestValidationError)
+async def request_validation_exception_handler(
+    request: Request, exc: RequestValidationError
+):
+    if _is_telegram_credential_route(request.url.path):
+        log_error(f"{request.method} {request.url.path} request validation failed")
+        return JSONResponse(
+            status_code=422,
+            content={"detail": _safe_telegram_http_detail(422)},
+        )
+    return JSONResponse(status_code=422, content={"detail": exc.errors()})
+
+
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
+    if _is_telegram_credential_route(request.url.path):
+        log_error(
+            f"{request.method} {request.url.path} crashed {type(exc).__name__}"
+        )
+        return JSONResponse(
+            status_code=500,
+            content={"detail": _safe_telegram_http_detail(500)},
+        )
     log_error(f"{request.method} {request.url.path} crashed", exc)
     return JSONResponse(
         status_code=500,
@@ -1180,7 +1228,10 @@ def api_realtime_telegram_test(req: TelegramSettingsRequest) -> dict[str, Any]:
         chat_id=chat_id,
     )
     if not ok:
-        raise HTTPException(400, msg)
+        raise HTTPException(
+            400,
+            "Telegram 測試訊息傳送失敗，請檢查網路、Bot Token 與 Chat ID。",
+        )
     return {"ok": True, "message": msg}
 
 

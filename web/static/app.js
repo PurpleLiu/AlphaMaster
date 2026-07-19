@@ -55,6 +55,9 @@ function emptyDebugMessage() {
 }
 
 function formatApiError(data, status, path) {
+  if (isTelegramCredentialPath(path)) {
+    return telegramSafeErrorMessage(path, status);
+  }
   const d = data?.detail;
   let detail = "";
   if (Array.isArray(d)) {
@@ -68,6 +71,30 @@ function formatApiError(data, status, path) {
     detail += `\n\n${data.traceback}`;
   }
   return detail || `HTTP ${status} ${path}`;
+}
+
+function isTelegramCredentialPath(path) {
+  return path === "/api/realtime/telegram" || path === "/api/realtime/telegram/test";
+}
+
+function telegramSafeErrorMessage(path, status = null) {
+  if (path === "/api/realtime/telegram/test") {
+    return "Telegram 測試訊息傳送失敗，請檢查網路、Bot Token 與 Chat ID。";
+  }
+  if (status === 422) {
+    return "Telegram 設定格式不正確，請檢查欄位格式。";
+  }
+  return "Telegram 設定處理失敗，請檢查欄位格式與服務連線。";
+}
+
+async function reportRtTelegramError(hint, path, status = null) {
+  const message = telegramSafeErrorMessage(path, status);
+  if (hint) {
+    hint.textContent = message;
+    hint.classList.remove("valid");
+    hint.classList.add("bad", "invalid");
+  }
+  await logClientError(message, { path, telegram: true, silent: true });
 }
 
 async function logClientError(message, context = {}) {
@@ -2018,12 +2045,9 @@ async function loadRtTelegramSettings() {
       $("rtTelegramHint").classList.remove("bad", "invalid");
       $("rtTelegramHint").classList.add("valid");
     }
-  } catch (e) {
+  } catch (_error) {
     const hint = $("rtTelegramHint");
-    if (hint) {
-      hint.textContent = `載入 Telegram 設定失敗：${e.message}`;
-      hint.classList.add("bad");
-    }
+    await reportRtTelegramError(hint, "/api/realtime/telegram");
   }
 }
 
@@ -2058,13 +2082,9 @@ async function saveRtTelegramSettings({ automatic = false } = {}) {
         hint.classList.remove("bad", "invalid");
         hint.classList.add("valid");
       }
-    } catch (e) {
+    } catch (_error) {
       if (revision !== rtTelegramSaveRevision) return;
-      if (hint) {
-        hint.textContent = `儲存失敗：${e.message}`;
-        hint.classList.remove("valid");
-        hint.classList.add("bad", "invalid");
-      }
+      await reportRtTelegramError(hint, "/api/realtime/telegram");
     } finally {
       if (btn && revision === rtTelegramSaveRevision) btn.disabled = false;
     }
@@ -2089,12 +2109,8 @@ async function testRtTelegram() {
       hint.classList.remove("bad", "invalid");
       hint.classList.add("valid");
     }
-  } catch (e) {
-    if (hint) {
-      hint.textContent = `測試失敗：${e.message}`;
-      hint.classList.remove("valid");
-      hint.classList.add("bad", "invalid");
-    }
+  } catch (_error) {
+    await reportRtTelegramError(hint, "/api/realtime/telegram/test");
   } finally {
     if (btn) btn.disabled = false;
   }
