@@ -63,3 +63,88 @@ def test_performance_metrics_reject_non_finite_returns_instead_of_zeroing_them()
 def test_build_net_returns_rejects_misaligned_inputs_in_traditional_chinese() -> None:
     with pytest.raises(ValueError, match="部位與市場報酬長度必須一致"):
         build_net_returns(np.array([0.0]), np.array([0.0, 0.01]), 0.001)
+
+
+@pytest.mark.parametrize("periods_per_year", [np.nan, np.inf, -np.inf])
+def test_performance_metrics_rejects_non_finite_periods_per_year(
+    periods_per_year: float,
+) -> None:
+    with pytest.raises(ValueError, match="期間數"):
+        performance_metrics(np.array([0.01]), np.array([1.0]), periods_per_year)
+
+
+@pytest.mark.parametrize(
+    ("position", "market_return", "one_way_cost"),
+    [
+        (np.array([np.nan]), np.array([0.01]), 0.001),
+        (np.array([1.0]), np.array([np.inf]), 0.001),
+        (np.array([1.0]), np.array([0.01]), np.nan),
+    ],
+)
+def test_build_net_returns_rejects_non_finite_inputs(
+    position: np.ndarray, market_return: np.ndarray, one_way_cost: float
+) -> None:
+    with pytest.raises(ValueError, match="有限"):
+        build_net_returns(position, market_return, one_way_cost)
+
+
+@pytest.mark.parametrize("turnover", [np.array([np.nan]), np.array([np.inf])])
+def test_performance_metrics_rejects_non_finite_turnover(turnover: np.ndarray) -> None:
+    with pytest.raises(ValueError, match="有限"):
+        performance_metrics(
+            np.array([0.01]), np.array([1.0]), periods_per_year=365, turnover=turnover
+        )
+
+
+def test_performance_metrics_rejects_non_finite_position() -> None:
+    with pytest.raises(ValueError, match="有限"):
+        performance_metrics(np.array([0.01]), np.array([np.nan]), periods_per_year=365)
+
+
+@pytest.mark.parametrize(
+    ("base_cost", "multipliers"),
+    [(np.nan, (1.0,)), (0.001, (np.inf,))],
+)
+def test_cost_stress_rejects_non_finite_cost_inputs(
+    base_cost: float, multipliers: tuple[float, ...]
+) -> None:
+    with pytest.raises(ValueError, match="有限"):
+        cost_stress(
+            np.array([0.0]),
+            np.array([0.0]),
+            base_cost=base_cost,
+            multipliers=multipliers,
+            periods_per_year=365,
+        )
+
+
+def test_build_net_returns_rejects_overflowed_net_returns() -> None:
+    with pytest.raises(ValueError, match="計算結果"):
+        build_net_returns(np.array([1e308]), np.array([1e308]), 0.0)
+
+
+def test_performance_metrics_rejects_overflowed_derived_metrics() -> None:
+    with pytest.raises(ValueError, match="計算結果"):
+        performance_metrics(np.array([1e308, 1e308]), np.array([1.0, 1.0]), 365)
+
+
+def test_cost_stress_rejects_overflowed_scenario_cost() -> None:
+    with pytest.raises(ValueError, match="計算結果"):
+        cost_stress(
+            np.array([0.0]),
+            np.array([0.0]),
+            base_cost=1e308,
+            multipliers=(1e308,),
+            periods_per_year=365,
+        )
+
+
+def test_unavailable_metrics_are_none_with_traditional_chinese_reasons() -> None:
+    metrics = performance_metrics(
+        np.array([0.01, 0.01]), np.array([1.0, 1.0]), periods_per_year=365
+    )
+
+    for metric in ("sharpe", "sortino", "profit_factor"):
+        assert metrics[metric] is None
+        assert metric in metrics["unavailable_reasons"]
+        assert "\u4e00" <= metrics["unavailable_reasons"][metric][0] <= "\u9fff"
