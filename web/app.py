@@ -36,7 +36,7 @@ from web.server_log import (
     set_debug_mode,
     setup_logging,
 )
-from web.settings import load_settings, save_settings
+from web.settings import load_settings, save_settings, telegram_is_active
 from web.strategy_file import (
     inspect_strategy_file,
     resolve_strategy_file,
@@ -1108,14 +1108,23 @@ def api_realtime_feishu_put(req: FeishuSettingsRequest) -> dict[str, Any]:
     }
 
 
+def _telegram_settings_response(
+    settings: dict[str, Any], *, ok: bool = False
+) -> dict[str, Any]:
+    response = {
+        "enabled": bool(settings.get("telegram_enabled")),
+        "active": telegram_is_active(settings),
+        "bot_token": settings.get("telegram_bot_token") or "",
+        "chat_id": settings.get("telegram_chat_id") or "",
+    }
+    if ok:
+        response["ok"] = True
+    return response
+
+
 @app.get("/api/realtime/telegram")
 def api_realtime_telegram_get() -> dict[str, Any]:
-    s = load_settings()
-    return {
-        "enabled": bool(s.get("telegram_enabled")),
-        "bot_token": s.get("telegram_bot_token") or "",
-        "chat_id": s.get("telegram_chat_id") or "",
-    }
+    return _telegram_settings_response(load_settings())
 
 
 @app.put("/api/realtime/telegram")
@@ -1128,12 +1137,7 @@ def api_realtime_telegram_put(req: TelegramSettingsRequest) -> dict[str, Any]:
     if req.chat_id is not None:
         payload["telegram_chat_id"] = req.chat_id.strip()
     saved = save_settings(payload)
-    return {
-        "ok": True,
-        "enabled": bool(saved.get("telegram_enabled")),
-        "bot_token": saved.get("telegram_bot_token") or "",
-        "chat_id": saved.get("telegram_chat_id") or "",
-    }
+    return _telegram_settings_response(saved, ok=True)
 
 
 @app.post("/api/realtime/telegram/test")
@@ -1147,7 +1151,7 @@ def api_realtime_telegram_test(req: TelegramSettingsRequest) -> dict[str, Any]:
     if not chat_id:
         raise HTTPException(400, "請先填寫 Chat ID")
     ok, msg = send_telegram_text(
-        "✅ AlphaMaster Telegram 通知測試：配置正常。信號方向轉折時會推送提醒。",
+        "✅ AlphaMaster Telegram 測試成功，後續信號轉折會推送到這裡。",
         bot_token=token,
         chat_id=chat_id,
     )
