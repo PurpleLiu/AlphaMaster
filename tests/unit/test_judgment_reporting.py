@@ -114,6 +114,45 @@ def test_to_json_safe_converts_nonstandard_numpy_and_complex_values_to_strict_js
     assert json.loads(json.dumps(result, allow_nan=False)) == result
 
 
+def test_to_json_safe_converts_extended_precision_numpy_scalars_without_recursion() -> None:
+    result = to_json_safe(
+        {
+            "longdouble": np.longdouble("1.25"),
+            "longdouble_nan": np.longdouble("nan"),
+            "longdouble_inf": np.longdouble("inf"),
+            "clongdouble": np.clongdouble("1.25+2.5j"),
+            "clongdouble_nan": np.clongdouble(complex(float("nan"), 0.0)),
+        }
+    )
+
+    assert result == {
+        "longdouble": 1.25,
+        "longdouble_nan": None,
+        "longdouble_inf": None,
+        "clongdouble": None,
+        "clongdouble_nan": None,
+    }
+    assert json.loads(json.dumps(result, allow_nan=False)) == result
+
+
+def test_to_json_safe_converts_extended_precision_numpy_arrays_without_recursion() -> None:
+    result = to_json_safe(
+        {
+            "longdouble": np.array([np.longdouble("2.5"), np.longdouble("nan")]),
+            "clongdouble": np.array(
+                [np.clongdouble("3+4j"), np.clongdouble(complex(0.0, float("inf")))],
+                dtype=np.clongdouble,
+            ),
+        }
+    )
+
+    assert result == {
+        "longdouble": [2.5, None],
+        "clongdouble": [None, None],
+    }
+    assert json.loads(json.dumps(result, allow_nan=False)) == result
+
+
 def test_markdown_lists_required_diagnostics_and_prominent_oos_warning() -> None:
     text = render_markdown(_result())
 

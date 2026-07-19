@@ -34,7 +34,34 @@ def to_json_safe(value: Any) -> Any:
     if isinstance(value, np.ndarray):
         return to_json_safe(value.tolist())
     if isinstance(value, np.generic):
-        return to_json_safe(value.item())
+        kind = value.dtype.kind
+        if kind in {"i", "u"}:
+            return int(value)
+        if kind == "b":
+            return bool(value)
+        if kind == "f":
+            if not bool(np.isfinite(value)):
+                return None
+            converted = float(value)
+            return converted if math.isfinite(converted) else None
+        if kind == "c":
+            real = value.real
+            imaginary = value.imag
+            if not bool(np.isfinite(real)) or not bool(np.isfinite(imaginary)):
+                return None
+            # JSON has no complex-number type.  Consume both components before
+            # returning null so extended-precision complex scalars cannot recur.
+            return None
+        if kind == "S":
+            return to_json_safe(bytes(value))
+        if kind == "U":
+            return str(value)
+        if kind == "V":
+            return to_json_safe(value.tolist())
+        item = value.item()
+        if item is value:
+            return str(value)
+        return to_json_safe(item)
     if isinstance(value, timedelta):
         seconds = value.total_seconds()
         return seconds if math.isfinite(seconds) else None
