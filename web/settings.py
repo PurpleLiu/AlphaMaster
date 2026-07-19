@@ -178,13 +178,19 @@ def _load_settings_unlocked() -> dict:
     out["telegram_enabled"] = bool(out.get("telegram_enabled", False))
     out["telegram_bot_token"] = str(out.get("telegram_bot_token") or "").strip()
     out["telegram_chat_id"] = str(out.get("telegram_chat_id") or "").strip()
-    recovered = _recover_last_data_file(out)
-    if recovered != out.get("last_data_file") and _is_production_settings_path():
-        out["last_data_file"] = recovered
+    if _is_production_settings_path():
+        recovered = _recover_last_data_file(out)
+        if recovered != out.get("last_data_file"):
+            out["last_data_file"] = recovered
+            if recovered:
+                _write_settings_atomically(out)
+    elif _is_ephemeral_data_path(out.get("last_data_file", "")):
+        # Tests and alternate settings files may still exercise recovery from
+        # their explicitly selected strategy, but must never scan production
+        # strategies or replace an ordinary caller-provided path.
+        recovered = _data_file_from_strategy_json(out.get("last_strategy_file", ""))
         if recovered:
-            _write_settings_atomically(out)
-    elif recovered != out.get("last_data_file"):
-        out["last_data_file"] = recovered
+            out["last_data_file"] = recovered
     return out
 
 
