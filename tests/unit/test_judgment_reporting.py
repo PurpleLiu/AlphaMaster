@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
@@ -69,6 +70,21 @@ def test_to_json_safe_recursively_converts_numpy_and_nonfinite_to_null() -> None
         "scalar": 1.2,
         "array": [3, None, None],
         "nested": [None, {"ok": True}],
+    }
+    assert json.loads(json.dumps(result)) == result
+
+
+def test_to_json_safe_converts_datetime_like_numpy_scalars_to_text() -> None:
+    result = to_json_safe(
+        {
+            "python": datetime(2026, 7, 19, 12, 0, tzinfo=timezone.utc),
+            "numpy": np.datetime64("2026-07-19T12:00:00"),
+        }
+    )
+
+    assert result == {
+        "python": "2026-07-19T12:00:00+00:00",
+        "numpy": "2026-07-19T12:00:00",
     }
     assert json.loads(json.dumps(result)) == result
 

@@ -5,7 +5,7 @@ import json
 import math
 import re
 from collections.abc import Mapping
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timezone
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +22,8 @@ def to_json_safe(value: Any) -> Any:
         return to_json_safe(value.tolist())
     if isinstance(value, np.generic):
         return to_json_safe(value.item())
+    if isinstance(value, (datetime, date, time)):
+        return value.isoformat()
     if isinstance(value, Mapping):
         return {str(key): to_json_safe(item) for key, item in value.items()}
     if isinstance(value, (list, tuple, set)):
