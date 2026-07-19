@@ -179,6 +179,57 @@ def test_markdown_lists_required_diagnostics_and_prominent_oos_warning() -> None
     assert "歷史資料曾參與策略搜尋" in text
 
 
+def test_markdown_distinguishes_missing_reason_from_unavailable_diagnostics() -> None:
+    result = _result()
+    result["regression"] = {
+        "beta": 0.8,
+        "annual_alpha": 0.12,
+        "residual_sharpe": 0.6,
+        "correlation": 0.4,
+        "reason": None,
+    }
+    result["walk_forward"] = {
+        "folds": [
+            {
+                "fold": 1,
+                "start_time": "s1",
+                "end_time": "e1",
+                "metrics": {"sharpe": 0.2},
+                "reason": None,
+            },
+            {
+                "fold": 2,
+                "start_time": "s2",
+                "end_time": "e2",
+                "metrics": {"sharpe": 0.3},
+            },
+            {
+                "fold": 3,
+                "start_time": "s3",
+                "end_time": "e3",
+                "metrics": {"sharpe": 0.4},
+                "reason": "資料不足",
+            },
+            {
+                "fold": 4,
+                "start_time": "s4",
+                "end_time": "e4",
+                "metrics": {"sharpe": 0.5},
+                "reason": "無法取得",
+            },
+        ]
+    }
+
+    text = render_markdown(result)
+
+    assert "BTC Beta" in text
+    assert "| 回歸說明 | — |" in text
+    assert "| 1 | s1 | e1 | 0.2 | — |" in text
+    assert "| 2 | s2 | e2 | 0.3 | — |" in text
+    assert "| 3 | s3 | e3 | 0.4 | 資料不足 |" in text
+    assert "| 4 | s4 | e4 | 0.5 | 無法取得 |" in text
+
+
 def test_write_reports_uses_safe_deterministic_filename_and_valid_utf8_json(tmp_path: Path) -> None:
     result = _result()
 

@@ -97,6 +97,13 @@ def _value(value: Any) -> str:
     return str(safe)
 
 
+def _reason_value(value: Any, *, data_available: bool) -> str:
+    """Render diagnostic reasons without treating missing metadata as failure."""
+    if value is None and data_available:
+        return "—"
+    return _value(value)
+
+
 def _table(rows: list[tuple[str, Any]]) -> str:
     lines = ["| 項目 | 結果 |", "| --- | ---: |"]
     lines.extend(f"| {name} | {_value(value)} |" for name, value in rows)
@@ -143,10 +150,11 @@ def _walk_forward_markdown(walk_forward: Mapping[str, Any]) -> str:
     for fold in walk_forward.get("folds", []):
         item = _mapping(fold)
         metrics = _mapping(item.get("metrics"))
+        data_available = any(value is not None for value in metrics.values())
         rows.append(
             f"| {_value(item.get('fold'))} | {_value(item.get('start_time'))} | "
             f"{_value(item.get('end_time'))} | {_value(metrics.get('sharpe'))} | "
-            f"{_value(item.get('reason'))} |"
+            f"{_reason_value(item.get('reason'), data_available=data_available)} |"
         )
     return "\n".join(rows)
 
@@ -220,7 +228,21 @@ def render_markdown(result: dict) -> str:
                     ("年度 Alpha", regression.get("annual_alpha")),
                     ("殘差夏普比率", regression.get("residual_sharpe")),
                     ("相關係數", regression.get("correlation")),
-                    ("回歸說明", regression.get("reason")),
+                    (
+                        "回歸說明",
+                        _reason_value(
+                            regression.get("reason"),
+                            data_available=any(
+                                regression.get(field) is not None
+                                for field in (
+                                    "beta",
+                                    "annual_alpha",
+                                    "residual_sharpe",
+                                    "correlation",
+                                )
+                            ),
+                        ),
+                    ),
                 ]
             ),
         ),
