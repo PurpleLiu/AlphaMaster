@@ -3,7 +3,15 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from judgment.core import build_net_returns, cost_stress, performance_metrics
+from judgment.core import (
+    build_net_returns,
+    concentration_analysis,
+    cost_stress,
+    market_regression,
+    performance_metrics,
+    pseudo_walk_forward,
+    temporal_blocks,
+)
 
 
 def test_build_net_returns_charges_every_position_change() -> None:
@@ -148,3 +156,43 @@ def test_unavailable_metrics_are_none_with_traditional_chinese_reasons() -> None
         assert metrics[metric] is None
         assert metric in metrics["unavailable_reasons"]
         assert "\u4e00" <= metrics["unavailable_reasons"][metric][0] <= "\u9fff"
+
+
+def test_temporal_blocks_report_median_and_positive_ratio() -> None:
+    times = np.arange(8, dtype=np.int64) * 3600 + 1_600_000_000
+    pnl = np.array([0.01, 0.01, -0.01, -0.01, 0.02, 0.02, 0.01, 0.01])
+
+    result = temporal_blocks(pnl, times, 8760, equal_blocks=4)
+
+    assert result["equal"]["returns"] == [0.02, -0.02, 0.04, 0.02]
+    assert result["equal"]["median_return"] == 0.02
+    assert result["equal"]["positive_ratio"] == 0.75
+
+
+def test_concentration_flags_single_block_dependency() -> None:
+    result = concentration_analysis([0.60, -0.05, -0.05, -0.05])
+
+    assert result["severe"] is True
+    assert result["return_without_best_block"] < 0
+
+
+def test_market_regression_recovers_beta_and_positive_alpha() -> None:
+    benchmark = np.linspace(-0.01, 0.01, 200)
+    strategy = 0.5 * benchmark + 0.0002
+
+    result = market_regression(strategy, benchmark, periods_per_year=365)
+
+    assert abs(result["beta"] - 0.5) < 1e-9
+    assert result["annual_alpha"] > 0
+    assert result["correlation"] > 0.99
+
+
+def test_pseudo_walk_forward_applies_embargo_and_marks_limitation() -> None:
+    pnl = np.full(100, 0.001)
+    times = np.arange(100, dtype=np.int64) * 3600 + 1_600_000_000
+
+    result = pseudo_walk_forward(pnl, times, 8760, splits=5, embargo_bars=2)
+
+    assert len(result["folds"]) == 5
+    assert result["folds"][1]["start_index"] == 22
+    assert result["is_true_out_of_sample"] is False

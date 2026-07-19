@@ -4,6 +4,7 @@ import math
 from typing import Any, Iterable
 
 import numpy as np
+import pandas as pd
 
 
 def _as_finite_vector(values: np.ndarray, name: str) -> np.ndarray:
@@ -31,6 +32,42 @@ def _as_non_negative_finite_scalar(value: float, name: str) -> float:
     if not math.isfinite(scalar) or scalar < 0:
         raise ValueError(f"{name}必須是大於或等於零的有限數值")
     return scalar
+
+
+def _as_positive_integer(value: int, name: str) -> int:
+    if isinstance(value, bool):
+        raise ValueError(f"{name}必須是正整數")
+    try:
+        integer = int(value)
+    except (TypeError, ValueError) as error:
+        raise ValueError(f"{name}必須是正整數") from error
+    if integer <= 0 or integer != value:
+        raise ValueError(f"{name}必須是正整數")
+    return integer
+
+
+def _time_index(times: np.ndarray, expected_length: int) -> pd.DatetimeIndex:
+    seconds = _as_finite_vector(times, "時間戳記")
+    if len(seconds) != expected_length:
+        raise ValueError("報酬與時間戳記長度必須一致")
+    if expected_length == 0:
+        raise ValueError("報酬與時間戳記不得為空")
+    try:
+        return pd.DatetimeIndex(pd.to_datetime(seconds, unit="s", utc=True))
+    except (TypeError, ValueError, OverflowError) as error:
+        raise ValueError("時間戳記無法轉換為 UTC 時間") from error
+
+
+def _unavailable_regression(reason: str, observations: int) -> dict[str, Any]:
+    return {
+        "observations": observations,
+        "alpha": None,
+        "annual_alpha": None,
+        "beta": None,
+        "residual_sharpe": None,
+        "correlation": None,
+        "reason": reason,
+    }
 
 
 def _require_finite_array(values: np.ndarray, name: str) -> np.ndarray:
@@ -195,3 +232,187 @@ def cost_stress(
         metrics["one_way_cost"] = scenario_cost
         scenarios[f"{factor:g}x"] = metrics
     return scenarios
+
+
+def concentration_analysis(block_returns: Iterable[float]) -> dict[str, Any]:
+    """檢查整體報酬是否過度依賴少數時間區塊。"""
+    values = _as_finite_vector(np.asarray(list(block_returns), dtype=np.float64), "區塊報酬")
+    if len(values) < 2:
+        return {
+            "severe": True,
+            "reason": "時間區塊不足",
+            "best_block_share": None,
+            "top_three_share": None,
+            "return_without_best_block": None,
+        }
+
+    total_positive = float(values[values > 0].sum())
+    ordered = np.sort(values)[::-1]
+    best_share = float(ordered[0] / total_positive) if total_positive > 1e-12 else None
+    top_three_share = (
+        float(ordered[:3].clip(min=0).sum() / total_positive)
+        if total_positive > 1e-12
+        else None
+    )
+    return_without_best_block = float(values.sum() - ordered[0])
+    severe = (
+        best_share is None
+        or best_share > 0.50
+        or return_without_best_block <= 0
+    )
+    return {
+        "severe": severe,
+        "reason": "報酬過度集中於少數區塊" if severe else "報酬未顯示嚴重集中",
+        "best_block_share": best_share,
+        "top_three_share": top_three_share,
+        "return_without_best_block": return_without_best_block,
+    }
+
+
+def _summarize_blocks(
+    blocks: Iterable[np.ndarray], pnl: np.ndarray, timestamps: pd.DatetimeIndex
+) -> dict[str, Any]:
+    details: list[dict[str, Any]] = []
+    returns: list[float] = []
+    for indices in blocks:
+        if len(indices) == 0:
+            continue
+        block_return = _require_finite_scalar(float(pnl[indices].sum()), "區塊報酬")
+        returns.append(block_return)
+        details.append(
+            {
+                "start_time": timestamps[indices[0]].isoformat(),
+                "end_time": timestamps[indices[-1]].isoformat(),
+                "bars": int(len(indices)),
+                "return": block_return,
+            }
+        )
+    values = np.asarray(returns, dtype=np.float64)
+    return {
+        "blocks": details,
+        "returns": returns,
+        "median_return": float(np.median(values)) if len(values) else None,
+        "positive_ratio": float(np.mean(values > 0)) if len(values) else None,
+    }
+
+
+def temporal_blocks(
+    net_returns: np.ndarray,
+    times: np.ndarray,
+    periods_per_year: int,
+    equal_blocks: int = 8,
+) -> dict[str, Any]:
+    """以自然年度與等長區塊檢查策略報酬的時間穩定性。"""
+    pnl = _as_finite_vector(net_returns, "淨報酬")
+    _as_positive_finite_scalar(periods_per_year, "每年期數")
+    block_count = _as_positive_integer(equal_blocks, "等長區塊數")
+    timestamps = _time_index(times, len(pnl))
+
+    years = timestamps.year.to_numpy()
+    natural_indices = [np.flatnonzero(years == year) for year in np.unique(years)]
+    natural = _summarize_blocks(natural_indices, pnl, timestamps)
+    for detail, year in zip(natural["blocks"], np.unique(years), strict=True):
+        detail["year"] = int(year)
+
+    equal = _summarize_blocks(
+        np.array_split(np.arange(len(pnl)), block_count), pnl, timestamps
+    )
+    concentration = concentration_analysis(equal["returns"])
+    return {
+        "natural_year": natural,
+        "equal": equal,
+        "concentration": concentration,
+    }
+
+
+def market_regression(
+    strategy_returns: np.ndarray,
+    benchmark_returns: np.ndarray,
+    periods_per_year: int,
+) -> dict[str, Any]:
+    """以 OLS 分離市場 beta 與策略 alpha。"""
+    strategy = np.asarray(strategy_returns, dtype=np.float64).reshape(-1)
+    benchmark = np.asarray(benchmark_returns, dtype=np.float64).reshape(-1)
+    periods = _as_positive_finite_scalar(periods_per_year, "每年期數")
+    if len(strategy) != len(benchmark):
+        raise ValueError("策略與基準報酬長度必須一致")
+
+    finite = np.isfinite(strategy) & np.isfinite(benchmark)
+    strategy = strategy[finite]
+    benchmark = benchmark[finite]
+    observations = int(len(strategy))
+    if observations < 30:
+        return _unavailable_regression("可用的策略與基準報酬配對不足 30 筆", observations)
+    if float(np.std(benchmark, ddof=0)) <= 1e-12:
+        return _unavailable_regression("基準報酬缺乏變異，無法估計市場 beta", observations)
+
+    design = np.column_stack([np.ones(observations), benchmark])
+    coefficients, _, _, _ = np.linalg.lstsq(design, strategy, rcond=None)
+    alpha = _require_finite_scalar(float(coefficients[0]), "回歸截距")
+    beta = _require_finite_scalar(float(coefficients[1]), "市場 beta")
+    residuals = strategy - design @ coefficients
+    residual_mean = _require_finite_scalar(float(residuals.mean()), "殘差平均值")
+    residual_std = _require_finite_scalar(float(residuals.std(ddof=0)), "殘差標準差")
+    residual_sharpe = (
+        _require_finite_scalar(
+            residual_mean / residual_std * math.sqrt(periods), "殘差 Sharpe"
+        )
+        if residual_std > 1e-12
+        else None
+    )
+    correlation = _require_finite_scalar(
+        float(np.corrcoef(strategy, benchmark)[0, 1]), "策略與基準相關性"
+    )
+    return {
+        "observations": observations,
+        "alpha": alpha,
+        "annual_alpha": _require_finite_scalar(alpha * periods, "年化 alpha"),
+        "beta": beta,
+        "residual_sharpe": residual_sharpe,
+        "correlation": correlation,
+        "reason": None,
+    }
+
+
+def pseudo_walk_forward(
+    net_returns: np.ndarray,
+    times: np.ndarray,
+    periods_per_year: int,
+    splits: int = 5,
+    embargo_bars: int = 24,
+) -> dict[str, Any]:
+    """以 embargo 分隔時間區塊；結果不應視為真正樣本外驗證。"""
+    pnl = _as_finite_vector(net_returns, "淨報酬")
+    timestamps = _time_index(times, len(pnl))
+    periods = _as_positive_finite_scalar(periods_per_year, "每年期數")
+    split_count = _as_positive_integer(splits, "切分數")
+    embargo = _as_positive_integer(embargo_bars + 1, "隔離期") - 1
+
+    folds: list[dict[str, Any]] = []
+    for fold_number, indices in enumerate(np.array_split(np.arange(len(pnl)), split_count)):
+        retained = indices if fold_number == 0 else indices[embargo:]
+        start_index = int(retained[0]) if len(retained) else None
+        end_index = int(retained[-1]) + 1 if len(retained) else None
+        fold: dict[str, Any] = {
+            "fold": fold_number + 1,
+            "start_index": start_index,
+            "end_index": end_index,
+            "embargo_bars": 0 if fold_number == 0 else embargo,
+            "start_time": timestamps[retained[0]].isoformat() if len(retained) else None,
+            "end_time": timestamps[retained[-1]].isoformat() if len(retained) else None,
+        }
+        if len(retained):
+            fold["metrics"] = performance_metrics(
+                pnl[retained], np.ones(len(retained)), periods
+            )
+            fold["reason"] = None
+        else:
+            fold["metrics"] = None
+            fold["reason"] = "隔離期後沒有可評估的資料"
+        folds.append(fold)
+
+    return {
+        "folds": folds,
+        "is_true_out_of_sample": False,
+        "limitation": "歷史資料曾參與策略搜尋；此結果僅為偽樣本外驗證。",
+    }
