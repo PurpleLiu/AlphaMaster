@@ -1,10 +1,134 @@
 from __future__ import annotations
 
 import math
+from dataclasses import dataclass
 from typing import Any, Iterable
 
 import numpy as np
 import pandas as pd
+
+
+@dataclass(frozen=True)
+class JudgmentThresholds:
+    """策略判斷的公開、可調整門檻。"""
+
+    min_profit_factor: float = 1.30
+    min_sharpe: float = 0.75
+    min_stress_2x_return: float = 0.0
+    min_block_median: float = 0.0
+    min_positive_block_ratio: float = 0.60
+    min_annual_alpha: float = 0.0
+
+
+def _is_available_judgment_value(value: Any) -> bool:
+    if value is None or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(float(value))
+    except (TypeError, ValueError):
+        return False
+
+
+def _judgment_rule(
+    name: str, value: Any, threshold: Any, operator: str, explanation: str
+) -> dict[str, Any]:
+    if value is None or (name != "concentration" and not _is_available_judgment_value(value)):
+        passed: bool | None = None
+        explanation = f"{explanation}；目前無可用數值，需人工覆核。"
+    elif operator == ">=":
+        passed = value >= threshold
+    elif operator == ">":
+        passed = value > threshold
+    else:
+        passed = value == threshold
+
+    return {
+        "name": name,
+        "value": value,
+        "threshold": threshold,
+        "operator": operator,
+        "passed": passed,
+        "explanation": explanation,
+    }
+
+
+def classify_judgment(
+    full_metrics: dict[str, Any],
+    stress: dict[str, Any],
+    blocks: dict[str, Any],
+    regression: dict[str, Any],
+    concentration: dict[str, Any],
+    thresholds: JudgmentThresholds | None = None,
+) -> dict[str, Any]:
+    """依公開門檻將策略結果分類為 PASS、REVIEW 或 FAIL。"""
+    t = thresholds or JudgmentThresholds()
+    checks = [
+        (
+            "profit_factor",
+            full_metrics.get("profit_factor"),
+            t.min_profit_factor,
+            ">=",
+            f"獲利因子必須大於或等於 {t.min_profit_factor:.2f}",
+        ),
+        (
+            "sharpe",
+            full_metrics.get("sharpe"),
+            t.min_sharpe,
+            ">=",
+            f"夏普比率必須大於或等於 {t.min_sharpe:.2f}",
+        ),
+        (
+            "cost_stress_2x",
+            stress.get("2x", {}).get("total_log_return"),
+            t.min_stress_2x_return,
+            ">=",
+            "兩倍交易成本壓力測試的總對數報酬必須非負",
+        ),
+        (
+            "block_median",
+            blocks.get("equal", {}).get("median_return"),
+            t.min_block_median,
+            ">",
+            "等分期間報酬中位數必須為正",
+        ),
+        (
+            "positive_block_ratio",
+            blocks.get("equal", {}).get("positive_ratio"),
+            t.min_positive_block_ratio,
+            ">=",
+            f"正報酬等分期間比例必須大於或等於 {t.min_positive_block_ratio:.0%}",
+        ),
+        (
+            "annual_alpha",
+            regression.get("annual_alpha"),
+            t.min_annual_alpha,
+            ">",
+            "年度 Alpha 必須為正",
+        ),
+        (
+            "concentration",
+            not concentration.get("severe") if concentration.get("severe") is not None else None,
+            True,
+            "==",
+            "報酬不可嚴重集中於少數期間",
+        ),
+    ]
+    rules = [_judgment_rule(*check) for check in checks]
+
+    if any(rule["passed"] is None for rule in rules):
+        status = "REVIEW"
+    elif (
+        full_metrics.get("profit_factor") < 1.0
+        or full_metrics.get("sharpe") <= 0
+        or stress.get("2x", {}).get("total_log_return") < 0
+    ):
+        status = "FAIL"
+    elif all(rule["passed"] for rule in rules):
+        status = "PASS"
+    else:
+        status = "REVIEW"
+
+    return {"status": status, "rules": rules}
 
 
 def _as_finite_vector(values: np.ndarray, name: str) -> np.ndarray:

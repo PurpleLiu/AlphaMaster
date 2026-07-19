@@ -6,6 +6,7 @@ import pytest
 
 from judgment.core import (
     build_net_returns,
+    classify_judgment,
     concentration_analysis,
     cost_stress,
     market_regression,
@@ -13,6 +14,41 @@ from judgment.core import (
     pseudo_walk_forward,
     temporal_blocks,
 )
+
+
+def _passing_inputs() -> tuple[dict, dict, dict, dict, dict]:
+    return (
+        {"profit_factor": 1.5, "sharpe": 1.0},
+        {"2x": {"total_log_return": 0.1}},
+        {"equal": {"median_return": 0.02, "positive_ratio": 0.75}},
+        {"annual_alpha": 0.1},
+        {"severe": False},
+    )
+
+
+def test_classification_pass_requires_every_gate() -> None:
+    result = classify_judgment(*_passing_inputs())
+
+    assert result["status"] == "PASS"
+    assert all(rule["passed"] is True for rule in result["rules"])
+
+
+def test_classification_fail_for_negative_economic_edge() -> None:
+    args = list(_passing_inputs())
+    args[0] = {"profit_factor": 0.8, "sharpe": -0.2}
+
+    result = classify_judgment(*args)
+
+    assert result["status"] == "FAIL"
+
+
+def test_classification_review_when_metric_is_unavailable() -> None:
+    args = list(_passing_inputs())
+    args[3] = {"annual_alpha": None, "reason": "資料不足"}
+
+    result = classify_judgment(*args)
+
+    assert result["status"] == "REVIEW"
 
 
 def test_build_net_returns_charges_every_position_change() -> None:
