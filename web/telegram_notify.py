@@ -11,7 +11,7 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-from web.settings import load_settings
+from web.settings import load_settings, telegram_is_active
 from web.feishu_notify import direction_cn, strength_cn
 
 _API_TEMPLATE = "https://api.telegram.org/bot{token}/sendMessage"
@@ -75,10 +75,8 @@ def notify_direction_flip(
 ) -> tuple[bool, str]:
     """信號方向發生轉折時推送提醒（與飛書 notify_direction_flip 同格式）。"""
     settings = load_settings()
-    if not settings.get("telegram_enabled"):
+    if not telegram_is_active(settings):
         return False, "Telegram 通知未啟用"
-    if not (settings.get("telegram_bot_token") or "").strip():
-        return False, "未配置 Bot Token"
 
     prev_cn = direction_cn(prev_direction)
     new_cn = direction_cn(new_direction)

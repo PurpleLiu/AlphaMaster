@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any, Mapping
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SETTINGS_PATH = PROJECT_ROOT / "web_settings.json"
@@ -30,6 +31,12 @@ _DEFAULT = {
     "telegram_bot_token": "",
     "telegram_chat_id": "",
 }
+
+
+def telegram_is_active(settings: Mapping[str, Any]) -> bool:
+    return bool(settings.get("telegram_enabled")) and bool(
+        str(settings.get("telegram_bot_token") or "").strip()
+    ) and bool(str(settings.get("telegram_chat_id") or "").strip())
 
 
 def _as_pct(value, default: float) -> float:
@@ -146,6 +153,9 @@ def load_settings() -> dict:
     out["feishu_enabled"] = bool(out.get("feishu_enabled", False))
     out["feishu_webhook_url"] = str(out.get("feishu_webhook_url") or "").strip()
     out["feishu_secret"] = str(out.get("feishu_secret") or "").strip()
+    out["telegram_enabled"] = bool(out.get("telegram_enabled", False))
+    out["telegram_bot_token"] = str(out.get("telegram_bot_token") or "").strip()
+    out["telegram_chat_id"] = str(out.get("telegram_chat_id") or "").strip()
     recovered = _recover_last_data_file(out)
     if recovered != out.get("last_data_file") and _is_production_settings_path():
         out["last_data_file"] = recovered
@@ -218,6 +228,12 @@ def save_settings(data: dict) -> dict:
         current["feishu_webhook_url"] = str(data["feishu_webhook_url"] or "").strip()
     if "feishu_secret" in data:
         current["feishu_secret"] = str(data["feishu_secret"] or "").strip()
+    if "telegram_enabled" in data:
+        current["telegram_enabled"] = bool(data["telegram_enabled"])
+    if "telegram_bot_token" in data:
+        current["telegram_bot_token"] = str(data["telegram_bot_token"] or "").strip()
+    if "telegram_chat_id" in data:
+        current["telegram_chat_id"] = str(data["telegram_chat_id"] or "").strip()
     SETTINGS_PATH.write_text(
         json.dumps(current, indent=2, ensure_ascii=False),
         encoding="utf-8",
