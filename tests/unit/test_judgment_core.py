@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from judgment.core import (
@@ -169,6 +170,23 @@ def test_temporal_blocks_report_median_and_positive_ratio() -> None:
     assert result["equal"]["positive_ratio"] == 0.75
 
 
+def test_temporal_blocks_aggregate_natural_calendar_years() -> None:
+    times = np.array(
+        [
+            pd.Timestamp("2024-12-31T23:00:00Z").timestamp(),
+            pd.Timestamp("2025-01-01T00:00:00Z").timestamp(),
+            pd.Timestamp("2025-01-01T01:00:00Z").timestamp(),
+        ]
+    )
+
+    result = temporal_blocks(np.array([0.01, -0.02, 0.03]), times, 8760, equal_blocks=2)
+
+    assert [block["year"] for block in result["natural_year"]["blocks"]] == [2024, 2025]
+    assert [block["return"] for block in result["natural_year"]["blocks"]] == pytest.approx(
+        [0.01, 0.01]
+    )
+
+
 def test_concentration_flags_single_block_dependency() -> None:
     result = concentration_analysis([0.60, -0.05, -0.05, -0.05])
 
@@ -176,15 +194,70 @@ def test_concentration_flags_single_block_dependency() -> None:
     assert result["return_without_best_block"] < 0
 
 
+@pytest.mark.parametrize("block_returns", [[0.1, np.nan], [0.1, np.inf]])
+def test_concentration_rejects_non_finite_block_returns(block_returns: list[float]) -> None:
+    with pytest.raises(ValueError, match="非有限"):
+        concentration_analysis(block_returns)
+
+
 def test_market_regression_recovers_beta_and_positive_alpha() -> None:
     benchmark = np.linspace(-0.01, 0.01, 200)
-    strategy = 0.5 * benchmark + 0.0002
+    strategy = 0.5 * benchmark + 0.0002 + np.sin(np.arange(200)) * 1e-5
 
     result = market_regression(strategy, benchmark, periods_per_year=365)
 
-    assert abs(result["beta"] - 0.5) < 1e-9
+    assert abs(result["beta"] - 0.5) < 1e-3
     assert result["annual_alpha"] > 0
     assert result["correlation"] > 0.99
+    assert result["residual_sharpe"] is not None
+
+
+def test_market_regression_filters_non_finite_pairs_before_fitting() -> None:
+    benchmark = np.linspace(-0.01, 0.01, 32)
+    strategy = 0.5 * benchmark + 0.0002 + np.sin(np.arange(32)) * 1e-5
+    strategy[0] = np.nan
+    benchmark[1] = np.inf
+
+    result = market_regression(strategy, benchmark, periods_per_year=365)
+
+    assert result["observations"] == 30
+    assert result["beta"] == pytest.approx(0.5, abs=1e-3)
+
+
+def test_market_regression_requires_at_least_thirty_finite_pairs() -> None:
+    result = market_regression(
+        np.r_[np.full(29, 0.001), np.nan],
+        np.r_[np.linspace(-0.01, 0.01, 29), 0.001],
+        periods_per_year=365,
+    )
+
+    assert result["observations"] == 29
+    assert all(result[key] is None for key in ("alpha", "annual_alpha", "beta", "residual_sharpe", "correlation"))
+    assert result["reason"] and "\u4e00" <= result["reason"][0] <= "\u9fff"
+
+
+@pytest.mark.parametrize(
+    ("strategy", "benchmark"),
+    [
+        (np.full(30, 0.001), np.linspace(-0.01, 0.01, 30)),
+        (np.linspace(-0.01, 0.01, 30), np.full(30, 0.001)),
+    ],
+)
+def test_market_regression_returns_unavailable_for_constant_series(
+    strategy: np.ndarray, benchmark: np.ndarray
+) -> None:
+    result = market_regression(strategy, benchmark, periods_per_year=365)
+
+    assert all(result[key] is None for key in ("alpha", "annual_alpha", "beta", "residual_sharpe", "correlation"))
+    assert result["reason"] and "報酬" in result["reason"]
+
+
+def test_market_regression_returns_unavailable_for_zero_residual_standard_deviation() -> None:
+    benchmark = np.linspace(-0.01, 0.01, 30)
+    result = market_regression(0.5 * benchmark + 0.0002, benchmark, periods_per_year=365)
+
+    assert all(result[key] is None for key in ("alpha", "annual_alpha", "beta", "residual_sharpe", "correlation"))
+    assert result["reason"] and "殘差" in result["reason"]
 
 
 def test_pseudo_walk_forward_applies_embargo_and_marks_limitation() -> None:
@@ -196,3 +269,21 @@ def test_pseudo_walk_forward_applies_embargo_and_marks_limitation() -> None:
     assert len(result["folds"]) == 5
     assert result["folds"][1]["start_index"] == 22
     assert result["is_true_out_of_sample"] is False
+    """
+    assert result["limitation"] == "歷史資料曾參與策略搜尋；此結果僅為偽樣本外驗證。"
+
+
+    """
+    assert result["limitation"] == "\u6b77\u53f2\u8cc7\u6599\u66fe\u53c3\u8207\u7b56\u7565\u641c\u5c0b\uff1b\u6b64\u7d50\u679c\u50c5\u70ba\u507d\u6a23\u672c\u5916\u9a57\u8b49\u3002"
+
+
+def test_pseudo_walk_forward_reports_fully_embargoed_fold() -> None:
+    pnl = np.full(4, 0.001)
+    times = np.arange(4, dtype=np.int64) * 3600 + 1_600_000_000
+
+    result = pseudo_walk_forward(pnl, times, 8760, splits=2, embargo_bars=2)
+
+    assert result["folds"][1]["metrics"] is None
+    """
+    """
+    assert result["folds"][1]["reason"] == "\u9694\u96e2\u671f\u5f8c\u6c92\u6709\u53ef\u8a55\u4f30\u7684\u8cc7\u6599"

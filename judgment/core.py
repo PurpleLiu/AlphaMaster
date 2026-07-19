@@ -343,8 +343,13 @@ def market_regression(
     observations = int(len(strategy))
     if observations < 30:
         return _unavailable_regression("可用的策略與基準報酬配對不足 30 筆", observations)
-    if float(np.std(benchmark, ddof=0)) <= 1e-12:
-        return _unavailable_regression("基準報酬缺乏變異，無法估計市場 beta", observations)
+    if (
+        float(np.std(strategy, ddof=0)) <= 1e-12
+        or float(np.std(benchmark, ddof=0)) <= 1e-12
+    ):
+        return _unavailable_regression(
+            "策略或基準報酬缺乏變異，無法估計回歸指標", observations
+        )
 
     design = np.column_stack([np.ones(observations), benchmark])
     coefficients, _, _, _ = np.linalg.lstsq(design, strategy, rcond=None)
@@ -353,12 +358,12 @@ def market_regression(
     residuals = strategy - design @ coefficients
     residual_mean = _require_finite_scalar(float(residuals.mean()), "殘差平均值")
     residual_std = _require_finite_scalar(float(residuals.std(ddof=0)), "殘差標準差")
-    residual_sharpe = (
-        _require_finite_scalar(
-            residual_mean / residual_std * math.sqrt(periods), "殘差 Sharpe"
+    if residual_std <= 1e-12:
+        return _unavailable_regression(
+            "殘差標準差為零，無法計算回歸指標", observations
         )
-        if residual_std > 1e-12
-        else None
+    residual_sharpe = _require_finite_scalar(
+        residual_mean / residual_std * math.sqrt(periods), "殘差 Sharpe"
     )
     correlation = _require_finite_scalar(
         float(np.corrcoef(strategy, benchmark)[0, 1]), "策略與基準相關性"
