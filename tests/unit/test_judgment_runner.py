@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 
 from judgment.runner import load_strategy_snapshot, run_judgment
+from model_core.vocab import FORMULA_VOCAB
 
 
 @pytest.fixture
@@ -111,4 +112,15 @@ def test_load_strategy_snapshot_requires_non_empty_integer_formula(
     path.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(ValueError, match="formula"):
+        load_strategy_snapshot(path)
+
+
+@pytest.mark.parametrize("token", [-1, FORMULA_VOCAB.size])
+def test_load_strategy_snapshot_rejects_token_outside_current_vocab(
+    tmp_path: Path, token: int
+) -> None:
+    path = tmp_path / "invalid-token.json"
+    path.write_text(json.dumps({"formula": [token]}), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="token"):
         load_strategy_snapshot(path)

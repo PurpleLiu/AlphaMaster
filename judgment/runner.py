@@ -14,6 +14,7 @@ import pandas as pd
 from data_pipeline.parquet_manager import ParquetDataManager
 from model_core.backtest import estimate_periods_per_year
 from model_core.vm import StackVM
+from model_core.vocab import FORMULA_VOCAB
 from strategy_manager.signal import compute_target_positions_stateless
 
 from .core import (
@@ -34,6 +35,14 @@ def _formula_from_payload(payload: Any) -> list[int]:
         raise ValueError("策略快照必須包含非空的整數 formula")
     if any(isinstance(token, bool) or not isinstance(token, int) for token in formula):
         raise ValueError("策略快照的 formula 必須全部是整數")
+    invalid_tokens = [
+        token for token in formula if token < 0 or token >= FORMULA_VOCAB.size
+    ]
+    if invalid_tokens:
+        raise ValueError(
+            "策略快照的 formula 含有超出目前詞彙表範圍的 token "
+            f"（合法範圍：0 至 {FORMULA_VOCAB.size - 1}）：{invalid_tokens}"
+        )
     return formula
 
 
