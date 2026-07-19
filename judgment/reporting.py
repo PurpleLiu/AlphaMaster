@@ -5,6 +5,7 @@ import json
 import math
 import os
 import re
+import stat
 import tempfile
 import uuid
 from collections.abc import Mapping
@@ -262,6 +263,22 @@ def _backup_path(path: Path) -> Path:
     return path.with_name(f".{path.name}.{uuid.uuid4().hex}.bak")
 
 
+def _validate_final_target(path: Path, label: str) -> None:
+    """Reject unsafe existing report targets before publication begins."""
+    try:
+        metadata = path.lstat()
+    except FileNotFoundError:
+        return
+
+    if path.is_symlink():
+        raise ValueError(f"報告 {label} 目標不可是符號連結：{path}")
+    if stat.S_ISREG(metadata.st_mode):
+        return
+    if stat.S_ISDIR(metadata.st_mode):
+        raise ValueError(f"報告 {label} 目標不可是目錄：{path}")
+    raise ValueError(f"報告 {label} 目標必須是一般檔案：{path}")
+
+
 def _remove(path: Path | None) -> None:
     if path is not None:
         path.unlink(missing_ok=True)
@@ -288,6 +305,9 @@ def write_reports(result: dict, output_dir: str | Path) -> tuple[Path, Path]:
 
     if max(len(json_path.name), len(markdown_path.name)) > MAX_REPORT_FILENAME_LENGTH:
         raise ValueError("審判報告檔名超過安全長度限制")
+
+    _validate_final_target(json_path, "JSON")
+    _validate_final_target(markdown_path, "Markdown")
 
     json_content = json.dumps(safe, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
     markdown_content = render_markdown(safe)

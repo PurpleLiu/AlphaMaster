@@ -170,6 +170,38 @@ def test_write_reports_bounds_long_filename_parts_without_losing_hash_or_timesta
     assert json_path.stem == markdown_path.stem
 
 
+def test_write_reports_rejects_existing_final_directory_before_creating_temp_files(
+    tmp_path: Path,
+) -> None:
+    result = _result()
+    final_json_directory = tmp_path / "BTC_USDT_H1_test_abcdef12_20260719_123456.json"
+    final_json_directory.mkdir()
+
+    with pytest.raises(ValueError, match="JSON.*目錄"):
+        write_reports(result, tmp_path)
+
+    assert final_json_directory.is_dir()
+    assert list(final_json_directory.iterdir()) == []
+    assert sorted(path.name for path in tmp_path.iterdir()) == [final_json_directory.name]
+
+
+def test_write_reports_rejects_dangling_final_symlink_before_creating_temp_files(
+    tmp_path: Path,
+) -> None:
+    result = _result()
+    final_json_link = tmp_path / "BTC_USDT_H1_test_abcdef12_20260719_123456.json"
+    try:
+        final_json_link.symlink_to(tmp_path / "missing-report.json")
+    except OSError as error:
+        pytest.skip(f"目前 Windows 環境不允許建立符號連結：{error}")
+
+    with pytest.raises(ValueError, match="JSON.*符號連結"):
+        write_reports(result, tmp_path)
+
+    assert final_json_link.is_symlink()
+    assert sorted(path.name for path in tmp_path.iterdir()) == [final_json_link.name]
+
+
 def test_write_reports_rolls_back_final_and_temp_files_when_markdown_publish_fails(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
