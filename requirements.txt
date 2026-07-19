@@ -45,4 +45,5 @@ tqdm>=4.66.0
 # ===== Tests / E2E tooling =====
 pytest>=7.0.0
 hypothesis>=6.0.0
+httpx2>=0.30.0
 playwright>=1.40.0
