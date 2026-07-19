@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from judgment.core import (
+    JudgmentThresholds,
     build_net_returns,
     classify_judgment,
     concentration_analysis,
@@ -49,6 +50,154 @@ def test_classification_review_when_metric_is_unavailable() -> None:
     result = classify_judgment(*args)
 
     assert result["status"] == "REVIEW"
+
+
+@pytest.mark.parametrize(
+    ("metric_group", "metric_values"),
+    [
+        ("full_metrics", {"profit_factor": 0.99, "sharpe": 1.0}),
+        ("full_metrics", {"profit_factor": 1.5, "sharpe": 0.0}),
+        ("stress", {"2x": {"total_log_return": -0.001}}),
+    ],
+)
+def test_classification_fails_for_each_independent_economic_trigger(
+    metric_group: str, metric_values: dict
+) -> None:
+    full_metrics, stress, blocks, regression, concentration = _passing_inputs()
+    inputs = {
+        "full_metrics": full_metrics,
+        "stress": stress,
+        "blocks": blocks,
+        "regression": regression,
+        "concentration": concentration,
+    }
+    inputs[metric_group] = metric_values
+
+    result = classify_judgment(**inputs)
+
+    assert result["status"] == "FAIL"
+
+
+def test_classification_uses_documented_equality_boundaries() -> None:
+    result = classify_judgment(
+        {"profit_factor": 1.30, "sharpe": 0.75},
+        {"2x": {"total_log_return": 0.0}},
+        {"equal": {"median_return": 0.0, "positive_ratio": 0.60}},
+        {"annual_alpha": 0.0},
+        {"severe": False},
+    )
+
+    rules = {rule["name"]: rule for rule in result["rules"]}
+    assert result["status"] == "REVIEW"
+    assert rules["profit_factor"]["passed"] is True
+    assert rules["sharpe"]["passed"] is True
+    assert rules["cost_stress_2x"]["passed"] is True
+    assert rules["positive_block_ratio"]["passed"] is True
+    assert rules["block_median"]["passed"] is False
+    assert rules["annual_alpha"]["passed"] is False
+
+
+@pytest.mark.parametrize(
+    ("blocks", "regression"),
+    [
+        ({"equal": {"median_return": 0.0, "positive_ratio": 0.75}}, {"annual_alpha": 0.1}),
+        ({"equal": {"median_return": 0.02, "positive_ratio": 0.59}}, {"annual_alpha": 0.1}),
+        ({"equal": {"median_return": 0.02, "positive_ratio": 0.75}}, {"annual_alpha": 0.0}),
+    ],
+)
+def test_classification_reviews_ordinary_failed_gates(
+    blocks: dict, regression: dict
+) -> None:
+    full_metrics, stress, _, _, concentration = _passing_inputs()
+
+    result = classify_judgment(full_metrics, stress, blocks, regression, concentration)
+
+    assert result["status"] == "REVIEW"
+
+
+@pytest.mark.parametrize("concentration", [{"severe": True}, {}, {"severe": None}, None])
+def test_classification_reviews_severe_or_unavailable_concentration(
+    concentration: dict | None,
+) -> None:
+    full_metrics, stress, blocks, regression, _ = _passing_inputs()
+
+    result = classify_judgment(full_metrics, stress, blocks, regression, concentration)
+
+    concentration_rule = next(rule for rule in result["rules"] if rule["name"] == "concentration")
+    assert result["status"] == "REVIEW"
+    if concentration in ({}, {"severe": None}, None):
+        assert concentration_rule["passed"] is None
+        assert "無法取得" in concentration_rule["explanation"]
+    else:
+        assert concentration_rule["passed"] is False
+
+
+def test_classification_uses_custom_thresholds_in_every_rule_explanation() -> None:
+    thresholds = JudgmentThresholds(1.25, 0.80, 0.01, 0.02, 0.70, 0.03)
+    full_metrics, stress, blocks, regression, concentration = _passing_inputs()
+    blocks = {"equal": {"median_return": 0.03, "positive_ratio": 0.75}}
+
+    result = classify_judgment(
+        full_metrics, stress, blocks, regression, concentration, thresholds=thresholds
+    )
+
+    assert result["status"] == "PASS"
+    expected = {
+        "profit_factor": ">= 1.25",
+        "sharpe": ">= 0.80",
+        "cost_stress_2x": ">= 0.01",
+        "block_median": "> 0.02",
+        "positive_block_ratio": ">= 70%",
+        "annual_alpha": "> 0.03",
+        "concentration": "== True",
+    }
+    for rule in result["rules"]:
+        assert expected[rule["name"]] in rule["explanation"]
+        assert "需" in rule["explanation"]
+
+
+def test_classification_rule_schema_and_explanations_are_traditional_chinese() -> None:
+    result = classify_judgment(*_passing_inputs())
+
+    assert {rule["name"] for rule in result["rules"]} == {
+        "profit_factor",
+        "sharpe",
+        "cost_stress_2x",
+        "block_median",
+        "positive_block_ratio",
+        "annual_alpha",
+        "concentration",
+    }
+    for rule in result["rules"]:
+        assert set(rule) == {"name", "value", "threshold", "operator", "passed", "explanation"}
+        assert rule["operator"] in {">=", ">", "=="}
+        assert "需" in rule["explanation"]
+
+
+@pytest.mark.parametrize(
+    ("stress", "blocks", "regression", "concentration", "unavailable_rule"),
+    [
+        ({"2x": None}, {"equal": {"median_return": 0.02, "positive_ratio": 0.75}}, {"annual_alpha": 0.1}, {"severe": False}, "cost_stress_2x"),
+        ({"2x": {"total_log_return": "0.1"}}, {"equal": {"median_return": 0.02, "positive_ratio": 0.75}}, {"annual_alpha": 0.1}, {"severe": False}, "cost_stress_2x"),
+        ({"2x": {"total_log_return": np.nan}}, {"equal": {"median_return": 0.02, "positive_ratio": 0.75}}, {"annual_alpha": 0.1}, {"severe": False}, "cost_stress_2x"),
+        ({"2x": {"total_log_return": 0.1}}, {"equal": []}, None, {"severe": False}, "block_median"),
+    ],
+)
+def test_classification_reviews_malformed_or_unavailable_nested_inputs(
+    stress: dict,
+    blocks: dict,
+    regression: dict | None,
+    concentration: dict,
+    unavailable_rule: str,
+) -> None:
+    full_metrics, _, _, _, _ = _passing_inputs()
+
+    result = classify_judgment(full_metrics, stress, blocks, regression, concentration)
+
+    rule = next(rule for rule in result["rules"] if rule["name"] == unavailable_rule)
+    assert result["status"] == "REVIEW"
+    assert rule["passed"] is None
+    assert "無法取得" in rule["explanation"]
 
 
 def test_build_net_returns_charges_every_position_change() -> None:

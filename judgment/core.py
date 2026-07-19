@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
+from numbers import Real
 from typing import Any, Iterable
 
 import numpy as np
@@ -21,26 +23,52 @@ class JudgmentThresholds:
 
 
 def _is_available_judgment_value(value: Any) -> bool:
-    if value is None or isinstance(value, bool):
+    if isinstance(value, bool) or not isinstance(value, Real):
         return False
-    try:
-        return math.isfinite(float(value))
-    except (TypeError, ValueError):
-        return False
+    return math.isfinite(float(value))
+
+
+def _nested_judgment_value(value: Any, *keys: str) -> Any:
+    for key in keys:
+        if not isinstance(value, Mapping):
+            return None
+        value = value.get(key)
+    return value
+
+
+def _format_judgment_value(value: Any, *, percentage: bool = False) -> str:
+    if percentage and _is_available_judgment_value(value):
+        return f"{float(value):.0%}"
+    if _is_available_judgment_value(value):
+        return f"{float(value):.2f}"
+    return str(value)
 
 
 def _judgment_rule(
     name: str, value: Any, threshold: Any, operator: str, explanation: str
 ) -> dict[str, Any]:
-    if value is None or (name != "concentration" and not _is_available_judgment_value(value)):
+    percentage = name == "positive_block_ratio"
+    threshold_text = _format_judgment_value(threshold, percentage=percentage)
+    is_available = (
+        isinstance(value, bool)
+        if name == "concentration"
+        else _is_available_judgment_value(value)
+    )
+    if not is_available:
         passed: bool | None = None
-        explanation = f"{explanation}；目前無可用數值，需人工覆核。"
+        explanation = (
+            f"{explanation}需 {operator} {threshold_text}；"
+            "無法取得或格式無效，需人工審查。"
+        )
     elif operator == ">=":
         passed = value >= threshold
     elif operator == ">":
         passed = value > threshold
     else:
         passed = value == threshold
+    if is_available:
+        value_text = _format_judgment_value(value, percentage=percentage)
+        explanation = f"{explanation}需 {operator} {threshold_text}；目前值為 {value_text}。"
 
     return {
         "name": name,
@@ -65,52 +93,56 @@ def classify_judgment(
     checks = [
         (
             "profit_factor",
-            full_metrics.get("profit_factor"),
+            _nested_judgment_value(full_metrics, "profit_factor"),
             t.min_profit_factor,
             ">=",
-            f"獲利因子必須大於或等於 {t.min_profit_factor:.2f}",
+            "獲利因子",
         ),
         (
             "sharpe",
-            full_metrics.get("sharpe"),
+            _nested_judgment_value(full_metrics, "sharpe"),
             t.min_sharpe,
             ">=",
-            f"夏普比率必須大於或等於 {t.min_sharpe:.2f}",
+            "夏普比率",
         ),
         (
             "cost_stress_2x",
-            stress.get("2x", {}).get("total_log_return"),
+            _nested_judgment_value(stress, "2x", "total_log_return"),
             t.min_stress_2x_return,
             ">=",
-            "兩倍交易成本壓力測試的總對數報酬必須非負",
+            "兩倍交易成本壓力測試的總對數報酬",
         ),
         (
             "block_median",
-            blocks.get("equal", {}).get("median_return"),
+            _nested_judgment_value(blocks, "equal", "median_return"),
             t.min_block_median,
             ">",
-            "等分期間報酬中位數必須為正",
+            "等分期間報酬中位數",
         ),
         (
             "positive_block_ratio",
-            blocks.get("equal", {}).get("positive_ratio"),
+            _nested_judgment_value(blocks, "equal", "positive_ratio"),
             t.min_positive_block_ratio,
             ">=",
-            f"正報酬等分期間比例必須大於或等於 {t.min_positive_block_ratio:.0%}",
+            "正報酬等分期間比例",
         ),
         (
             "annual_alpha",
-            regression.get("annual_alpha"),
+            _nested_judgment_value(regression, "annual_alpha"),
             t.min_annual_alpha,
             ">",
-            "年度 Alpha 必須為正",
+            "年度 Alpha",
         ),
         (
             "concentration",
-            not concentration.get("severe") if concentration.get("severe") is not None else None,
+            (
+                not _nested_judgment_value(concentration, "severe")
+                if isinstance(_nested_judgment_value(concentration, "severe"), bool)
+                else None
+            ),
             True,
             "==",
-            "報酬不可嚴重集中於少數期間",
+            "報酬集中度",
         ),
     ]
     rules = [_judgment_rule(*check) for check in checks]
@@ -118,9 +150,9 @@ def classify_judgment(
     if any(rule["passed"] is None for rule in rules):
         status = "REVIEW"
     elif (
-        full_metrics.get("profit_factor") < 1.0
-        or full_metrics.get("sharpe") <= 0
-        or stress.get("2x", {}).get("total_log_return") < 0
+        next(rule["value"] for rule in rules if rule["name"] == "profit_factor") < 1.0
+        or next(rule["value"] for rule in rules if rule["name"] == "sharpe") <= 0
+        or next(rule["value"] for rule in rules if rule["name"] == "cost_stress_2x") < 0
     ):
         status = "FAIL"
     elif all(rule["passed"] for rule in rules):
