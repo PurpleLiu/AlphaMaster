@@ -1980,6 +1980,22 @@ async function initRealtimeOnce() {
   await loadRtTelegramSettings();
 }
 
+const RT_TELEGRAM_SAVE_DELAY_MS = 500;
+let rtTelegramSaveTimer = null;
+
+function scheduleRtTelegramSave() {
+  if (rtTelegramSaveTimer) window.clearTimeout(rtTelegramSaveTimer);
+  const hint = $("rtTelegramHint");
+  if (hint) {
+    hint.textContent = "設定已變更，準備自動儲存…";
+    hint.classList.remove("valid", "bad", "invalid");
+  }
+  rtTelegramSaveTimer = window.setTimeout(() => {
+    rtTelegramSaveTimer = null;
+    saveRtTelegramSettings({ automatic: true });
+  }, RT_TELEGRAM_SAVE_DELAY_MS);
+}
+
 async function loadRtTelegramSettings() {
   try {
     const data = await fetchJSON("/api/realtime/telegram");
@@ -1989,13 +2005,17 @@ async function loadRtTelegramSettings() {
   } catch (e) {
     const hint = $("rtTelegramHint");
     if (hint) {
-      hint.textContent = "載入 Telegram 設置失敗: " + e.message;
+      hint.textContent = `載入 Telegram 設定失敗：${e.message}`;
       hint.classList.add("bad");
     }
   }
 }
 
-async function saveRtTelegramSettings() {
+async function saveRtTelegramSettings({ automatic = false } = {}) {
+  if (!automatic && rtTelegramSaveTimer) {
+    window.clearTimeout(rtTelegramSaveTimer);
+    rtTelegramSaveTimer = null;
+  }
   const hint = $("rtTelegramHint");
   const btn = $("rtTelegramSaveBtn");
   if (btn) btn.disabled = true;
@@ -2010,13 +2030,13 @@ async function saveRtTelegramSettings() {
       }),
     });
     if (hint) {
-      hint.textContent = "✓ 已保存，方向轉折時會推送到 Telegram。";
+      hint.textContent = automatic ? "Telegram 設定已自動儲存。" : "Telegram 設定已儲存。";
       hint.classList.remove("bad", "invalid");
       hint.classList.add("valid");
     }
   } catch (e) {
     if (hint) {
-      hint.textContent = "保存失敗: " + e.message;
+      hint.textContent = `儲存失敗：${e.message}`;
       hint.classList.remove("valid");
       hint.classList.add("bad", "invalid");
     }
@@ -2039,13 +2059,13 @@ async function testRtTelegram() {
       }),
     });
     if (hint) {
-      hint.textContent = "✓ 測試消息已發送，請到 Telegram 查收。";
+      hint.textContent = "Telegram 測試訊息已送出。";
       hint.classList.remove("bad", "invalid");
       hint.classList.add("valid");
     }
   } catch (e) {
     if (hint) {
-      hint.textContent = "測試失敗: " + e.message;
+      hint.textContent = `測試失敗：${e.message}`;
       hint.classList.remove("valid");
       hint.classList.add("bad", "invalid");
     }
@@ -2660,8 +2680,15 @@ async function init() {
   if ($("rtFeishuSaveBtn")) $("rtFeishuSaveBtn").addEventListener("click", saveRtFeishuSettings);
   if ($("rtFeishuTestBtn")) $("rtFeishuTestBtn").addEventListener("click", testRtFeishu);
   if ($("rtFeishuHelpBtn")) $("rtFeishuHelpBtn").addEventListener("click", openRtFeishuHelpModal);
-  if ($("rtTelegramSaveBtn")) $("rtTelegramSaveBtn").addEventListener("click", saveRtTelegramSettings);
+  if ($("rtTelegramSaveBtn")) {
+    $("rtTelegramSaveBtn").addEventListener("click", () => saveRtTelegramSettings());
+  }
   if ($("rtTelegramTestBtn")) $("rtTelegramTestBtn").addEventListener("click", testRtTelegram);
+  ["rtTelegramEnabled", "rtTelegramToken", "rtTelegramChatId"].forEach((id) => {
+    const el = $(id);
+    if (!el) return;
+    el.addEventListener(id === "rtTelegramEnabled" ? "change" : "input", scheduleRtTelegramSave);
+  });
   document.querySelectorAll("[data-close-feishu-help]").forEach((el) => {
     el.addEventListener("click", closeRtFeishuHelpModal);
   });
