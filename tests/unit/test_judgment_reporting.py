@@ -5,7 +5,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
+import pytest
 
+import judgment.reporting as reporting
 from judgment.reporting import render_markdown, to_json_safe, write_reports
 
 
@@ -89,6 +91,29 @@ def test_to_json_safe_converts_datetime_like_numpy_scalars_to_text() -> None:
     assert json.loads(json.dumps(result)) == result
 
 
+def test_to_json_safe_converts_nonstandard_numpy_and_complex_values_to_strict_json() -> None:
+    result = to_json_safe(
+        {
+            "duration": np.timedelta64(3, "h"),
+            "missing_duration": np.timedelta64("NaT", "ns"),
+            "bytes": np.bytes_(b"alpha"),
+            "invalid_bytes": b"\xff",
+            "complex": 2 + 3j,
+            "complex_array": np.array([1 + 2j, 3 - 4j]),
+        }
+    )
+
+    assert result == {
+        "duration": "3 hours",
+        "missing_duration": None,
+        "bytes": "alpha",
+        "invalid_bytes": "�",
+        "complex": None,
+        "complex_array": [None, None],
+    }
+    assert json.loads(json.dumps(result, allow_nan=False)) == result
+
+
 def test_markdown_lists_required_diagnostics_and_prominent_oos_warning() -> None:
     text = render_markdown(_result())
 
@@ -130,3 +155,36 @@ def test_write_reports_uses_safe_deterministic_filename_and_valid_utf8_json(tmp_
     assert saved["cost_stress"]["2x"]["total_log_return"] is None
     assert saved["cost_stress"]["3x"]["total_log_return"] is None
     assert markdown_path.read_text(encoding="utf-8").startswith("# AlphaMaster 策略審判報告")
+
+
+def test_write_reports_bounds_long_filename_parts_without_losing_hash_or_timestamp(tmp_path: Path) -> None:
+    result = _result()
+    result["source"]["symbol"] = "BTC" * 200
+    result["source"]["timeframe"] = "H1" * 200
+
+    json_path, markdown_path = write_reports(result, tmp_path)
+
+    assert len(json_path.name) <= reporting.MAX_REPORT_FILENAME_LENGTH
+    assert len(markdown_path.name) <= reporting.MAX_REPORT_FILENAME_LENGTH
+    assert "_abcdef12_20260719_123456" in json_path.name
+    assert json_path.stem == markdown_path.stem
+
+
+def test_write_reports_rolls_back_final_and_temp_files_when_markdown_publish_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    real_replace = reporting.os.replace
+
+    def fail_markdown_publish(source: str | Path, destination: str | Path) -> None:
+        source_path = Path(source)
+        destination_path = Path(destination)
+        if source_path.suffix == ".tmp" and destination_path.suffix == ".md":
+            raise OSError("injected markdown publish failure")
+        real_replace(source, destination)
+
+    monkeypatch.setattr(reporting.os, "replace", fail_markdown_publish)
+
+    with pytest.raises(OSError, match="injected markdown publish failure"):
+        write_reports(_result(), tmp_path)
+
+    assert list(tmp_path.iterdir()) == []

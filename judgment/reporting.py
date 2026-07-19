@@ -3,13 +3,21 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
+import tempfile
+import uuid
 from collections.abc import Mapping
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+
+
+MAX_REPORT_FILENAME_LENGTH = 120
+_MAX_SYMBOL_FILENAME_PART_LENGTH = 48
+_MAX_TIMEFRAME_FILENAME_PART_LENGTH = 32
 
 
 def to_json_safe(value: Any) -> Any:
@@ -18,12 +26,23 @@ def to_json_safe(value: Any) -> Any:
     JSON has no representation for NaN or infinities.  They are intentionally
     rendered as ``null`` so an unavailable metric cannot be mistaken for zero.
     """
+    if isinstance(value, np.timedelta64):
+        return None if np.isnat(value) else str(value)
+    if isinstance(value, np.datetime64):
+        return None if np.isnat(value) else str(value)
     if isinstance(value, np.ndarray):
         return to_json_safe(value.tolist())
     if isinstance(value, np.generic):
         return to_json_safe(value.item())
+    if isinstance(value, timedelta):
+        seconds = value.total_seconds()
+        return seconds if math.isfinite(seconds) else None
     if isinstance(value, (datetime, date, time)):
         return value.isoformat()
+    if isinstance(value, (bytes, bytearray, memoryview)):
+        return bytes(value).decode("utf-8", errors="replace")
+    if isinstance(value, complex):
+        return None
     if isinstance(value, Mapping):
         return {str(key): to_json_safe(item) for key, item in value.items()}
     if isinstance(value, (list, tuple, set)):
@@ -32,7 +51,9 @@ def to_json_safe(value: Any) -> Any:
         return value if math.isfinite(value) else None
     if isinstance(value, Path):
         return str(value)
-    return value
+    if value is None or isinstance(value, (str, int, bool)):
+        return value
+    return str(value)
 
 
 def _mapping(value: Any) -> Mapping[str, Any]:
@@ -191,10 +212,10 @@ def render_markdown(result: dict) -> str:
     return "\n\n".join(sections) + "\n"
 
 
-def _filename_part(value: Any, fallback: str) -> str:
+def _filename_part(value: Any, fallback: str, max_length: int) -> str:
     cleaned = re.sub(r"[^A-Za-z0-9._-]+", "_", str(value or ""))
     cleaned = re.sub(r"_+", "_", cleaned).strip("._-")
-    return cleaned or fallback
+    return (cleaned[:max_length].strip("._-") or fallback)[:max_length]
 
 
 def _utc_file_timestamp(value: Any) -> str:
@@ -210,6 +231,42 @@ def _utc_file_timestamp(value: Any) -> str:
     return timestamp.astimezone(timezone.utc).strftime("%Y%m%d_%H%M%S")
 
 
+def _write_temp_text(directory: Path, final_name: str, content: str) -> Path:
+    descriptor, name = tempfile.mkstemp(
+        prefix=f".{final_name}.", suffix=".tmp", dir=directory, text=True
+    )
+    path = Path(name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(content)
+            handle.flush()
+            os.fsync(handle.fileno())
+        return path
+    except BaseException:
+        path.unlink(missing_ok=True)
+        raise
+
+
+def _sync_directory(directory: Path) -> None:
+    """Persist directory entries when the current platform supports it."""
+    if os.name == "nt":
+        return
+    descriptor = os.open(directory, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def _backup_path(path: Path) -> Path:
+    return path.with_name(f".{path.name}.{uuid.uuid4().hex}.bak")
+
+
+def _remove(path: Path | None) -> None:
+    if path is not None:
+        path.unlink(missing_ok=True)
+
+
 def write_reports(result: dict, output_dir: str | Path) -> tuple[Path, Path]:
     """Write strict JSON and Markdown reports under a reproducible safe filename."""
     safe = to_json_safe(result)
@@ -217,17 +274,61 @@ def write_reports(result: dict, output_dir: str | Path) -> tuple[Path, Path]:
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    symbol = _filename_part(source.get("symbol"), "UNKNOWN")
-    timeframe = _filename_part(source.get("timeframe"), "UNKNOWN")
-    digest = _filename_part(source.get("strategy_sha256"), "nohash")[:8]
+    symbol = _filename_part(
+        source.get("symbol"), "UNKNOWN", _MAX_SYMBOL_FILENAME_PART_LENGTH
+    )
+    timeframe = _filename_part(
+        source.get("timeframe"), "UNKNOWN", _MAX_TIMEFRAME_FILENAME_PART_LENGTH
+    )
+    digest = _filename_part(source.get("strategy_sha256"), "nohash", 8)
     timestamp = _utc_file_timestamp(safe.get("created_at_utc") or safe.get("created_at"))
     stem = f"{symbol}_{timeframe}_{digest}_{timestamp}"
     json_path = output_path / f"{stem}.json"
     markdown_path = output_path / f"{stem}.md"
 
-    json_path.write_text(
-        json.dumps(safe, ensure_ascii=False, indent=2, allow_nan=False) + "\n",
-        encoding="utf-8",
-    )
-    markdown_path.write_text(render_markdown(safe), encoding="utf-8")
+    if max(len(json_path.name), len(markdown_path.name)) > MAX_REPORT_FILENAME_LENGTH:
+        raise ValueError("審判報告檔名超過安全長度限制")
+
+    json_content = json.dumps(safe, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
+    markdown_content = render_markdown(safe)
+    json_temp: Path | None = None
+    markdown_temp: Path | None = None
+    json_backup: Path | None = None
+    markdown_backup: Path | None = None
+    json_published = False
+    markdown_published = False
+
+    try:
+        json_temp = _write_temp_text(output_path, json_path.name, json_content)
+        markdown_temp = _write_temp_text(output_path, markdown_path.name, markdown_content)
+
+        if json_path.exists():
+            json_backup = _backup_path(json_path)
+            os.replace(json_path, json_backup)
+        if markdown_path.exists():
+            markdown_backup = _backup_path(markdown_path)
+            os.replace(markdown_path, markdown_backup)
+
+        os.replace(json_temp, json_path)
+        json_temp = None
+        json_published = True
+        os.replace(markdown_temp, markdown_path)
+        markdown_temp = None
+        markdown_published = True
+        _sync_directory(output_path)
+    except BaseException:
+        _remove(json_temp)
+        _remove(markdown_temp)
+        if json_published:
+            _remove(json_path)
+        if markdown_published:
+            _remove(markdown_path)
+        if json_backup is not None:
+            os.replace(json_backup, json_path)
+        if markdown_backup is not None:
+            os.replace(markdown_backup, markdown_path)
+        raise
+    else:
+        _remove(json_backup)
+        _remove(markdown_backup)
     return json_path, markdown_path
