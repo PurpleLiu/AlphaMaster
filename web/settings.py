@@ -2,12 +2,16 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
+import threading
 from pathlib import Path
 from typing import Any, Mapping
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 SETTINGS_PATH = PROJECT_ROOT / "web_settings.json"
 STRATEGIES_DIR = PROJECT_ROOT / "strategies"
+_SETTINGS_LOCK = threading.RLock()
 
 _DEFAULT = {
     "last_data_file": "",
@@ -37,6 +41,24 @@ def telegram_is_active(settings: Mapping[str, Any]) -> bool:
     return bool(settings.get("telegram_enabled")) and bool(
         str(settings.get("telegram_bot_token") or "").strip()
     ) and bool(str(settings.get("telegram_chat_id") or "").strip())
+
+
+def _write_settings_atomically(settings: Mapping[str, Any]) -> None:
+    """Durably replace settings without ever exposing a partial JSON file."""
+    SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temp_name = tempfile.mkstemp(
+        prefix=f".{SETTINGS_PATH.name}.", suffix=".tmp", dir=SETTINGS_PATH.parent
+    )
+    temp_path = Path(temp_name)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+            json.dump(dict(settings), handle, ensure_ascii=False, indent=2)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(temp_path, SETTINGS_PATH)
+    except BaseException:
+        temp_path.unlink(missing_ok=True)
+        raise
 
 
 def _as_pct(value, default: float) -> float:
@@ -113,7 +135,7 @@ def _recover_last_data_file(current: dict) -> str:
     return cur
 
 
-def load_settings() -> dict:
+def _load_settings_unlocked() -> dict:
     if not SETTINGS_PATH.exists():
         return dict(_DEFAULT)
     try:
@@ -160,17 +182,19 @@ def load_settings() -> dict:
     if recovered != out.get("last_data_file") and _is_production_settings_path():
         out["last_data_file"] = recovered
         if recovered:
-            SETTINGS_PATH.write_text(
-                json.dumps(out, indent=2, ensure_ascii=False),
-                encoding="utf-8",
-            )
+            _write_settings_atomically(out)
     elif recovered != out.get("last_data_file"):
         out["last_data_file"] = recovered
     return out
 
 
-def save_settings(data: dict) -> dict:
-    current = load_settings()
+def load_settings() -> dict:
+    with _SETTINGS_LOCK:
+        return _load_settings_unlocked()
+
+
+def _save_settings_unlocked(data: dict) -> dict:
+    current = _load_settings_unlocked()
     if "last_data_file" in data:
         path = str(data["last_data_file"] or "").strip()
         if (
@@ -234,8 +258,11 @@ def save_settings(data: dict) -> dict:
         current["telegram_bot_token"] = str(data["telegram_bot_token"] or "").strip()
     if "telegram_chat_id" in data:
         current["telegram_chat_id"] = str(data["telegram_chat_id"] or "").strip()
-    SETTINGS_PATH.write_text(
-        json.dumps(current, indent=2, ensure_ascii=False),
-        encoding="utf-8",
-    )
+    _write_settings_atomically(current)
     return current
+
+
+def save_settings(data: dict) -> dict:
+    """Serialize the entire read-merge-write operation for every settings API."""
+    with _SETTINGS_LOCK:
+        return _save_settings_unlocked(data)

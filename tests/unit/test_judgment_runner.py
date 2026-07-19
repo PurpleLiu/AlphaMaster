@@ -67,7 +67,8 @@ def test_run_judgment_executes_valid_formula_on_parquet(
 
     assert result["schema_version"] == "1.0"
     assert result["source"]["strategy_sha256"]
-    assert result["source"]["strategy_payload"]["formula"] == [0]
+    assert result["source"]["formula"] == [0]
+    assert "strategy_payload" not in result["source"]
     assert result["source"]["symbol"] == "BTCUSDT"
     assert result["source"]["timeframe"] == "H1"
     assert result["source"]["bars"] == 240
@@ -77,6 +78,44 @@ def test_run_judgment_executes_valid_formula_on_parquet(
     assert result["limitations"]["is_true_out_of_sample"] is False
     assert result["limitations"]["pseudo_walk_forward"]
     assert result["verdict"]["status"] in {"PASS", "REVIEW", "FAIL"}
+
+
+def test_run_judgment_excludes_untrusted_strategy_payload_secrets(
+    tmp_path: Path, btc_h1_parquet: Path
+) -> None:
+    secret_values = ["runner-api-secret", "nested-token-secret", "private-chat-id"]
+    strategy_path = tmp_path / "best_BTCUSDT.json"
+    strategy_path.write_text(
+        json.dumps(
+            {
+                "symbol": "BTCUSDT",
+                "formula": [0],
+                "best_score": 1.25,
+                "api_key": secret_values[0],
+                "metadata": {
+                    "token": secret_values[1],
+                    "chat_id": secret_values[2],
+                },
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = run_judgment(
+        strategy_path,
+        btc_h1_parquet,
+        equal_blocks=4,
+        walk_forward_splits=4,
+        embargo_bars=2,
+    )
+
+    source = result["source"]
+    assert source["formula"] == [0]
+    assert source["strategy_metadata"] == {"symbol": "BTCUSDT", "best_score": 1.25}
+    assert "strategy_payload" not in source
+    serialized = json.dumps(result, ensure_ascii=False)
+    for secret in secret_values:
+        assert secret not in serialized
 
 
 def test_run_judgment_preserves_unavailable_metric_reasons(

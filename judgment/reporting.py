@@ -19,6 +19,37 @@ import numpy as np
 MAX_REPORT_FILENAME_LENGTH = 120
 _MAX_SYMBOL_FILENAME_PART_LENGTH = 48
 _MAX_TIMEFRAME_FILENAME_PART_LENGTH = 32
+_REDACTED_VALUE = "***已遮蔽***"
+_SENSITIVE_KEY_PARTS = (
+    "token",
+    "apikey",
+    "secret",
+    "password",
+    "credential",
+    "authorization",
+    "authorisation",
+    "webhook",
+    "chatid",
+)
+
+
+def _is_sensitive_key(key: Any) -> bool:
+    normalized = re.sub(r"[^a-z0-9]", "", str(key).casefold())
+    return any(part in normalized for part in _SENSITIVE_KEY_PARTS)
+
+
+def redact_sensitive_data(value: Any) -> Any:
+    """Recursively mask credential-shaped mapping keys before report rendering."""
+    if isinstance(value, Mapping):
+        return {
+            str(key): _REDACTED_VALUE
+            if _is_sensitive_key(key)
+            else redact_sensitive_data(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, (list, tuple, set)):
+        return [redact_sensitive_data(item) for item in value]
+    return value
 
 
 def to_json_safe(value: Any) -> Any:
@@ -161,7 +192,7 @@ def _walk_forward_markdown(walk_forward: Mapping[str, Any]) -> str:
 
 def render_markdown(result: dict) -> str:
     """Render a Taiwan Traditional Chinese review report in a stable section order."""
-    safe = to_json_safe(result)
+    safe = redact_sensitive_data(to_json_safe(result))
     source = _mapping(safe.get("source"))
     verdict = _mapping(safe.get("verdict"))
     full_sample = _mapping(safe.get("full_sample"))
@@ -335,7 +366,7 @@ def _remove(path: Path | None) -> None:
 
 def write_reports(result: dict, output_dir: str | Path) -> tuple[Path, Path]:
     """Write strict JSON and Markdown reports under a reproducible safe filename."""
-    safe = to_json_safe(result)
+    safe = redact_sensitive_data(to_json_safe(result))
     source = _mapping(safe.get("source"))
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)

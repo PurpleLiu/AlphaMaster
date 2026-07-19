@@ -28,6 +28,36 @@ from .core import (
 )
 
 
+_SAFE_STRATEGY_METADATA_KEYS = frozenset(
+    {
+        "symbol",
+        "timeframe",
+        "best_score",
+        "score",
+        "fitness",
+        "reward",
+        "generation",
+        "epoch",
+        "seed",
+        "version",
+    }
+)
+
+
+def _safe_strategy_metadata(payload: Any) -> dict[str, str | int | float | bool | None]:
+    """Keep only scalar allowlisted provenance; the SHA protects the raw snapshot."""
+    if not isinstance(payload, Mapping):
+        return {}
+    safe: dict[str, str | int | float | bool | None] = {}
+    for key in _SAFE_STRATEGY_METADATA_KEYS:
+        if key not in payload:
+            continue
+        value = payload[key]
+        if value is None or isinstance(value, (str, int, float, bool)):
+            safe[key] = value
+    return safe
+
+
 def _formula_from_payload(payload: Any) -> list[int]:
     """Extract the one supported, non-empty integer token formula."""
     formula = payload.get("formula") if isinstance(payload, Mapping) else payload
@@ -167,8 +197,8 @@ def run_judgment(
         "source": {
             "strategy_path": snapshot["resolved_path"],
             "strategy_sha256": snapshot["sha256"],
-            "strategy_payload": snapshot["payload"],
             "formula": snapshot["formula"],
+            "strategy_metadata": _safe_strategy_metadata(snapshot["payload"]),
             "data_path": str(data_file),
             "symbol": manager.symbol,
             "timeframe": manager.timeframe,

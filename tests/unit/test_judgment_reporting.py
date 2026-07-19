@@ -230,6 +230,32 @@ def test_markdown_distinguishes_missing_reason_from_unavailable_diagnostics() ->
     assert "| 4 | s4 | e4 | 0.5 | 無法取得 |" in text
 
 
+def test_reports_recursively_redact_sensitive_strategy_metadata(tmp_path: Path) -> None:
+    result = _result()
+    secret_values = ["report-api-secret", "report-nested-token", "report-chat-id"]
+    result["source"]["strategy_metadata"] = {
+        "score": 1.5,
+        "api_key": secret_values[0],
+        "nested": {
+            "token": secret_values[1],
+            "chat_id": secret_values[2],
+        },
+    }
+
+    rendered = render_markdown(result)
+    json_path, markdown_path = write_reports(result, tmp_path)
+    for secret in secret_values:
+        assert secret not in rendered
+        assert secret not in json_path.read_text(encoding="utf-8")
+        assert secret not in markdown_path.read_text(encoding="utf-8")
+
+    saved = json.loads(json_path.read_text(encoding="utf-8"))
+    metadata = saved["source"]["strategy_metadata"]
+    assert metadata["api_key"] == "***已遮蔽***"
+    assert metadata["nested"]["token"] == "***已遮蔽***"
+    assert metadata["nested"]["chat_id"] == "***已遮蔽***"
+
+
 def test_write_reports_uses_safe_deterministic_filename_and_valid_utf8_json(tmp_path: Path) -> None:
     result = _result()
 

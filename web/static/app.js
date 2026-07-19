@@ -1981,7 +1981,18 @@ async function initRealtimeOnce() {
 }
 
 const RT_TELEGRAM_SAVE_DELAY_MS = 500;
+function createSerialTaskQueue() {
+  let tail = Promise.resolve();
+  return function enqueue(task) {
+    const next = tail.then(task, task);
+    tail = next.catch(() => {});
+    return next;
+  };
+}
+
 let rtTelegramSaveTimer = null;
+let rtTelegramSaveRevision = 0;
+let rtTelegramSaveQueue = createSerialTaskQueue();
 
 function scheduleRtTelegramSave() {
   if (rtTelegramSaveTimer) window.clearTimeout(rtTelegramSaveTimer);
@@ -2000,8 +2011,13 @@ async function loadRtTelegramSettings() {
   try {
     const data = await fetchJSON("/api/realtime/telegram");
     if ($("rtTelegramEnabled")) $("rtTelegramEnabled").checked = !!data.enabled;
-    if ($("rtTelegramToken")) $("rtTelegramToken").value = data.bot_token || "";
-    if ($("rtTelegramChatId")) $("rtTelegramChatId").value = data.chat_id || "";
+    if ($("rtTelegramToken")) $("rtTelegramToken").value = "";
+    if ($("rtTelegramChatId")) $("rtTelegramChatId").value = "";
+    if ((data.token_configured || data.chat_id_configured) && $("rtTelegramHint")) {
+      $("rtTelegramHint").textContent = "已儲存，留空保留；輸入新值才會更新。";
+      $("rtTelegramHint").classList.remove("bad", "invalid");
+      $("rtTelegramHint").classList.add("valid");
+    }
   } catch (e) {
     const hint = $("rtTelegramHint");
     if (hint) {
@@ -2016,33 +2032,43 @@ async function saveRtTelegramSettings({ automatic = false } = {}) {
     window.clearTimeout(rtTelegramSaveTimer);
     rtTelegramSaveTimer = null;
   }
-  const hint = $("rtTelegramHint");
-  const btn = $("rtTelegramSaveBtn");
-  if (btn) btn.disabled = true;
-  try {
-    await fetchJSON("/api/realtime/telegram", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        enabled: !!$("rtTelegramEnabled")?.checked,
-        bot_token: $("rtTelegramToken")?.value || "",
-        chat_id: $("rtTelegramChatId")?.value || "",
-      }),
-    });
-    if (hint) {
-      hint.textContent = automatic ? "Telegram 設定已自動儲存。" : "Telegram 設定已儲存。";
-      hint.classList.remove("bad", "invalid");
-      hint.classList.add("valid");
+  const revision = ++rtTelegramSaveRevision;
+  const tokenInput = $("rtTelegramToken");
+  const chatIdInput = $("rtTelegramChatId");
+  const payload = {
+    enabled: !!$("rtTelegramEnabled")?.checked,
+    bot_token: tokenInput?.value.trim() || "",
+    chat_id: chatIdInput?.value.trim() || "",
+  };
+  return rtTelegramSaveQueue(async () => {
+    const hint = $("rtTelegramHint");
+    const btn = $("rtTelegramSaveBtn");
+    if (btn) btn.disabled = true;
+    try {
+      await fetchJSON("/api/realtime/telegram", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (revision !== rtTelegramSaveRevision) return;
+      if (payload.bot_token && tokenInput) tokenInput.value = "";
+      if (payload.chat_id && chatIdInput) chatIdInput.value = "";
+      if (hint) {
+        hint.textContent = automatic ? "Telegram 設定已自動儲存。" : "Telegram 設定已儲存。";
+        hint.classList.remove("bad", "invalid");
+        hint.classList.add("valid");
+      }
+    } catch (e) {
+      if (revision !== rtTelegramSaveRevision) return;
+      if (hint) {
+        hint.textContent = `儲存失敗：${e.message}`;
+        hint.classList.remove("valid");
+        hint.classList.add("bad", "invalid");
+      }
+    } finally {
+      if (btn && revision === rtTelegramSaveRevision) btn.disabled = false;
     }
-  } catch (e) {
-    if (hint) {
-      hint.textContent = `儲存失敗：${e.message}`;
-      hint.classList.remove("valid");
-      hint.classList.add("bad", "invalid");
-    }
-  } finally {
-    if (btn) btn.disabled = false;
-  }
+  });
 }
 
 async function testRtTelegram() {

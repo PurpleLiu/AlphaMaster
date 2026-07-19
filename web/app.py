@@ -60,7 +60,12 @@ logger = get_logger()
 app = FastAPI(title="AlphaMaster Training", version="1.1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[],
+    allow_origin_regex=(
+        r"^https?://(?:localhost|127\.0\.0\.1)"
+        r"(?::(?:[1-9]\d{0,3}|[1-5]\d{4}|6[0-4]\d{3}|65[0-4]\d{2}|"
+        r"655[0-2]\d|6553[0-5]))?$"
+    ),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -124,6 +129,16 @@ class TelegramSettingsRequest(BaseModel):
     enabled: bool | None = None
     bot_token: str | None = None
     chat_id: str | None = None
+    clear_token: bool = False
+    clear_chat_id: bool = False
+
+
+def _public_settings_response(settings: dict[str, Any]) -> dict[str, Any]:
+    """Never serialize Telegram credentials from the persisted settings map."""
+    public = dict(settings)
+    public.pop("telegram_bot_token", None)
+    public.pop("telegram_chat_id", None)
+    return public
 
 
 class FeishuTestRequest(BaseModel):
@@ -343,7 +358,7 @@ def api_client_log(req: ClientLogRequest) -> dict[str, bool]:
 
 @app.get("/api/settings")
 def api_get_settings() -> dict[str, Any]:
-    return load_settings()
+    return _public_settings_response(load_settings())
 
 
 @app.put("/api/settings")
@@ -370,7 +385,7 @@ def api_put_settings(req: SettingsRequest) -> dict[str, Any]:
     saved = save_settings(payload)
     if req.debug_mode is not None:
         set_debug_mode(req.debug_mode)
-    return {"ok": True, **saved}
+    return {"ok": True, **_public_settings_response(saved)}
 
 
 @app.get("/api/config")
@@ -1111,11 +1126,14 @@ def api_realtime_feishu_put(req: FeishuSettingsRequest) -> dict[str, Any]:
 def _telegram_settings_response(
     settings: dict[str, Any], *, ok: bool = False
 ) -> dict[str, Any]:
+    token_configured = bool(str(settings.get("telegram_bot_token") or "").strip())
+    chat_id_configured = bool(str(settings.get("telegram_chat_id") or "").strip())
     response = {
         "enabled": bool(settings.get("telegram_enabled")),
         "active": telegram_is_active(settings),
-        "bot_token": settings.get("telegram_bot_token") or "",
-        "chat_id": settings.get("telegram_chat_id") or "",
+        "token_configured": token_configured,
+        "token_hint": "已儲存，留空保留" if token_configured else "",
+        "chat_id_configured": chat_id_configured,
     }
     if ok:
         response["ok"] = True
@@ -1132,10 +1150,16 @@ def api_realtime_telegram_put(req: TelegramSettingsRequest) -> dict[str, Any]:
     payload: dict[str, Any] = {}
     if req.enabled is not None:
         payload["telegram_enabled"] = bool(req.enabled)
-    if req.bot_token is not None:
-        payload["telegram_bot_token"] = req.bot_token.strip()
-    if req.chat_id is not None:
-        payload["telegram_chat_id"] = req.chat_id.strip()
+    token = (req.bot_token or "").strip()
+    chat_id = (req.chat_id or "").strip()
+    if req.clear_token:
+        payload["telegram_bot_token"] = ""
+    elif token:
+        payload["telegram_bot_token"] = token
+    if req.clear_chat_id:
+        payload["telegram_chat_id"] = ""
+    elif chat_id:
+        payload["telegram_chat_id"] = chat_id
     saved = save_settings(payload)
     return _telegram_settings_response(saved, ok=True)
 
