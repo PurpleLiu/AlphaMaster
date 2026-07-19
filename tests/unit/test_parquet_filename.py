@@ -34,5 +34,5 @@ def test_normalize_timeframe_token():
 
 
 def test_parse_rejects_unknown_tf():
-    with pytest.raises(ValueError, match="周期"):
+    with pytest.raises(ValueError, match="週期"):
         parse_parquet_filename("002008_xyz.parquet")

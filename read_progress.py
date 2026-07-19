@@ -1,4 +1,4 @@
-"""read_progress.py — 读取当前训练进度并做回测分析"""
+"""read_progress.py — 讀取當前訓練進度並做回測分析"""
 import sys, torch
 sys.path.insert(0, '.')
 
@@ -17,16 +17,16 @@ rews  = h['avg_reward']
 ents  = h['entropy']
 ics   = h['ic_mean']
 
-print(f"=== 当前训练进度 step={ckpt['step']} ===")
-print(f"全局最优 BestScore : {best_sc:.4f}")
+print(f"=== 當前訓練進度 step={ckpt['step']} ===")
+print(f"全局最優 BestScore : {best_sc:.4f}")
 print(f"末步批次 ValScore  : {vals[-1]:+.4f}")
 print(f"末步 Entropy       : {ents[-1]:.3f}")
 print(f"末步 IC            : {ics[-1]:+.5f}")
-print(f"最优公式 tokens    : {tokens}")
-print(f"最优公式 解读      : {' -> '.join(names[t] for t in tokens)}")
+print(f"最優公式 tokens    : {tokens}")
+print(f"最優公式 解讀      : {' -> '.join(names[t] for t in tokens)}")
 print()
 
-print("=== BestScore 跳变点 ===")
+print("=== BestScore 跳變點 ===")
 prev = bests[0]
 print(f"  step  0: {prev:.4f}")
 for i in range(1, n):
@@ -35,7 +35,7 @@ for i in range(1, n):
         prev = bests[i]
 
 print()
-print("=== 分阶段统计 ===")
+print("=== 分階段統計 ===")
 for s, e in [(0,100),(100,200),(200,300),(300,400),(400,481)]:
     sv  = [vals[i] for i in range(n) if s <= h['step'][i] < e]
     sr  = [rews[i] for i in range(n) if s <= h['step'][i] < e]
@@ -52,9 +52,9 @@ for i, v in enumerate(vals):
         print(f"\n首次 val>0: step {h['step'][i]} (val={v:+.4f})")
         break
 
-# ── 交易频率分析 ──────────────────────────────────────────────────
+# ── 交易頻率分析 ──────────────────────────────────────────────────
 print()
-print("=== 最优公式交易频率 ===")
+print("=== 最優公式交易頻率 ===")
 from data_pipeline.fetcher import MT5DataFetcher
 from data_pipeline.data_manager import MT5DataManager
 from model_core.vm import StackVM
@@ -69,7 +69,7 @@ vm = StackVM()
 factor = vm.execute(tokens, feat)
 pos    = torch.sign(torch.tanh(factor))
 T      = pos.shape[1]
-print(f"数据长度 T={T} bars (H1 交集对齐)")
+print(f"數據長度 T={T} bars (H1 交集對齊)")
 print()
 
 total_trades = 0
@@ -94,9 +94,9 @@ for i, sym in enumerate(syms):
     zero_pct = (p == 0).float().mean().item() * 100
     long_pct = (p == 1).float().mean().item() * 100
     total_trades += trades
-    print(f"  {sym}: {trades}笔  每100bar={trades/T*100:.1f}笔  "
-          f"均持仓={avg_hold:.1f}bar  空仓={zero_pct:.0f}%  "
+    print(f"  {sym}: {trades}筆  每100bar={trades/T*100:.1f}筆  "
+          f"均持倉={avg_hold:.1f}bar  空倉={zero_pct:.0f}%  "
           f"多{long_pct:.0f}%/空{100-zero_pct-long_pct:.0f}%")
 
 avg100 = total_trades / (T * len(syms)) * 100
-print(f"\n  三品种合计: 每100bar={avg100:.1f}笔  每天~{avg100*24/100:.1f}笔")
+print(f"\n  三品種合計: 每100bar={avg100:.1f}筆  每天~{avg100*24/100:.1f}筆")

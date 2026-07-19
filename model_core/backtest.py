@@ -1,21 +1,21 @@
 """
-model_core/backtest.py — MT5 回测评估器（组合级多目标 Reward）
+model_core/backtest.py — MT5 回測評估器（組合級多目標 Reward）
 
-评分框架（5品种组合版）：
+評分框架（5品種組合版）：
   final_score =
-      0.35 * portfolio_sortino          # 组合整体风险调整收益
-    + 0.20 * portfolio_calmar           # 组合整体回撤控制
-    + 0.15 * ts_ic_stability            # 时序IC稳定性（比横截面IC更重要）
-    + 0.10 * symbol_consistency         # 品种一致性（防止单品种拖累）
-    + 0.10 * cost_stress                # 成本压力测试（2x成本下仍盈利）
-    + 0.10 * turnover_quality           # 换手率质量（交易频率奖励）
-    - complexity_penalty                # 公式长度惩罚
-    - correlation_penalty               # 因子相关性惩罚（由 engine 施加）
+      0.35 * portfolio_sortino          # 組合整體風險調整收益
+    + 0.20 * portfolio_calmar           # 組合整體回撤控制
+    + 0.15 * ts_ic_stability            # 時序IC穩定性（比橫截面IC更重要）
+    + 0.10 * symbol_consistency         # 品種一致性（防止單品種拖累）
+    + 0.10 * cost_stress                # 成本壓力測試（2x成本下仍盈利）
+    + 0.10 * turnover_quality           # 換手率質量（交易頻率獎勵）
+    - complexity_penalty                # 公式長度懲罰
+    - correlation_penalty               # 因子相關性懲罰（由 engine 施加）
 
-symbol_consistency 规则：
-  - N 个品种中至少 ceil(N*0.6) 个 Sortino > 0 → 正分
-  - 任何品种 Sortino < -2.0 → 重惩罚
-  - 全部品种 Sortino > 0 → 额外奖励
+symbol_consistency 規則：
+  - N 個品種中至少 ceil(N*0.6) 個 Sortino > 0 → 正分
+  - 任何品種 Sortino < -2.0 → 重懲罰
+  - 全部品種 Sortino > 0 → 額外獎勵
 """
 import math
 import torch
@@ -31,22 +31,22 @@ _SECONDS_PER_YEAR = 365.25 * 86400.0
 
 
 def estimate_periods_per_year(times) -> int:
-    """从时间戳序列估计「每年 bar 数」（年化因子）。
+    """從時間戳序列估計「每年 bar 數」（年化因子）。
 
     用 T / years_span，years_span = (t_last - t_first) / SECONDS_PER_YEAR。
-    该方法自动适应不同市场（A 股 / 外汇 / 加密）与周期——因为数据里只包含
-    交易时段的 bar，跨日历年的 bar 密度天然反映了该市场的交易频率，
-    无需按周期/市场写死。
+    該方法自動適應不同市場（A 股 / 外匯 / 加密）與週期——因為數據裡只包含
+    交易時段的 bar，跨日歷年的 bar 密度天然反映了該市場的交易頻率，
+    無需按週期/市場寫死。
 
-    替代了原先全局写死 _H1_PERIODS_PER_YEAR=6240（仅外汇 H1 正确）的做法：
-    A 股日线（~244 bar/年）、A 股 15min（~3904 bar/年）、加密日线（365 bar/年）
-    都会被正确年化，不再被按 H1 放大/缩小。
+    替代了原先全局寫死 _H1_PERIODS_PER_YEAR=6240（僅外匯 H1 正確）的做法：
+    A 股日線（~244 bar/年）、A 股 15min（~3904 bar/年）、加密日線（365 bar/年）
+    都會被正確年化，不再被按 H1 放大/縮小。
 
     Args:
-        times: [N, T] 或 [T] 的 Unix 秒时间戳（torch.Tensor 或 np.ndarray）。
+        times: [N, T] 或 [T] 的 Unix 秒時間戳（torch.Tensor 或 np.ndarray）。
 
     Returns:
-        int，每年 bar 数；数据不足时回退到 _H1_PERIODS_PER_YEAR。
+        int，每年 bar 數；數據不足時回退到 _H1_PERIODS_PER_YEAR。
     """
     import numpy as _np
     if hasattr(times, "detach"):
@@ -71,12 +71,12 @@ def estimate_periods_per_year(times) -> int:
     if years <= 0:
         return _H1_PERIODS_PER_YEAR
     ppy = t_count / years
-    # 合理范围钳制，防止异常时间戳产生极端值
+    # 合理範圍鉗制，防止異常時間戳產生極端值
     return int(max(10, min(600000, round(ppy))))
 
 
 class MT5Backtest:
-    """MT5 组合级回测评估器。"""
+    """MT5 組合級回測評估器。"""
 
     def __init__(
         self,
@@ -87,7 +87,7 @@ class MT5Backtest:
         self.periods_per_year = periods_per_year
 
     # ──────────────────────────────────────────────────────────────────────
-    # 基础统计
+    # 基礎統計
     # ──────────────────────────────────────────────────────────────────────
 
     def _sortino(self, pnl: Tensor, eps: float = 1e-8) -> Tensor:
@@ -96,8 +96,8 @@ class MT5Backtest:
         downside = flat[flat < 0]
         raw_std  = downside.std(unbiased=False) if downside.numel() > 0 \
                    else torch.tensor(0.0, dtype=flat.dtype, device=flat.device)
-        # P0b 修复：下行标准差地板改为全序列 std 的 20%，防止稀疏 PnL 靠极小分母刷高分。
-        # 原来 floor=|mean_pnl| 对稀疏序列趋近于零，导致 Sortino 爆炸。
+        # P0b 修復：下行標準差地板改為全序列 std 的 20%，防止稀疏 PnL 靠極小分母刷高分。
+        # 原來 floor=|mean_pnl| 對稀疏序列趨近於零，導致 Sortino 爆炸。
         full_std       = flat.std(unbiased=False).clamp(min=eps)
         floor          = torch.clamp(full_std * 0.2, min=eps)
         downside_std   = torch.clamp(raw_std, min=floor)
@@ -105,7 +105,7 @@ class MT5Backtest:
         return torch.clamp(sortino, -_SORTINO_CLIP, _SORTINO_CLIP)
 
     def _calmar(self, pnl: Tensor, eps: float = 1e-8) -> Tensor:
-        """Calmar = annualized_return / max_drawdown（截断到 [-10, 10]）。"""
+        """Calmar = annualized_return / max_drawdown（截斷到 [-10, 10]）。"""
         flat      = pnl.reshape(-1)
         ann_ret   = flat.mean() * self.periods_per_year
         cum       = torch.cumsum(flat, dim=0)
@@ -116,16 +116,16 @@ class MT5Backtest:
         return torch.clamp(calmar, -10.0, 10.0)
 
     # ──────────────────────────────────────────────────────────────────────
-    # 组合级评分组件
+    # 組合級評分組件
     # ──────────────────────────────────────────────────────────────────────
 
     def _ts_ic_stability(self, factors: Tensor, target_ret: Tensor) -> float:
-        """时序 IC 稳定性：每个品种内部 factor[t] 与 ret[t+1] 的相关性均值。
+        """時序 IC 穩定性：每個品種內部 factor[t] 與 ret[t+1] 的相關性均值。
 
-        比横截面 IC 更适合 5 品种宇宙（横截面 N=5 统计意义弱）。
+        比橫截面 IC 更適合 5 品種宇宙（橫截面 N=5 統計意義弱）。
 
         Returns:
-            float，约 [-1, 1]，正值代表因子有预测力。
+            float，約 [-1, 1]，正值代表因子有預測力。
         """
         N, T = factors.shape
         if T < 10:
@@ -149,7 +149,7 @@ class MT5Backtest:
 
         ic_mean = sum(ic_list) / len(ic_list)
         ic_std  = (sum((v - ic_mean) ** 2 for v in ic_list) / len(ic_list)) ** 0.5
-        # 稳定性 = IC均值 / IC标准差（IR，截断到 [-3, 3]）
+        # 穩定性 = IC均值 / IC標準差（IR，截斷到 [-3, 3]）
         stability = ic_mean / (ic_std + 1e-6)
         return float(max(-3.0, min(3.0, stability)))
 
@@ -159,23 +159,23 @@ class MT5Backtest:
         per_symbol_trade_count: list[int] | None = None,
         eval_bars: int = 0,
     ) -> float:
-        """品种一致性惩罚/奖励。
+        """品種一致性懲罰/獎勵。
 
-        规则（优先级从高到低）：
-        1. 无交易品种超过 40%：重惩罚 -3.0
-        2. P0a 新增：有交易的品种中，交易笔数 < eval_bars/100 (约每100bar少于1笔)
-           视为"稀疏有效"，等同无效。防止3~6笔偶发交易刷高 Sortino。
-        3. 任何品种 Sortino < -2.0：重惩罚 -2.0
-        4. 有效品种中正收益比例决定奖惩
+        規則（優先度從高到低）：
+        1. 無交易品種超過 40%：重懲罰 -3.0
+        2. P0a 新增：有交易的品種中，交易筆數 < eval_bars/100 (約每100bar少於1筆)
+           視為"稀疏有效"，等同無效。防止3~6筆偶發交易刷高 Sortino。
+        3. 任何品種 Sortino < -2.0：重懲罰 -2.0
+        4. 有效品種中正收益比例決定獎懲
         """
         N = len(per_symbol_sortino)
         if N == 0:
             return 0.0
 
-        # 最小有效交易数：每 100 bar 至少 1 笔，下限 5 笔
+        # 最小有效交易數：每 100 bar 至少 1 筆，下限 5 筆
         min_trades = max(5, eval_bars // 100) if eval_bars > 0 else 5
 
-        # 重新判定"活跃"品种（必须交易数 >= min_trades）
+        # 重新判定"活躍"品種（必須交易數 >= min_trades）
         if per_symbol_trade_count is not None:
             n_inactive = sum(1 for c in per_symbol_trade_count if c < min_trades)
             inactive_ratio = n_inactive / N
@@ -218,10 +218,10 @@ class MT5Backtest:
         target_ret: Tensor,
         stress_mult: float = 2.0,
     ) -> float:
-        """成本压力测试：2 倍成本下的 Sortino 是否还 > 0。
+        """成本壓力測試：2 倍成本下的 Sortino 是否還 > 0。
 
         Returns:
-            float，压力测试 Sortino（截断到 [-5, 5]）。
+            float，壓力測試 Sortino（截斷到 [-5, 5]）。
         """
         prev_pos = torch.roll(position, 1, dims=1)
         prev_pos[:, 0] = 0.0
@@ -231,9 +231,9 @@ class MT5Backtest:
         return float(torch.clamp(sortino, -5.0, 5.0))
 
     def _turnover_quality(self, position: Tensor) -> float:
-        """交易频率质量奖励（每天约 1 笔为最优）。
+        """交易頻率質量獎勵（每天約 1 筆為最優）。
 
-        目标：每 12 bar 一笔（H1 每天约一笔）。
+        目標：每 12 bar 一筆（H1 每天約一筆）。
         """
         N, T = position.shape
         pos_2d = position.tolist()
@@ -282,35 +282,35 @@ class MT5Backtest:
         return float(freq_score + hold_bonus)
 
     def _beta_neutral_penalty(self, position: Tensor) -> float:
-        """Beta 中性惩罚：多空比例严重失衡时扣分。
+        """Beta 中性懲罰：多空比例嚴重失衡時扣分。
 
-        因子输出 >85% 同方向时，说明不是 alpha 因子而是 beta 因子
-        （如 index 组的 TS_RANK 连续使用导致恒正输出）。
+        因子輸出 >85% 同方向時，說明不是 alpha 因子而是 beta 因子
+        （如 index 組的 TS_RANK 連續使用導致恆正輸出）。
 
         Returns:
-            float，惩罚值（负数或零）
+            float，懲罰值（負數或零）
         """
         flat = position.reshape(-1)
         long_ratio = (flat > 0.05).float().mean().item()
         short_ratio = (flat < -0.05).float().mean().item()
         max_ratio = max(long_ratio, short_ratio)
         if max_ratio > 0.85:
-            # 超过 85% 同方向，重罚
+            # 超過 85% 同方向，重罰
             excess = (max_ratio - 0.85) / 0.15  # 0~1
             return -2.0 * excess  # 最多 -2.0
         elif max_ratio > 0.70:
-            # 70-85% 轻度失衡，轻罚
+            # 70-85% 輕度失衡，輕罰
             excess = (max_ratio - 0.70) / 0.15  # 0~1
             return -0.5 * excess  # 最多 -0.5
         return 0.0
 
     def _half_consistency_bonus(self, pnl: Tensor) -> float:
-        """前后一致性奖励：前半段和后半段 Sortino 同号时加分。
+        """前後一致性獎勵：前半段和後半段 Sortino 同號時加分。
 
-        防止因子只在某一段市场环境（如牛市）有效。
+        防止因子只在某一段市場環境（如牛市）有效。
 
         Returns:
-            float，奖励/惩罚值
+            float，獎勵/懲罰值
         """
         T = pnl.shape[1]
         if T < 20:
@@ -319,26 +319,26 @@ class MT5Backtest:
         s1 = self._sortino(pnl[:, :half]).item()
         s2 = self._sortino(pnl[:, half:]).item()
         if s1 > 0 and s2 > 0:
-            return 0.5  # 前后都赚钱，奖励
+            return 0.5  # 前後都賺錢，獎勵
         elif s1 * s2 < 0:
-            return -1.0  # 前后相反，重罚（如 index 组的 beta 因子）
-        return 0.0  # 一正一零或两零，不奖不罚
+            return -1.0  # 前後相反，重罰（如 index 組的 beta 因子）
+        return 0.0  # 一正一零或兩零，不獎不罰
 
     def _exposure_penalty(self, position: Tensor) -> float:
-        """在场时间惩罚（仅下限，无上限）：收益优先模式。
+        """在場時間懲罰（僅下限，無上限）：收益優先模式。
 
-        只惩罚极稀疏交易（<10%在场），不惩罚高在场时间。
-        高在场时间（满仓趋势跟踪）是外汇市场最赚钱的形态之一，不应受罚。
+        只懲罰極稀疏交易（<10%在場），不懲罰高在場時間。
+        高在場時間（滿倉趨勢跟蹤）是外匯市場最賺錢的形態之一，不應受罰。
         """
         flat = position.reshape(-1).abs()
-        exposure = flat.mean().item()   # 连续仓位：均值即平均持仓量
+        exposure = flat.mean().item()   # 連續倉位：均值即平均持倉量
         if exposure < 0.10:
-            # 极稀疏：平均持仓 < 10% → 线性惩罚 [-2, 0)
+            # 極稀疏：平均持倉 < 10% → 線性懲罰 [-2, 0)
             return float((exposure / 0.10 - 1.0) * 2.0)
         return 0.0
 
     def _turnover_penalty(self, turnover: Tensor) -> Tensor:
-        """梯度式换手率惩罚。"""
+        """梯度式換手率懲罰。"""
         mean_to = turnover.mean()
         penalty = torch.clamp(
             (mean_to - 0.2) * 3.0,
@@ -348,7 +348,7 @@ class MT5Backtest:
         return -penalty
 
     # ──────────────────────────────────────────────────────────────────────
-    # Walk-Forward 辅助接口
+    # Walk-Forward 輔助介面
     # ──────────────────────────────────────────────────────────────────────
 
     def evaluate_fold(
@@ -360,12 +360,12 @@ class MT5Backtest:
         val_start:   int,
         val_end:     int,
     ) -> tuple[Tensor, Tensor]:
-        """在指定训练/验证切片上计算组合多目标得分。
+        """在指定訓練/驗證切片上計算組合多目標得分。
 
-        train_score：用于 REINFORCE 梯度更新（in-sample 多目标）。
-        val_score：用于选冠军，加入 OOS Sortino 门控：
-          - OOS Sortino <= 0：乘以 0.1~0.5 惩罚，强制冠军必须在验证段盈利
-          - OOS Sortino > 0：乘以最多 1.2 奖励
+        train_score：用於 REINFORCE 梯度更新（in-sample 多目標）。
+        val_score：用於選冠軍，加入 OOS Sortino 門控：
+          - OOS Sortino <= 0：乘以 0.1~0.5 懲罰，強制冠軍必須在驗證段盈利
+          - OOS Sortino > 0：乘以最多 1.2 獎勵
         """
         position = compute_target_positions_stateless(factors)  # neutral band
 
@@ -377,7 +377,7 @@ class MT5Backtest:
         pnl_train = pnl[:, train_start:train_end]
         pnl_val   = pnl[:, val_start:val_end]
 
-        # 训练段：多目标 + 换手率惩罚
+        # 訓練段：多目標 + 換手率懲罰
         train_bars = train_end - train_start
         train_score = self._multi_objective(
             factors[:, train_start:train_end],
@@ -387,7 +387,7 @@ class MT5Backtest:
             eval_bars=train_bars,
         ) + self._turnover_penalty(turnover[:, train_start:train_end])
 
-        # 验证段：多目标 × OOS Sortino 门控
+        # 驗證段：多目標 × OOS Sortino 門控
         val_bars = val_end - val_start
         base_val    = self._multi_objective(
             factors[:, val_start:val_end],
@@ -398,22 +398,22 @@ class MT5Backtest:
         )
         oos_sor = self._sortino(pnl_val).item()
         if oos_sor <= 0:
-            # OOS亏损：重惩罚（Sortino=-1 → mult=0.1；Sortino=0 → mult=0.5）
+            # OOS虧損：重懲罰（Sortino=-1 → mult=0.1；Sortino=0 → mult=0.5）
             mult = max(0.1, 0.5 + oos_sor * 0.4)
         else:
-            # OOS盈利：轻奖励（最多+20%）
+            # OOS盈利：輕獎勵（最多+20%）
             mult = min(1.2, 1.0 + oos_sor * 0.1)
         val_score = base_val * mult
 
         return train_score, val_score
 
     def _reversal_bonus(self, factors: Tensor) -> Tensor:
-        """反转奖励：鼓励因子有低/负自相关（均值回归特征）。
+        """反轉獎勵：鼓勵因子有低/負自相關（均值回歸特徵）。
 
-        计算每个品种的 lag-1 自相关系数，越接近 0 或负值 = 越好。
-        高度正自相关（>0.5）= 趋势跟踪，减分。
+        計算每個品種的 lag-1 自相關係數，越接近 0 或負值 = 越好。
+        高度正自相關（>0.5）= 趨勢跟蹤，減分。
 
-        单品种模式：直接返回标量。
+        單品種模式：直接返回標量。
         """
         N = factors.shape[0]
         scores = []
@@ -423,26 +423,26 @@ class MT5Backtest:
             xm = x - x.mean(); ym = y - y.mean()
             sx = (xm**2).mean().sqrt(); sy = (ym**2).mean().sqrt()
             ac1 = (xm*ym).mean() / (sx*sy + 1e-8) if sx > 1e-6 and sy > 1e-6 else torch.tensor(0.0)
-            # 奖励低自相关：bonus = 1 - |ac1|, 负自相关额外加分
+            # 獎勵低自相關：bonus = 1 - |ac1|, 負自相關額外加分
             bonus = 1.0 - torch.abs(ac1)
             if ac1 < 0:
-                bonus = bonus + 0.5  # 负自相关（真正反转）额外加分
+                bonus = bonus + 0.5  # 負自相關（真正反轉）額外加分
             bonus = torch.clamp(bonus, -1.0, 2.0)
             scores.append(bonus)
         return torch.stack(scores).mean()
 
     def _symmetry_check(self, position: Tensor) -> Tensor:
-        """多空对称性检查：奖励 50/50 多空分布。
+        """多空對稱性檢查：獎勵 50/50 多空分布。
 
-        均值回归策略应该在多空之间大致平衡，
-        过度偏向某一侧 = 趋势跟踪特征，应惩罚。
+        均值回歸策略應該在多空之間大致平衡，
+        過度偏向某一側 = 趨勢跟蹤特徵，應懲罰。
         """
         long_ratio  = (position > 0).float().mean()
         short_ratio = (position < 0).float().mean()
         # 理想值：long_ratio ≈ 0.5, short_ratio ≈ 0.5
         # 偏差：|long_ratio - 0.5| + |short_ratio - 0.5|
         deviation = torch.abs(long_ratio - 0.5) + torch.abs(short_ratio - 0.5)
-        # 偏差 0 → 奖励 1.0; 偏差 1.0 → 奖励 -1.0
+        # 偏差 0 → 獎勵 1.0; 偏差 1.0 → 獎勵 -1.0
         bonus = 1.0 - 2.0 * deviation
         return torch.clamp(bonus, -1.0, 1.0)
 
@@ -454,22 +454,22 @@ class MT5Backtest:
         position:   Tensor,
         eval_bars:  int = 0,
     ) -> Tensor:
-        """收益优先的多目标评分（2026-07-04 重构）。
+        """收益優先的多目標評分（2026-07-04 重構）。
 
-        核心改变：加入年化绝对收益项（权重 0.40），这是最主要的优化目标。
-        Sortino/Calmar 权重大幅下调，仅作为风险调整辅助。
-        clamp 上限放开（Sortino 40→20 保持，收益无上限）。
+        核心改變：加入年化絕對收益項（權重 0.40），這是最主要的最佳化目標。
+        Sortino/Calmar 權重大幅下調，僅作為風險調整輔助。
+        clamp 上限放開（Sortino 40→20 保持，收益無上限）。
 
-        N=1 单品种模式权重略有不同（无 symbol_consistency/cost_stress）。
+        N=1 單品種模式權重略有不同（無 symbol_consistency/cost_stress）。
 
-        2026-07-08: 新增 forex 模式 — 偏向均值回归策略。
+        2026-07-08: 新增 forex 模式 — 偏向均值回歸策略。
         """
         N = pnl.shape[0]
 
-        # ── 绝对收益（年化 log return）──────────────────────────────────
-        # 连续仓位 pnl = position * target_ret - turnover * cost。
-        # pnl.mean() 已是单 bar 平均收益，因此年化只乘每年 bar 数；不能再除以样本长度。
-        ann_ret = pnl.mean() * self.periods_per_year   # 标量张量，无截断
+        # ── 絕對收益（年化 log return）──────────────────────────────────
+        # 連續倉位 pnl = position * target_ret - turnover * cost。
+        # pnl.mean() 已是單 bar 平均收益，因此年化只乘每年 bar 數；不能再除以樣本長度。
+        ann_ret = pnl.mean() * self.periods_per_year   # 標量張量，無截斷
 
         port_sortino = self._sortino(pnl)
         port_calmar  = self._calmar(pnl)
@@ -482,56 +482,56 @@ class MT5Backtest:
             consist = self._half_consistency_bonus(pnl)
 
             if ModelConfig.REWARD_MODE == "forex":
-                # Forex 均值回归模式：
-                #   - 降年化收益权重 (0.80→0.25)：外汇趋势弱，避免奖励虚假趋势
-                #   - 提 IC 权重 (0.03→0.25)：信号质量是核心
-                #   - 新增反转奖励 (0.20)：奖励低/负因子自相关
-                #   - 新增对称检查 (0.15)：奖励 50/50 多空平衡
+                # Forex 均值回歸模式：
+                #   - 降年化收益權重 (0.80→0.25)：外匯趨勢弱，避免獎勵虛假趨勢
+                #   - 提 IC 權重 (0.03→0.25)：信號質量是核心
+                #   - 新增反轉獎勵 (0.20)：獎勵低/負因子自相關
+                #   - 新增對稱檢查 (0.15)：獎勵 50/50 多空平衡
                 rev_bonus = self._reversal_bonus(factors)
                 sym_bonus = self._symmetry_check(position)
                 return (
-                    0.25 * ann_ret           # 年化收益（降权，外汇趋势噪声大）
-                    + 0.05 * port_sortino    # 风险调整辅助
+                    0.25 * ann_ret           # 年化收益（降權，外匯趨勢噪聲大）
+                    + 0.05 * port_sortino    # 風險調整輔助
                     + 0.05 * port_calmar     # 回撤控制
-                    + 0.25 * ts_ic           # 信号质量（大幅提权）
-                    + 0.20 * rev_bonus       # 反转奖励（核心：反趋势）
-                    + 0.15 * sym_bonus       # 多空对称（均值回归特征）
-                    + 0.05 * tq              # 交易频率质量
-                    + exp_pen                # 稀疏惩罚
-                    + beta_pen               # Beta 中性惩罚
-                    + consist                # 前后一致性奖惩
+                    + 0.25 * ts_ic           # 信號質量（大幅提權）
+                    + 0.20 * rev_bonus       # 反轉獎勵（核心：反趨勢）
+                    + 0.15 * sym_bonus       # 多空對稱（均值回歸特徵）
+                    + 0.05 * tq              # 交易頻率質量
+                    + exp_pen                # 稀疏懲罰
+                    + beta_pen               # Beta 中性懲罰
+                    + consist                # 前後一致性獎懲
                 )
 
             if ModelConfig.REWARD_MODE == "ftmo":
-                # FTMO 专属：年化收益 0.80，Calmar 0.10（控制 MDD 贴近 10% 上限）
+                # FTMO 專屬：年化收益 0.80，Calmar 0.10（控制 MDD 貼近 10% 上限）
                 return (
-                    0.80 * ann_ret           # 主目标：年化绝对收益（FTMO 加权）
-                    + 0.05 * port_sortino    # 风险调整辅助（降权）
-                    + 0.10 * port_calmar     # 回撤控制（保持，对齐 10% Max Loss）
-                    + 0.03 * ts_ic           # IC 预测方向（降权）
-                    + 0.02 * tq              # 交易频率质量（降权）
-                    + exp_pen                # 稀疏惩罚
-                    + beta_pen               # Beta 中性惩罚
-                    + consist                # 前后一致性奖惩
+                    0.80 * ann_ret           # 主目標：年化絕對收益（FTMO 加權）
+                    + 0.05 * port_sortino    # 風險調整輔助（降權）
+                    + 0.10 * port_calmar     # 回撤控制（保持，對齊 10% Max Loss）
+                    + 0.03 * ts_ic           # IC 預測方向（降權）
+                    + 0.02 * tq              # 交易頻率質量（降權）
+                    + exp_pen                # 稀疏懲罰
+                    + beta_pen               # Beta 中性懲罰
+                    + consist                # 前後一致性獎懲
                 )
             return (
-                0.60 * ann_ret           # 主目标：年化绝对收益
-                + 0.15 * port_sortino    # 风险调整辅助
-                + 0.10 * port_calmar     # 回撤控制辅助
-                + 0.10 * ts_ic           # IC 预测方向
-                + 0.05 * tq              # 交易频率质量
-                + exp_pen                # 稀疏惩罚
-                + beta_pen               # Beta 中性惩罚
-                + consist                # 前后一致性奖惩
+                0.60 * ann_ret           # 主目標：年化絕對收益
+                + 0.15 * port_sortino    # 風險調整輔助
+                + 0.10 * port_calmar     # 回撤控制輔助
+                + 0.10 * ts_ic           # IC 預測方向
+                + 0.05 * tq              # 交易頻率質量
+                + exp_pen                # 稀疏懲罰
+                + beta_pen               # Beta 中性懲罰
+                + consist                # 前後一致性獎懲
             )
 
         per_sym_sortino     = []
         per_sym_trade_count = []
         for n in range(N):
             per_sym_sortino.append(self._sortino(pnl[n]).item())
-            # 连续仓位下，用 |position| 变化来估算交易次数
+            # 連續倉位下，用 |position| 變化來估算交易次數
             pos_n = position[n].abs()
-            # 视 tanh 输出均值作为持仓量，换手次数用前后差异估计
+            # 視 tanh 輸出均值作為持倉量，換手次數用前後差異估計
             diff = (pos_n[1:] - pos_n[:-1]).abs()
             trades = int((diff > 0.1).sum().item())
             per_sym_trade_count.append(trades)
@@ -544,35 +544,35 @@ class MT5Backtest:
         consist  = self._half_consistency_bonus(pnl)
 
         if ModelConfig.REWARD_MODE == "ftmo":
-            # FTMO 专属：年化收益 0.75（提权），Calmar 0.10（对齐 10% Max Loss）
+            # FTMO 專屬：年化收益 0.75（提權），Calmar 0.10（對齊 10% Max Loss）
             return (
-                0.75 * ann_ret               # 主目标：年化绝对收益（FTMO 加权）
-                + 0.05 * port_sortino        # 风险调整辅助（降权）
-                + 0.10 * port_calmar         # 回撤控制（提权，控制 MDD）
-                + 0.02 * ts_ic               # IC 预测方向（降权）
-                + 0.03 * sym_cons            # 品种一致性（降权）
-                + 0.02 * cost_s              # 成本压力测试（降权）
-                + 0.03 * tq                  # 交易频率质量（降权）
-                + exp_pen                    # 稀疏惩罚
-                + beta_pen                   # Beta 中性惩罚
-                + consist                    # 前后一致性奖惩
+                0.75 * ann_ret               # 主目標：年化絕對收益（FTMO 加權）
+                + 0.05 * port_sortino        # 風險調整輔助（降權）
+                + 0.10 * port_calmar         # 回撤控制（提權，控制 MDD）
+                + 0.02 * ts_ic               # IC 預測方向（降權）
+                + 0.03 * sym_cons            # 品種一致性（降權）
+                + 0.02 * cost_s              # 成本壓力測試（降權）
+                + 0.03 * tq                  # 交易頻率質量（降權）
+                + exp_pen                    # 稀疏懲罰
+                + beta_pen                   # Beta 中性懲罰
+                + consist                    # 前後一致性獎懲
             )
 
         return (
-            0.60 * ann_ret               # 主目标：年化绝对收益
-            + 0.10 * port_sortino        # 风险调整辅助
-            + 0.05 * port_calmar         # 回撤控制辅助
-            + 0.10 * ts_ic               # IC 预测方向
-            + 0.05 * sym_cons            # 品种一致性
-            + 0.05 * cost_s              # 成本压力测试
-            + 0.05 * tq                  # 交易频率质量
-            + exp_pen                    # 稀疏惩罚
-            + beta_pen                   # Beta 中性惩罚
-            + consist                    # 前后一致性奖惩
+            0.60 * ann_ret               # 主目標：年化絕對收益
+            + 0.10 * port_sortino        # 風險調整輔助
+            + 0.05 * port_calmar         # 回撤控制輔助
+            + 0.10 * ts_ic               # IC 預測方向
+            + 0.05 * sym_cons            # 品種一致性
+            + 0.05 * cost_s              # 成本壓力測試
+            + 0.05 * tq                  # 交易頻率質量
+            + exp_pen                    # 稀疏懲罰
+            + beta_pen                   # Beta 中性懲罰
+            + consist                    # 前後一致性獎懲
         )
 
     # ──────────────────────────────────────────────────────────────────────
-    # 公开接口（非 Walk-Forward 模式）
+    # 公開介面（非 Walk-Forward 模式）
     # ──────────────────────────────────────────────────────────────────────
 
     def evaluate(
@@ -581,7 +581,7 @@ class MT5Backtest:
         raw_dict:   dict,
         target_ret: Tensor,
     ) -> tuple[Tensor, float]:
-        """评估一组 Alpha 因子（含 OOS 80/20 门控）。"""
+        """評估一組 Alpha 因子（含 OOS 80/20 門控）。"""
         position = compute_target_positions_stateless(factors)
 
         prev_pos = torch.roll(position, 1, dims=1)
@@ -598,7 +598,7 @@ class MT5Backtest:
             eval_bars=split,
         ) + self._turnover_penalty(turnover[:, :split])
 
-        # OOS 门控（最后 20%）
+        # OOS 門控（最後 20%）
         pnl_oos = pnl[:, split:]
         oos_sor = self._sortino(pnl_oos).item()
         if oos_sor <= 0:

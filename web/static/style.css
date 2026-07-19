@@ -45,7 +45,7 @@ body {
   overflow-x: hidden;
 }
 
-/* ============================ 背景动效层 ============================ */
+/* ============================ 背景動效層 ============================ */
 .bg-layers {
   position: fixed;
   inset: 0;
@@ -298,7 +298,7 @@ body {
   overflow: hidden;
 }
 
-/* 顶部渐变高光描边 */
+/* 頂部漸變高光描邊 */
 .panel::before {
   content: "";
   position: absolute;
@@ -313,7 +313,7 @@ body {
   pointer-events: none;
 }
 
-/* HUD 四角装饰 */
+/* HUD 四角裝飾 */
 .hud-corner {
   position: absolute;
   width: 14px;
@@ -363,7 +363,7 @@ body {
   font-family: var(--mono);
 }
 
-/* ============================== 表单 ============================== */
+/* ============================== 表單 ============================== */
 .launch-form {
   display: flex;
   flex-wrap: wrap;
@@ -443,7 +443,7 @@ select:focus { border-color: var(--accent); }
   margin-left: auto;
 }
 
-/* ============================== 按钮 ============================== */
+/* ============================== 按鈕 ============================== */
 .btn {
   position: relative;
   padding: 10px 22px;
@@ -472,7 +472,7 @@ select:focus { border-color: var(--accent); }
   box-shadow: 0 10px 34px var(--accent-glow), 0 0 0 1px rgba(94, 234, 212, 0.5);
 }
 
-/* 扫光效果 */
+/* 掃光效果 */
 .btn-primary::after {
   content: "";
   position: absolute;
@@ -548,7 +548,7 @@ select:focus { border-color: var(--accent); }
 
 .launch-row .launch-actions { margin-left: auto; }
 
-/* 主行：选择按钮与信息卡等高并排 */
+/* 主行：選擇按鈕與資訊卡等高並排 */
 .launch-row-main { align-items: stretch; }
 
 .btn-browse {
@@ -559,13 +559,13 @@ select:focus { border-color: var(--accent); }
   white-space: nowrap;
 }
 
-/* 操作按钮独占一行（训练页）：不再右推，左对齐成组 */
+/* 操作按鈕獨占一行（訓練頁）：不再右推，左對齊成組 */
 .launch-form-file > .launch-actions {
   margin-left: 0;
   margin-top: 2px;
 }
 
-/* 控制组 / 文件操作组之间的竖线分隔 */
+/* 控制組 / 文件操作組之間的豎線分隔 */
 .action-sep {
   align-self: stretch;
   width: 1px;
@@ -624,7 +624,7 @@ select:focus { border-color: var(--accent); }
   color: var(--accent);
 }
 
-/* ========================== 数据文件卡片 ========================== */
+/* ========================== 數據文件卡片 ========================== */
 .data-file-card {
   flex: 1 1 280px;
   min-width: 0;
@@ -650,7 +650,7 @@ select:focus { border-color: var(--accent); }
 
 .data-file-empty { color: var(--text-muted); font-size: 0.85rem; }
 
-/* 信息卡：仪表盘统计条（每个指标竖向小格 + 细竖线分隔）*/
+/* 資訊卡：儀錶板統計條（每個指標豎向小格 + 細豎線分隔）*/
 .data-file-row {
   display: flex;
   align-items: center;
@@ -686,7 +686,7 @@ select:focus { border-color: var(--accent); }
 .data-file-row .value.score-best { color: #34f5c8; font-weight: 600; }
 .data-file-row .value.score-val { color: #38bdf8; font-weight: 600; }
 
-/* 文件名：独立一行放在指标条下方，带顶部细分割线，避免右侧留白 */
+/* 檔案名：獨立一行放在指標條下方，帶頂部細分割線，避免右側留白 */
 .data-file-card > .path {
   margin-top: 4px;
   padding-top: 5px;
@@ -708,7 +708,7 @@ select:focus { border-color: var(--accent); }
   word-break: break-all;
 }
 
-/* ============================ 品种卡片 ============================ */
+/* ============================ 品種卡片 ============================ */
 .symbols-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -769,7 +769,7 @@ select:focus { border-color: var(--accent); }
 .progress-text { font-family: var(--mono); font-size: 0.8rem; }
 .progress-text .score { display: block; color: var(--accent); font-weight: 500; }
 
-/* ============================== 分栏 ============================== */
+/* ============================== 分欄 ============================== */
 .split {
   display: grid;
   grid-template-columns: 1.2fr 1fr;
@@ -805,7 +805,7 @@ select:focus { border-color: var(--accent); }
   position: relative;
 }
 
-/* ============================ 指标说明 ============================ */
+/* ============================ 指標說明 ============================ */
 .chart-metrics-help {
   margin-top: 14px;
   padding: 11px 13px;
@@ -834,7 +834,7 @@ select:focus { border-color: var(--accent); }
   color: var(--text-muted);
 }
 
-.chart-metrics-help:not([open]) summary::after { content: "展开"; }
+.chart-metrics-help:not([open]) summary::after { content: "展開"; }
 
 .metrics-list {
   list-style: none;
@@ -952,7 +952,7 @@ select:focus { border-color: var(--accent); }
   text-shadow: 0 0 14px rgba(94, 234, 212, 0.25);
 }
 
-/* ============================== 日志 ============================== */
+/* ============================== 日誌 ============================== */
 .log-view {
   overflow: auto;
   background: rgba(3, 6, 12, 0.75);
@@ -999,7 +999,7 @@ td:nth-child(2) { color: var(--accent); font-family: var(--mono); }
 
 .empty-row td { text-align: center; color: var(--text-muted); padding: 24px; }
 
-/* ============================== 调试 ============================== */
+/* ============================== 除錯 ============================== */
 .debug-panel::before {
   background: linear-gradient(120deg, rgba(248, 113, 113, 0.35), transparent 40%, transparent 70%, rgba(248, 113, 113, 0.2));
 }
@@ -1201,7 +1201,7 @@ td:nth-child(2) { color: var(--accent); font-family: var(--mono); }
   justify-content: flex-end;
 }
 
-/* ============================ 进入动画 ============================ */
+/* ============================ 進入動畫 ============================ */
 .panel { animation: panelIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .launch-panel { animation-delay: 0.05s; }
 .split { animation: panelIn 0.6s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both; }
@@ -1218,7 +1218,7 @@ td:nth-child(2) { color: var(--accent); font-family: var(--mono); }
   .panel, .split { animation: none; }
 }
 
-/* ============================ 步骤导航 ============================ */
+/* ============================ 步驟導航 ============================ */
 .stepper {
   display: flex;
   align-items: center;
@@ -1310,7 +1310,7 @@ td:nth-child(2) { color: var(--accent); font-family: var(--mono); }
   .step-link { flex-basis: 16px; }
 }
 
-/* ============================== 分页 ============================== */
+/* ============================== 分頁 ============================== */
 .page { display: none; }
 .page.active {
   display: block;
@@ -1326,7 +1326,7 @@ td:nth-child(2) { color: var(--accent); font-family: var(--mono); }
   .page.active { animation: none; }
 }
 
-/* ============================ 回测选项 ============================ */
+/* ============================ 回測選項 ============================ */
 .bt-options {
   display: flex;
   gap: 20px;
@@ -1357,7 +1357,7 @@ td:nth-child(2) { color: var(--accent); font-family: var(--mono); }
   height: 15px;
 }
 
-/* ============================ 指标卡片 ============================ */
+/* ============================ 指標卡片 ============================ */
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -1391,7 +1391,7 @@ td:nth-child(2) { color: var(--accent); font-family: var(--mono); }
   min-height: 84px;
 }
 
-/* 右下角迷你趋势微线 */
+/* 右下角迷你趨勢微線 */
 .metric-spark {
   position: absolute;
   right: 12px;
@@ -1451,14 +1451,14 @@ td:nth-child(2) { color: var(--accent); font-family: var(--mono); }
   margin-top: 4px;
 }
 
-/* ============================ 回测绩效表 ============================ */
+/* ============================ 回測績效表 ============================ */
 .bt-table td { font-family: var(--mono); font-size: 0.8rem; }
 .bt-table td:first-child { font-family: var(--font); }
 .bt-table td.pos { color: var(--success); }
 .bt-table td.neg { color: var(--danger); }
 .bt-table .sym-cell { color: var(--accent); font-weight: 600; }
 
-/* ============================ 阶段进度条 ============================ */
+/* ============================ 階段進度條 ============================ */
 .bt-phase {
   display: flex;
   align-items: center;
@@ -1504,7 +1504,7 @@ td:nth-child(2) { color: var(--accent); font-family: var(--mono); }
   text-align: right;
 }
 
-/* ============================ 图表画廊 ============================ */
+/* ============================ 圖表畫廊 ============================ */
 .chart-gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
@@ -1568,7 +1568,7 @@ td:nth-child(2) { color: var(--accent); font-family: var(--mono); }
   background: #fff;
 }
 
-/* ====================== 交互式资金曲线 (HTML) ====================== */
+/* ====================== 互動式資金曲線 (HTML) ====================== */
 .equity-live {
   display: flex;
   flex-direction: column;
@@ -1743,7 +1743,7 @@ td:nth-child(2) { color: var(--accent); font-family: var(--mono); }
   .equity-chart-wrap.roll { height: 120px; }
 }
 
-/* ============================== 灯箱 ============================== */
+/* ============================== 燈箱 ============================== */
 .lightbox {
   position: fixed;
   inset: 0;
@@ -1769,7 +1769,7 @@ td:nth-child(2) { color: var(--accent); font-family: var(--mono); }
   box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.9);
 }
 
-/* ══════════════════════ 实时分析（信号雷达）══════════════════════ */
+/* ══════════════════════ 即時分析（信號雷達）══════════════════════ */
 .rt-form {
   display: flex;
   flex-wrap: wrap;

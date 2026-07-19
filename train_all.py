@@ -1,7 +1,7 @@
 """
-train_all.py — 批量单品种训练
+train_all.py — 批次單品種訓練
 
-按 TRAINABLE_SYMBOLS 顺序逐一训练所有品种。
+按 TRAINABLE_SYMBOLS 順序逐一訓練所有品種。
 用法: python train_all.py --offline
 """
 import sys, time
@@ -20,8 +20,8 @@ def main():
     results = {}
 
     print(f"\n{'='*60}")
-    print(f"  批量单品种训练 — {len(symbols)} 个品种")
-    print(f"  顺序: {symbols}")
+    print(f"  批次單品種訓練 — {len(symbols)} 個品種")
+    print(f"  順序: {symbols}")
     print(f"{'='*60}")
 
     with MT5DataFetcher(offline=offline) as fetcher:
@@ -38,9 +38,9 @@ def main():
             else:
                 results[symbol] = {"score": -1, "formula": "FAILED", "time_h": 0}
 
-    # 汇总
+    # 匯總
     print(f"\n{'='*60}")
-    print(f"  批量训练完成 总耗时 {(time.time()-t0_total)/3600:.2f}h")
+    print(f"  批次訓練完成 總耗時 {(time.time()-t0_total)/3600:.2f}h")
     print(f"{'='*60}")
     print(f"{'Symbol':<14s} {'Score':>8s}  {'Formula'}")
     print('-' * 60)

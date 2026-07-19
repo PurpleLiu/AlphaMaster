@@ -1,4 +1,4 @@
-"""补跑 XAUUSD 单品种回测（仓库无 best_XAUUSD.json）。"""
+"""補跑 XAUUSD 單品種回測（倉庫無 best_XAUUSD.json）。"""
 import json
 import sys
 from pathlib import Path

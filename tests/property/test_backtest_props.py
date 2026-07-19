@@ -1,5 +1,5 @@
-# Feature: mt5-alphagpt-refactor, Property 6: 回测 80/20 分割不变量
-# Feature: mt5-alphagpt-refactor, Property 7: 高换手率惩罚单调性
+# Feature: mt5-alphagpt-refactor, Property 6: 回測 80/20 分割不變數
+# Feature: mt5-alphagpt-refactor, Property 7: 高換手率懲罰單調性
 """
 Property-based tests for model_core.backtest (MT5Backtest).
 
@@ -15,7 +15,7 @@ from hypothesis import given, settings, strategies as st, assume
 from model_core.backtest import MT5Backtest
 
 
-# ── Property 6: 回测 80/20 分割不变量 ────────────────────────────────────────
+# ── Property 6: 回測 80/20 分割不變數 ────────────────────────────────────────
 # Validates: Requirements 5.4
 
 
@@ -59,7 +59,7 @@ def test_property6_backtest_80_20_split(T: int):
     )
 
 
-# ── Property 7: 高换手率惩罚单调性 ───────────────────────────────────────────
+# ── Property 7: 高換手率懲罰單調性 ───────────────────────────────────────────
 # Validates: Requirements 5.3
 
 

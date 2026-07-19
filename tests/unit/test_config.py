@@ -1,14 +1,14 @@
 """
-单元测试：Config 字段类型和默认值
+單元測試：Config 欄位類型和預設值
 
-验证 config.py 中 Config 类的所有关键字段的类型和默认值。
+驗證 config.py 中 Config 類的所有關鍵欄位的類型和預設值。
 Requirements: 11.1
 """
 import pytest
 import sys
 import os
 
-# 确保项目根目录在 sys.path 中
+# 確保項目根目錄在 sys.path 中
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from config import Config
@@ -60,7 +60,7 @@ class TestConfigDataParams:
         assert Config.MIN_BARS == 3000   # updated for 5-symbol portfolio
 
     def test_bars_count_equals_2000(self):
-        assert Config.BARS_COUNT >= 100   # 只断言合理下界，不固定具体值
+        assert Config.BARS_COUNT >= 100   # 只斷言合理下界，不固定具體值
 
 
 class TestConfigStrategyParams:
@@ -85,7 +85,7 @@ class TestConfigGetTimeframe:
             Config.get_timeframe("INVALID")
 
     def test_get_timeframe_all_valid_keys_return_int(self):
-        """验证所有支持的时间周期字符串都返回整数"""
+        """驗證所有支持的時間週期字串都返回整數"""
         valid_timeframes = ["M1", "M5", "M15", "M30", "H1", "H4", "D1", "W1", "MN1"]
         for tf in valid_timeframes:
             result = Config.get_timeframe(tf)

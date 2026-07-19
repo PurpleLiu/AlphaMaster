@@ -1,7 +1,7 @@
 """
-单元测试：MT5FeatureEngineer 扩展特征验证
+單元測試：MT5FeatureEngineer 擴展特徵驗證
 
-覆盖 compute_features 的形状、数值安全性、各特征的值域与前缀约束。
+覆蓋 compute_features 的形狀、數值安全性、各特徵的值域與前綴約束。
 
 需求：F1.1~F1.7, F4.1~F4.4
 """
@@ -10,18 +10,18 @@ import torch
 import sys
 import os
 
-# 确保项目根目录在 sys.path 中
+# 確保項目根目錄在 sys.path 中
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 from model_core.features import MT5FeatureEngineer
 
 
-# ─── 测试用 OHLCV fixture ─────────────────────────────────────────────────────
+# ─── 測試用 OHLCV fixture ─────────────────────────────────────────────────────
 
 def _make_raw_dict(N: int = 3, T: int = 50, seed: int = 42) -> dict:
     """
-    生成合法的随机 OHLCV 字典。
-    - close, open : rand(N, T) + 1.0  → 正值，范围 [1, 2)
+    生成合法的隨機 OHLCV 字典。
+    - close, open : rand(N, T) + 1.0  → 正值，範圍 [1, 2)
     - high        : max(close, open) + rand * 0.5  → high >= close, open
     - low         : min(close, open) - rand * 0.5  → low  <= close, open（但 > 0）
     - volume      : rand(N, T) * 100 + 1.0  → 正值
@@ -42,10 +42,10 @@ def _make_raw_dict(N: int = 3, T: int = 50, seed: int = 42) -> dict:
     }
 
 
-# ─── 1. 输出形状 ──────────────────────────────────────────────────────────────
+# ─── 1. 輸出形狀 ──────────────────────────────────────────────────────────────
 
 class TestComputeFeaturesShape:
-    """compute_features 输出形状应为 [N, 20, T]（扩展自10，需求 F1.1, F1.2）"""
+    """compute_features 輸出形狀應為 [N, 20, T]（擴展自10，需求 F1.1, F1.2）"""
 
     def test_output_shape_default(self):
         raw = _make_raw_dict(N=3, T=50)
@@ -60,22 +60,22 @@ class TestComputeFeaturesShape:
         assert out.ndim == 3
 
     def test_feature_dim_equals_10(self):
-        """feature 维度固定为 20，对应 INPUT_DIM（需求 F1.7）"""
+        """feature 維度固定為 20，對應 INPUT_DIM（需求 F1.7）"""
         raw = _make_raw_dict(N=3, T=50)
         out = MT5FeatureEngineer.compute_features(raw)
         assert out.shape[1] == 20
 
     def test_time_dim_preserved(self):
-        """T 维度应与输入完全一致（需求 F1.1）"""
+        """T 維度應與輸入完全一致（需求 F1.1）"""
         raw = _make_raw_dict(N=3, T=50)
         out = MT5FeatureEngineer.compute_features(raw)
         assert out.shape[2] == 50
 
 
-# ─── 2. 数值安全：无 NaN / Inf ────────────────────────────────────────────────
+# ─── 2. 數值安全：無 NaN / Inf ────────────────────────────────────────────────
 
 class TestNoNanInf:
-    """输出中不应含有 NaN 或 Inf（需求 F4.3~F4.6）"""
+    """輸出中不應含有 NaN 或 Inf（需求 F4.3~F4.6）"""
 
     def test_no_nan(self):
         raw = _make_raw_dict(N=3, T=50)
@@ -96,7 +96,7 @@ class TestNoNanInf:
 # ─── 3. PRESSURE（索引 3）值域 ∈ [-1, 1] ─────────────────────────────────────
 
 class TestPressureRange:
-    """PRESSURE（索引 12）所有值应被 clamp 至 [-1, 1]（需求 F4.1）"""
+    """PRESSURE（索引 12）所有值應被 clamp 至 [-1, 1]（需求 F4.1）"""
 
     def test_pressure_leq_1(self):
         raw = _make_raw_dict(N=3, T=50)
@@ -115,7 +115,7 @@ class TestPressureRange:
         )
 
     def test_pressure_range_strict(self):
-        """一次性验证 [-1, 1] 双侧边界（需求 F4.1）"""
+        """一次性驗證 [-1, 1] 雙側邊界（需求 F4.1）"""
         raw = _make_raw_dict(N=3, T=50)
         out = MT5FeatureEngineer.compute_features(raw)
         pressure = out[:, 12, :]
@@ -124,10 +124,10 @@ class TestPressureRange:
         )
 
 
-# ─── 4. ATR 原始值非负（在 log1p 前）────────────────────────────────────────
+# ─── 4. ATR 原始值非負（在 log1p 前）────────────────────────────────────────
 
 class TestAtrRawNonNegative:
-    """_atr 原始输出（log1p 压缩前）应全部非负（需求 F1.3）"""
+    """_atr 原始輸出（log1p 壓縮前）應全部非負（需求 F1.3）"""
 
     def test_atr_raw_nonnegative(self):
         raw = _make_raw_dict(N=3, T=50)
@@ -156,10 +156,10 @@ class TestAtrRawNonNegative:
         assert not torch.isnan(atr_raw).any(), "ATR raw contains NaN"
 
 
-# ─── 5. RET20（索引 8）前 20 个位置应为 0 ────────────────────────────────────
+# ─── 5. RET20（索引 8）前 20 個位置應為 0 ────────────────────────────────────
 
 class TestRet20PrefixZero:
-    """RET20 原始输出的前 20 个时间步应等于 0（需求 F1.5）"""
+    """RET20 原始輸出的前 20 個時間步應等於 0（需求 F1.5）"""
 
     def test_ret20_raw_first20_are_zero(self):
         raw = _make_raw_dict(N=3, T=50)
@@ -178,7 +178,7 @@ class TestRet20PrefixZero:
         assert ret20_raw.shape == (3, 50)
 
     def test_ret20_after_position20_nonzero(self):
-        """位置 20 之后至少部分值应非零（验证计算逻辑未全零化）"""
+        """位置 20 之後至少部分值應非零（驗證計算邏輯未全零化）"""
         raw = _make_raw_dict(N=3, T=50)
         close = raw["close"].float()
         ret20_raw = MT5FeatureEngineer._ret20(close)

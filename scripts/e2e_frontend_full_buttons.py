@@ -8,7 +8,7 @@ This drives the actual web UI using Playwright and validates:
 - Import training (upload exported zip)
 
 Notes:
-- We do NOT click the server-side native file picker ("选择数据文件") because it opens
+- We do NOT click the server-side native file picker ("選擇數據文件") because it opens
   a tkinter dialog on the server and can hang in automation/headless runs.
   Instead we rely on the persisted `web_settings.json` and `/api/config` data_file.
 """

@@ -1,8 +1,8 @@
 """
-rigorous_backtest_audit.py — 对仓库内所有可用策略做独立严谨回测
+rigorous_backtest_audit.py — 對倉庫內所有可用策略做獨立嚴謹回測
 
-不复用训练 reward；从第一性原理计算 PnL。
-支持：全样本 / 前后半段 / Walk-Forward 4折 / 成本压力 / 单品种拆解。
+不復用訓練 reward；從第一性原理計算 PnL。
+支持：全樣本 / 前後半段 / Walk-Forward 4折 / 成本壓力 / 單品種拆解。
 """
 from __future__ import annotations
 
@@ -26,14 +26,14 @@ from strategy_manager.signal import compute_target_positions_stateless
 PERIODS_PER_YEAR = 6240
 MIN_EXPOSURE = getattr(Config, "MIN_TRADE_EXPOSURE", 0.05)
 
-# 品种组成本（单边 log）
+# 品種組成本（單邊 log）
 COST_BY_GROUP = {
     "forex":          0.00015,
     "precious_metals": 0.00020,
     "index":          0.00030,
 }
 
-# 待测策略：name -> (path, group, symbols_override or None)
+# 待測策略：name -> (path, group, symbols_override or None)
 CANDIDATES: dict[str, dict] = {
     "precious_metals_current": {
         "path": "strategies/best_precious_metals.json",
@@ -182,20 +182,20 @@ def independent_backtest(
     if max_side > 0.85:
         if verdict == "VALID":
             verdict = "SUSPICIOUS"
-        issues.append(f"单边占比 {max_side*100:.1f}% > 85%")
+        issues.append(f"單邊占比 {max_side*100:.1f}% > 85%")
     if _ann(h1) * _ann(h2) < 0:
         if verdict == "VALID":
             verdict = "SUSPICIOUS"
-        issues.append(f"前后半段年化异号 H1={_ann(h1)*100:.2f}% H2={_ann(h2)*100:.2f}%")
+        issues.append(f"前後半段年化異號 H1={_ann(h1)*100:.2f}% H2={_ann(h2)*100:.2f}%")
     wf_pos = sum(1 for w in wf if w["positive"])
     if wf and wf_pos < len(wf) * 0.5:
         if verdict == "VALID":
             verdict = "SUSPICIOUS"
-        issues.append(f"WF 仅 {wf_pos}/{len(wf)} 折为正")
+        issues.append(f"WF 僅 {wf_pos}/{len(wf)} 折為正")
     if not cost_stress["2.0x"]["profitable"]:
         if verdict == "VALID":
             verdict = "SUSPICIOUS"
-        issues.append("2x 成本下亏损")
+        issues.append("2x 成本下虧損")
 
     return {
         "verdict": verdict,
@@ -276,7 +276,7 @@ def run_one(name: str, meta: dict, fetcher: MT5DataFetcher) -> dict | None:
         bt["readable"] = loaded["readable"]
         bt["train_score"] = loaded.get("best_score")
 
-        print(f"\n  组合: ann={bt['ann_ret']*100:+.2f}%  Sharpe={bt['sharpe']:+.3f}  "
+        print(f"\n  組合: ann={bt['ann_ret']*100:+.2f}%  Sharpe={bt['sharpe']:+.3f}  "
               f"Sortino={bt['sortino']:+.3f}  MDD={bt['mdd']*100:.2f}%  "
               f"Calmar={bt['calmar']:+.2f}")
         print(f"  多空: L={bt['long_pct']*100:.1f}% S={bt['short_pct']*100:.1f}% "
@@ -288,7 +288,7 @@ def run_one(name: str, meta: dict, fetcher: MT5DataFetcher) -> dict | None:
         for mult, cs in bt["cost_stress"].items():
             print(f"    cost {mult}: ann={cs['ann_ret']*100:+.2f}% sharpe={cs['sharpe']:+.3f} "
                   f"ok={'Y' if cs['profitable'] else 'N'}")
-        print(f"\n  品种级:")
+        print(f"\n  品種級:")
         for i, sym in enumerate(syms):
             ps = bt["per_symbol"][i]
             tag = "OK" if ps["total_ret"] > 0 else "X"
@@ -298,10 +298,10 @@ def run_one(name: str, meta: dict, fetcher: MT5DataFetcher) -> dict | None:
         for iss in bt["issues"]:
             print(f"    ! {iss}")
         if not bt["issues"]:
-            print("    全部检查通过")
+            print("    全部檢查通過")
 
-        # 单品种拆解（同一公式，N=1）
-        print(f"\n  --- 单品种独立回测（同公式，逐品种加载）---")
+        # 單品種拆解（同一公式，N=1）
+        print(f"\n  --- 單品種獨立回測（同公式，逐品種載入）---")
         solo_results = []
         for sym in symbols:
             Config.SYMBOLS = [sym]
@@ -345,9 +345,9 @@ def main():
                 results[name] = r
 
     print(f"\n\n{'='*88}")
-    print("  汇总（组合等权）")
+    print("  匯總（組合等權）")
     print(f"{'='*88}")
-    print(f"{'策略':<26} {'年化%':>8} {'Sharpe':>8} {'MDD%':>8} {'WF+':>6} {'2x成本':>8} {'盈利品种':>10} {'判定':>12}")
+    print(f"{'策略':<26} {'年化%':>8} {'Sharpe':>8} {'MDD%':>8} {'WF+':>6} {'2x成本':>8} {'盈利品種':>10} {'判定':>12}")
     print("-" * 88)
     for name, r in results.items():
         if "error" in r:
@@ -359,16 +359,16 @@ def main():
         print(f"{name:<26} {r['ann_ret']*100:>8.2f} {r['sharpe']:>8.3f} {r['mdd']*100:>8.2f} "
               f"{wf_pos}/{wf_n:<4} {ok2x:>8} {r['n_pos_syms']}/{r['n_syms']:<8} {r['verdict']:>12}")
 
-    # 单品种最优
+    # 單品種最優
     print(f"\n{'='*88}")
-    print("  单品种拆解（同公式 solo）")
+    print("  單品種拆解（同公式 solo）")
     print(f"{'='*88}")
     solo_rows = []
     for name, r in results.items():
         for s in r.get("solo", []):
             solo_rows.append((s["ann_ret"], name, s["symbol"], s))
     solo_rows.sort(reverse=True, key=lambda x: x[0])
-    print(f"{'品种':<14} {'来源策略':<26} {'年化%':>8} {'Sharpe':>8} {'MDD%':>8} {'判定':>12}")
+    print(f"{'品種':<14} {'來源策略':<26} {'年化%':>8} {'Sharpe':>8} {'MDD%':>8} {'判定':>12}")
     print("-" * 88)
     for _, name, sym, s in solo_rows:
         print(f"{sym:<14} {name:<26} {s['ann_ret']*100:>8.2f} {s['sharpe']:>8.3f} "
@@ -388,7 +388,7 @@ def main():
                 for s in v["solo"]
             ]
     out.write_text(json.dumps(serial, indent=2, ensure_ascii=False), encoding="utf-8")
-    print(f"\n详细 JSON → {out}")
+    print(f"\n詳細 JSON → {out}")
 
 
 if __name__ == "__main__":

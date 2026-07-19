@@ -1,18 +1,18 @@
 """
-data_pipeline/kline_cache.py — 本地 K 线缓存管理器
+data_pipeline/kline_cache.py — 本地 K 線快取管理器
 
-设计：
-  - 每个品种存一个 Parquet 文件：D:/K线数据/{symbol}_H1.parquet
+設計：
+  - 每個品種存一個 Parquet 文件：D:/K線數據/{symbol}_H1.parquet
   - 列：time(int64 Unix秒), open, high, low, close, tick_volume
-  - 首次：从 MT5 拉全量（BARS_COUNT 根）写入
-  - 后续：只拉本地最新 bar 之后的增量，追加
-  - 无 MT5 连接时：直接读本地文件（供查询/分析使用）
+  - 首次：從 MT5 拉全量（BARS_COUNT 根）寫入
+  - 後續：只拉本地最新 bar 之後的增量，追加
+  - 無 MT5 連接時：直接讀本地文件（供查詢/分析使用）
 
 用法：
     cache = KlineCache()
-    df = cache.get(symbol)          # 优先读本地，按需增量更新
-    df = cache.get(symbol, force_refresh=True)  # 强制重拉全量
-    cache.update_all(symbols)       # 批量更新
+    df = cache.get(symbol)          # 優先讀本地，按需增量更新
+    df = cache.get(symbol, force_refresh=True)  # 強制重拉全量
+    cache.update_all(symbols)       # 批次更新
 """
 from __future__ import annotations
 
@@ -42,15 +42,15 @@ except ImportError:
 def _default_cache_dir() -> Path:
     try:
         from config import Config
-        return Path(getattr(Config, "KLINE_CACHE_DIR", r"D:\K线数据"))
+        return Path(getattr(Config, "KLINE_CACHE_DIR", r"D:\K線數據"))
     except ImportError:
-        return Path(r"D:\K线数据")
+        return Path(r"D:\K線數據")
 
 _COLUMNS = ["time", "open", "high", "low", "close", "tick_volume"]
 
 
 class KlineCache:
-    """本地 K 线缓存管理器，支持增量更新。"""
+    """本地 K 線快取管理器，支持增量更新。"""
 
     def __init__(
         self,
@@ -69,7 +69,7 @@ class KlineCache:
         )
         return self.cache_dir / f"{symbol}_{tf_name}.parquet"
 
-    # ── 公开接口 ─────────────────────────────────────────────────────────
+    # ── 公開介面 ─────────────────────────────────────────────────────────
 
     def get(
         self,
@@ -77,16 +77,16 @@ class KlineCache:
         force_refresh: bool = False,
         mt5_connected: bool = True,
     ) -> Optional[pd.DataFrame]:
-        """获取品种 K 线数据（本地优先，自动增量更新）。
+        """獲取品種 K 線數據（本地優先，自動增量更新）。
 
         Args:
-            symbol:        MT5 品种名
-            force_refresh: True = 忽略本地缓存，强制重拉全量
-            mt5_connected: False = 只读本地，不尝试连接 MT5
+            symbol:        MT5 品種名
+            force_refresh: True = 忽略本地快取，強制重拉全量
+            mt5_connected: False = 只讀本地，不嘗試連接 MT5
 
         Returns:
             DataFrame（time, open, high, low, close, tick_volume），
-            或 None（本地无数据且无 MT5 连接时）。
+            或 None（本地無數據且無 MT5 連接時）。
         """
         path = self._cache_path(symbol)
 
@@ -94,13 +94,13 @@ class KlineCache:
             if mt5_connected and _MT5_AVAILABLE:
                 return self._full_download(symbol)
             elif path.exists():
-                logger.info(f"[Cache] {symbol}: 读取本地缓存（无 MT5 连接）")
+                logger.info(f"[Cache] {symbol}: 讀取本地快取（無 MT5 連接）")
                 return pd.read_parquet(path)
             else:
-                logger.warning(f"[Cache] {symbol}: 无本地缓存且无 MT5 连接")
+                logger.warning(f"[Cache] {symbol}: 無本地快取且無 MT5 連接")
                 return None
 
-        # 读本地
+        # 讀本地
         local_df = pd.read_parquet(path)
         if local_df.empty:
             return self._full_download(symbol) if mt5_connected else None
@@ -118,7 +118,7 @@ class KlineCache:
         symbols: list[str],
         mt5_connected: bool = True,
     ) -> dict[str, int]:
-        """批量更新多个品种，返回 {symbol: new_bars_added}。"""
+        """批次更新多個品種，返回 {symbol: new_bars_added}。"""
         results = {}
         for sym in symbols:
             try:
@@ -137,7 +137,7 @@ class KlineCache:
         return results
 
     def list_cached(self) -> list[dict]:
-        """列出所有已缓存的品种和数据量。"""
+        """列出所有已快取的品種和數據量。"""
         out = []
         for p in sorted(self.cache_dir.glob("*.parquet")):
             try:
@@ -154,20 +154,20 @@ class KlineCache:
         return out
 
     def read_local(self, symbol: str) -> Optional[pd.DataFrame]:
-        """直接读本地文件，不尝试 MT5（离线使用）。"""
+        """直接讀本地文件，不嘗試 MT5（離線使用）。"""
         return self.get(symbol, mt5_connected=False)
 
-    # ── 内部方法 ─────────────────────────────────────────────────────────
+    # ── 內部方法 ─────────────────────────────────────────────────────────
 
     def _full_download(self, symbol: str) -> Optional[pd.DataFrame]:
-        """从 MT5 下载全量历史数据并保存。"""
+        """從 MT5 下載全量歷史數據並保存。"""
         if not _MT5_AVAILABLE or mt5 is None:
             return None
-        logger.info(f"[Cache] {symbol}: 全量下载（{self.bars_count} bars）...")
+        logger.info(f"[Cache] {symbol}: 全量下載（{self.bars_count} bars）...")
         t0 = time.time()
         rates = mt5.copy_rates_from_pos(symbol, self.timeframe, 0, self.bars_count)
         if rates is None or len(rates) == 0:
-            logger.warning(f"[Cache] {symbol}: MT5 返回空数据")
+            logger.warning(f"[Cache] {symbol}: MT5 返回空數據")
             return None
         df = pd.DataFrame(rates)[_COLUMNS].astype({
             "time": "int64", "open": "float32", "high": "float32",
@@ -187,11 +187,11 @@ class KlineCache:
         local_df:  pd.DataFrame,
         last_time: int,
     ) -> pd.DataFrame:
-        """拉取 last_time 之后的新 bar，追加写入本地。"""
+        """拉取 last_time 之後的新 bar，追加寫入本地。"""
         if not _MT5_AVAILABLE or mt5 is None:
             return local_df
 
-        # 拉最近 200 根 bar（足够覆盖增量）
+        # 拉最近 200 根 bar（足夠覆蓋增量）
         rates = mt5.copy_rates_from_pos(symbol, self.timeframe, 0, 200)
         if rates is None or len(rates) == 0:
             return local_df
@@ -203,7 +203,7 @@ class KlineCache:
         # 只取比 last_time 更新的 bar
         new_rows = new_df[new_df["time"] > last_time]
         if new_rows.empty:
-            logger.debug(f"[Cache] {symbol}: 已是最新，无增量")
+            logger.debug(f"[Cache] {symbol}: 已是最新，無增量")
             return local_df
 
         merged = pd.concat([local_df, new_rows], ignore_index=True)

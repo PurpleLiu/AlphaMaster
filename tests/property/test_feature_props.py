@@ -1,5 +1,5 @@
-# Feature: mt5-alphagpt-refactor, Property 3: 特征张量形状不变量
-# Feature: mt5-alphagpt-refactor, Property 4: 特征值有界性
+# Feature: mt5-alphagpt-refactor, Property 3: 特徵張量形狀不變數
+# Feature: mt5-alphagpt-refactor, Property 4: 特徵值有界性
 """
 Property-based tests for model_core.features (MT5FeatureEngineer).
 
@@ -47,7 +47,7 @@ def _make_raw_dict(
     }
 
 
-# ── Property 3: 特征张量形状不变量 ───────────────────────────────────────────
+# ── Property 3: 特徵張量形狀不變數 ───────────────────────────────────────────
 # Validates: Requirements 3.3, 4.2, 4.4
 
 
@@ -73,8 +73,8 @@ def test_property3_feature_tensor_shape(n: int, t: int):
     )
 
 
-# ── Property 4: 特征值有界性 ──────────────────────────────────────────────────
-# Feature: mt5-alphagpt-refactor, Property 4: 特征值有界性
+# ── Property 4: 特徵值有界性 ──────────────────────────────────────────────────
+# Feature: mt5-alphagpt-refactor, Property 4: 特徵值有界性
 # Validates: Requirements 4.3, 4.5
 
 

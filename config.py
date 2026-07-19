@@ -1,8 +1,8 @@
 """
-config.py — 统一配置模块（项目根目录）
+config.py — 統一配置模組（項目根目錄）
 
-所有子模块从此文件导入 Config，废弃各自的 config.py。
-MT5 连接凭证通过环境变量或 .env 文件加载。
+所有子模組從此文件導入 Config，廢棄各自的 config.py。
+MT5 連接憑證通過環境變數或 .env 文件載入。
 """
 import os
 
@@ -11,7 +11,7 @@ try:
     _MT5_AVAILABLE = True
 except ImportError:
     _MT5_AVAILABLE = False
-    # 测试环境无 MT5 时使用整数占位常量（与真实 MT5 值一致）
+    # 測試環境無 MT5 時使用整數占位常量（與真實 MT5 值一致）
     class _MT5Stub:
         TIMEFRAME_M1  = 1
         TIMEFRAME_M5  = 5
@@ -36,115 +36,115 @@ load_dotenv()
 
 
 class Config:
-    # ── MT5 连接 ──────────────────────────────────────────
+    # ── MT5 連接 ──────────────────────────────────────────
     MT5_LOGIN    = int(os.getenv("MT5_LOGIN", "0"))
     MT5_PASSWORD = os.getenv("MT5_PASSWORD", "")
     MT5_SERVER   = os.getenv("MT5_SERVER", "")
 
-    # ── 品种与周期 ────────────────────────────────────────
-    # TRADE_SYMBOLS：实际交易的品种（新账号，无 m 后缀）
+    # ── 品種與週期 ────────────────────────────────────────
+    # TRADE_SYMBOLS：實際交易的品種（新帳號，無 m 後綴）
     SYMBOLS   = [
-        # 外汇
+        # 外匯
         "EURUSD", "USDJPY",
-        # 贵金属
+        # 貴金屬
         "XAUUSD", "XAGUSD",
-        # AAVUSD 已移除：实为 Aave 加密货币，非大宗商品。波动特征与贵金属完全不匹配。
-        # COCOA.c 已移除：大宗商品期货，日交易~10h，时间对齐后仅8546 bar，
-        # 拖累整组数据量，且流动性/交易时段与贵金属不匹配。
-        # 美国指数
+        # AAVUSD 已移除：實為 Aave 加密貨幣，非大宗商品。波動特徵與貴金屬完全不匹配。
+        # COCOA.c 已移除：大宗商品期貨，日交易~10h，時間對齊後僅8546 bar，
+        # 拖累整組數據量，且流動性/交易時段與貴金屬不匹配。
+        # 美國指數
         "US30.cash", "US100.cash", "US500.cash", "US2000.cash",
-        # 其他指数
+        # 其他指數
         "JP225.cash",
     ]
 
-    # ── 训练品种（单品种模式）──────────────────────────────
-    # 2026-07-07 从分组模式切换到单品种模式。原因：
-    #   1. 截面信息没用上：precious_metals/index 跑出的4个最优公式，没有一个用了 CS 算子
-    #   2. 跨品种干扰严重：XAUUSD/XAGUSD 同组时，白银 Kyle Lambda 波动是黄金4倍，
-    #      模型被白银主导，黄金信号被淹没
-    #   3. 指数组无效探索：5个美股指数相关性>0.85，截面空间狭窄，19次重启后仍是beta
-    #   4. 单品种策略更纯粹：因子只针对一种资产特征，实盘也更容易管理
-    # 每个品种独立训练，checkpoint 按 ckpt_{symbol}_step_{N}.pt 保存。
+    # ── 訓練品種（單品種模式）──────────────────────────────
+    # 2026-07-07 從分組模式切換到單品種模式。原因：
+    #   1. 截面資訊沒用上：precious_metals/index 跑出的4個最優公式，沒有一個用了 CS 運算元
+    #   2. 跨品種干擾嚴重：XAUUSD/XAGUSD 同組時，白銀 Kyle Lambda 波動是黃金4倍，
+    #      模型被白銀主導，黃金信號被淹沒
+    #   3. 指數組無效探索：5個美股指數相關性>0.85，截面空間狹窄，19次重啟後仍是beta
+    #   4. 單品種策略更純粹：因子只針對一種資產特徵，實盤也更容易管理
+    # 每個品種獨立訓練，checkpoint 按 ckpt_{symbol}_step_{N}.pt 保存。
     TRAINABLE_SYMBOLS = [
-        # 外汇（各8年数据，24h连续交易）
+        # 外匯（各8年數據，24h連續交易）
         "EURUSD",
         "USDJPY",
-        # 贵金属（8年数据，24h连续交易）
+        # 貴金屬（8年數據，24h連續交易）
         "XAUUSD",
-        # XAGUSD 已移除：白银与黄金高度相关，单品种训练收益有限，
-        # 且黄金已有验证策略(Sharpe 2.66)，优先覆盖未挖掘品种
-        # 美国指数（各5年数据）
+        # XAGUSD 已移除：白銀與黃金高度相關，單品種訓練收益有限，
+        # 且黃金已有驗證策略(Sharpe 2.66)，優先覆蓋未挖掘品種
+        # 美國指數（各5年數據）
         "US30.cash",
         "US100.cash",
         "US500.cash",
         "US2000.cash",
-        # 日本指数
+        # 日本指數
         "JP225.cash",
     ]
 
-    # [deprecated] 相关性分组（已废弃，改用 TRAINABLE_SYMBOLS 单品种训练）
-    # 保留供回测参考，新训练不再使用
+    # [deprecated] 相關性分組（已廢棄，改用 TRAINABLE_SYMBOLS 單品種訓練）
+    # 保留供回測參考，新訓練不再使用
     SYMBOL_GROUPS = {
         "forex":          ["EURUSD", "USDJPY"],
         "precious_metals":["XAUUSD", "XAGUSD"],
         "index":          ["US30.cash", "US100.cash", "US500.cash", "US2000.cash", "JP225.cash"],
     }
 
-    # FEATURE_SYMBOLS：用于计算截面特征的宽品种集
-    # 包含主要外汇、贵金属、大宗商品、主流指数，时间与 SYMBOLS 高度对齐
-    # REL_RET5/REL_RET20/REL_VOL 等跨资产特征将基于这 40 个品种计算截面均值
-    # 若设为 None，则退化为只用 SYMBOLS（5品种截面）
+    # FEATURE_SYMBOLS：用於計算截面特徵的寬品種集
+    # 包含主要外匯、貴金屬、大宗商品、主流指數，時間與 SYMBOLS 高度對齊
+    # REL_RET5/REL_RET20/REL_VOL 等跨資產特徵將基於這 40 個品種計算截面均值
+    # 若設為 None，則退化為只用 SYMBOLS（5品種截面）
     FEATURE_SYMBOLS = [
-        # 主要外汇（26个）
+        # 主要外匯（26個）
         "EURUSD", "GBPUSD", "AUDUSD", "NZDUSD", "USDCAD", "USDCHF",
         "USDJPY", "EURJPY", "GBPJPY", "AUDJPY", "EURGBP", "EURAUD",
         "EURCAD", "EURCHF", "GBPAUD", "GBPCAD", "GBPCHF",
         "AUDCAD", "AUDCHF", "AUDNZD", "NZDCAD", "NZDCHF", "NZDJPY",
         "CADCHF", "CADJPY", "CHFJPY",
-        # 贵金属（3个）
+        # 貴金屬（3個）
         "XAUUSD", "XAGUSD", "XPTUSD",
-        # 美元指数（1个）
+        # 美元指數（1個）
         "DXY.cash",
-        # 大宗商品（2个）
+        # 大宗商品（2個）
         "USOIL.cash", "UKOIL.cash",
-        # 主流指数（8个）
+        # 主流指數（8個）
         "US30.cash", "US500.cash", "US100.cash", "UK100.cash",
         "DE30.cash", "FR40.cash", "JP225.cash", "AUS200.cash",
     ]
 
-    # ── 数据参数 ──────────────────────────────────────────
-    TIMEFRAME             = mt5.TIMEFRAME_H1   # K 线周期
-    # 每品种拉取的历史 K 线上限。设为极大值以使用 MT5 全部可用历史；
-    # 本地缓存优先：若 D:\K线数据 已有数据，fetcher 会返回本地全部历史（不截断）。
+    # ── 數據參數 ──────────────────────────────────────────
+    TIMEFRAME             = mt5.TIMEFRAME_H1   # K 線週期
+    # 每品種拉取的歷史 K 線上限。設為極大值以使用 MT5 全部可用歷史；
+    # 本地快取優先：若 D:\K線數據 已有數據，fetcher 會返回本地全部歷史（不截斷）。
     BARS_COUNT            = 10_000_000
-    MIN_BARS              = 3000   # 低于此值的品种被排除
-    DATA_REFRESH_INTERVAL = 300    # 秒，实盘数据刷新间隔
-    KLINE_CACHE_DIR       = os.getenv("KLINE_CACHE_DIR", r"D:\K线数据")  # 本地 K 线缓存目录
+    MIN_BARS              = 3000   # 低於此值的品種被排除
+    DATA_REFRESH_INTERVAL = 300    # 秒，實盤數據刷新間隔
+    KLINE_CACHE_DIR       = os.getenv("KLINE_CACHE_DIR", r"D:\K線數據")  # 本地 K 線快取目錄
 
-    # ── 模型参数（仅供参考，训练实际使用 model_core.config.ModelConfig）────
-    # 训练参数的权威来源是 model_core/config.py，这里的值不生效
-    INPUT_DIM       = 20           # 特征数（与 MT5FeatureEngineer.INPUT_DIM 一致）
-    BATCH_SIZE      = 128          # 参见 ModelConfig.BATCH_SIZE
-    TRAIN_STEPS     = 300          # 参见 ModelConfig.TRAIN_STEPS
-    MAX_FORMULA_LEN = 8            # 参见 ModelConfig.MAX_FORMULA_LEN
-    # DEVICE 同样以 model_core/config.py 为准（已改为 cpu，原因见该文件注释）
+    # ── 模型參數（僅供參考，訓練實際使用 model_core.config.ModelConfig）────
+    # 訓練參數的權威來源是 model_core/config.py，這裡的值不生效
+    INPUT_DIM       = 20           # 特徵數（與 MT5FeatureEngineer.INPUT_DIM 一致）
+    BATCH_SIZE      = 128          # 參見 ModelConfig.BATCH_SIZE
+    TRAIN_STEPS     = 300          # 參見 ModelConfig.TRAIN_STEPS
+    MAX_FORMULA_LEN = 8            # 參見 ModelConfig.MAX_FORMULA_LEN
+    # DEVICE 同樣以 model_core/config.py 為準（已改為 cpu，原因見該文件注釋）
     DEVICE          = (
         torch.device("cpu")
         if _TORCH_AVAILABLE
         else "cpu"
     )
 
-    # ── 风控参数 ──────────────────────────────────────────
-    RISK_PER_TRADE     = 0.01      # legacy: 保留给旧接口/测试；实盘仓位使用 VOL_TARGET_* 参数
-    COST_RATE          = 0.0001    # 单边点差+佣金（forex/metals）
-    MAX_OPEN_POSITIONS = 4         # 最多同时持仓品种数
-    MAX_LOT_PER_TRADE  = 5.0       # 兜底上限；实际手数由 XAUUSD 0.01 手波动预算决定
-    # 永不自动交易的品种（白银合约乘数 5000，2026-07-08 起停用）
+    # ── 風控參數 ──────────────────────────────────────────
+    RISK_PER_TRADE     = 0.01      # legacy: 保留給舊介面/測試；實盤倉位使用 VOL_TARGET_* 參數
+    COST_RATE          = 0.0001    # 單邊點差+佣金（forex/metals）
+    MAX_OPEN_POSITIONS = 4         # 最多同時持倉品種數
+    MAX_LOT_PER_TRADE  = 5.0       # 兜底上限；實際手數由 XAUUSD 0.01 手波動預算決定
+    # 永不自動交易的品種（白銀合約乘數 5000，2026-07-08 起停用）
     EXCLUDED_TRADE_SYMBOLS = ["XAGUSD"]
-    # 手数校准（实盘）：
-    # - 以 XAUUSD 0.01 手的一根 ATR 美元波动作为基准
-    # - 其它品种按各自 ATR 与 tick value 反推手数，使金额波动接近
-    # - 可选 Sharpe 权重：Sharpe 高于基准则略放大，低于基准则收缩
+    # 手數校準（實盤）：
+    # - 以 XAUUSD 0.01 手的一根 ATR 美元波動作為基準
+    # - 其它品種按各自 ATR 與 tick value 反推手數，使金額波動接近
+    # - 可選 Sharpe 權重：Sharpe 高於基準則略放大，低於基準則收縮
     FIXED_LOT_BY_SYMBOL = {
         "XAUUSD": 0.01,
     }
@@ -162,39 +162,39 @@ class Config:
         "US30.cash": 0.923,
         "JP225.cash": -0.653,
     }
-    MIN_TRADE_EXPOSURE = 0.05      # |tanh(factor)| 小于该值时视为空仓，回测/实盘共用
+    MIN_TRADE_EXPOSURE = 0.05      # |tanh(factor)| 小於該值時視為空倉，回測/實盤共用
 
-    # ── 策略参数 ──────────────────────────────────────────
-    # SIGNAL_MODE 控制信号→仓位的转换方式：
-    #   "backtest_parity": tanh 连续仓位，与 backtest.py 完全一致（推荐）
-    #   "threshold":       sigmoid + BUY_THRESHOLD / SELL_THRESHOLD（旧逻辑）
+    # ── 策略參數 ──────────────────────────────────────────
+    # SIGNAL_MODE 控制信號→倉位的轉換方式：
+    #   "backtest_parity": tanh 連續倉位，與 backtest.py 完全一致（推薦）
+    #   "threshold":       sigmoid + BUY_THRESHOLD / SELL_THRESHOLD（舊邏輯）
     SIGNAL_MODE = "backtest_parity"
 
-    # EXIT_MODE 控制出场机制：
-    #   "signal":  仅靠信号翻转出场，严格对标回测
-    #   "risk":    保留止损/止盈/追踪止损
-    #   "hybrid":  信号翻转为主，保留紧急熔断（单日最大亏损 / 极端滑点）
+    # EXIT_MODE 控制出場機制：
+    #   "signal":  僅靠信號翻轉出場，嚴格對標回測
+    #   "risk":    保留止損/止盈/追蹤止損
+    #   "hybrid":  信號翻轉為主，保留緊急熔斷（單日最大虧損 / 極端滑點）
     EXIT_MODE = "signal"
 
-    # threshold 模式专用（SIGNAL_MODE="threshold" 时生效）
+    # threshold 模式專用（SIGNAL_MODE="threshold" 時生效）
     BUY_THRESHOLD       = 0.70
     SELL_THRESHOLD      = 0.40
 
-    # risk / hybrid 模式专用（EXIT_MODE != "signal" 时生效）
+    # risk / hybrid 模式專用（EXIT_MODE != "signal" 時生效）
     STOP_LOSS_PCT       = -0.02   # -2%
     TAKE_PROFIT_PCT     = 0.04    # +4%
     TRAILING_ACTIVATION = 0.03
     TRAILING_DROP       = 0.015
 
-    # 时间对齐
-    REBALANCE_ON_BAR_CLOSE = True  # True=仅新 K 线收盘后调仓，对标回测
-    EXECUTION_LAG_BARS     = 1     # 与回测 target_ret 的执行延迟对齐
+    # 時間對齊
+    REBALANCE_ON_BAR_CLOSE = True  # True=僅新 K 線收盤後調倉，對標回測
+    EXECUTION_LAG_BARS     = 1     # 與回測 target_ret 的執行延遲對齊
 
-    # 持仓上限：None = 不限制（严格对标回测，各品种独立）
-    # 设为整数（如 3）则启用约束（需回测里同步加同样约束才对标）
+    # 持倉上限：None = 不限制（嚴格對標回測，各品種獨立）
+    # 設為整數（如 3）則啟用約束（需回測裡同步加同樣約束才對標）
     MAX_OPEN_POSITIONS: int | None = None
 
-    # ── 文件路径 ──────────────────────────────────────────
+    # ── 文件路徑 ──────────────────────────────────────────
     STRATEGY_FILE  = "best_mt5_strategy.json"
     PORTFOLIO_FILE = "portfolio_state.json"
     STOP_SIGNAL    = "STOP_SIGNAL"
@@ -204,15 +204,15 @@ class Config:
 
     @classmethod
     def get_timeframe(cls, tf_str: str) -> int:
-        """将字符串（如 'H1'）映射为 MT5 时间周期常量。
+        """將字串（如 'H1'）映射為 MT5 時間週期常量。
 
-        支持的周期：M1, M5, M15, M30, H1, H4, D1, W1, MN1
+        支持的週期：M1, M5, M15, M30, H1, H4, D1, W1, MN1
 
         Args:
-            tf_str: 时间周期字符串，例如 "H1"
+            tf_str: 時間週期字串，例如 "H1"
 
         Returns:
-            对应的 MT5 TIMEFRAME_* 整数常量
+            對應的 MT5 TIMEFRAME_* 整數常量
 
         Raises:
             ValueError: 若 tf_str 不在支持列表中

@@ -221,8 +221,8 @@ class LoopedTransformer(nn.Module):
 class AlphaGPT(nn.Module):
     def __init__(self):
         super().__init__()
-        # d_model 64→96：vocab 剪枝后为 ~94，96 维 embedding 足以支撑，
-        # 兼顾容量与 CPU 自回归采样的速度（128 维每步耗时过高）。
+        # d_model 64→96：vocab 剪枝後為 ~94，96 維 embedding 足以支撐，
+        # 兼顧容量與 CPU 自回歸採樣的速度（128 維每步耗時過高）。
         self.d_model = 96
         self.features_list = list(FORMULA_VOCAB.feature_names)
         self.ops_list = list(FORMULA_VOCAB.operator_names)
@@ -231,18 +231,18 @@ class AlphaGPT(nn.Module):
         self.vocab_size = FORMULA_VOCAB.size
         
         # Embedding
-        # pos_emb 用固定上限 20，与 MAX_FORMULA_LEN 解耦：
-        # - 阶段A (len=8) 和阶段B (len=14) 都能用同一模型权重
-        # - 测试无需随配置变更而调整
-        # - 手工评估或 14-token 公式都在范围内
+        # pos_emb 用固定上限 20，與 MAX_FORMULA_LEN 解耦：
+        # - 階段A (len=8) 和階段B (len=14) 都能用同一模型權重
+        # - 測試無需隨配置變更而調整
+        # - 手工評估或 14-token 公式都在範圍內
         _POS_EMB_MAX = 20
         self._max_seq = _POS_EMB_MAX
         self.token_emb = nn.Embedding(self.vocab_size, self.d_model)
         self.pos_emb = nn.Parameter(torch.zeros(1, _POS_EMB_MAX, self.d_model))
         
         # Enhanced Transformer with Looped Transformer
-        # num_layers 2→3、dim_feedforward 128→192：配合 d_model=96 适度扩容。
-        # 4 层 looped(×3 loops) 在 CPU 自回归采样下每步耗时过高，取 3 层平衡。
+        # num_layers 2→3、dim_feedforward 128→192：配合 d_model=96 適度擴容。
+        # 4 層 looped(×3 loops) 在 CPU 自回歸採樣下每步耗時過高，取 3 層平衡。
         # nhead=4 → head_dim=24。
         self.blocks = LoopedTransformer(
             d_model=self.d_model,

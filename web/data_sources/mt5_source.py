@@ -1,4 +1,4 @@
-"""MT5 数据源（MetaTrader5 终端，需已登录运行）。"""
+"""MT5 數據源（MetaTrader5 終端，需已登錄運行）。"""
 from __future__ import annotations
 
 import threading
@@ -35,8 +35,8 @@ class MT5Source(DataSource):
         try:
             import MetaTrader5  # noqa: F401
         except ImportError:
-            return (False, "未安装 MetaTrader5：pip install MetaTrader5")
-        return (True, "需 MT5 终端已登录运行")
+            return (False, "未安裝 MetaTrader5：pip install MetaTrader5")
+        return (True, "需 MT5 終端已登錄運行")
 
     def supported_timeframes(self) -> list[str]:
         return list(_TF.keys())
@@ -48,12 +48,12 @@ class MT5Source(DataSource):
         try:
             import MetaTrader5 as mt5
         except ImportError as exc:
-            raise DataSourceUnavailable("未安装 MetaTrader5") from exc
+            raise DataSourceUnavailable("未安裝 MetaTrader5") from exc
         if self._connected:
             return
         if not mt5.initialize():
             raise DataSourceUnavailable(
-                f"MT5 初始化失败 {mt5.last_error()}；请确认终端已打开并登录"
+                f"MT5 初始化失敗 {mt5.last_error()}；請確認終端已打開並登錄"
             )
         self._connected = True
 
@@ -70,11 +70,11 @@ class MT5Source(DataSource):
         self, symbol: str, timeframe: str, n: int, drop_forming: bool = True
     ) -> list[Bar]:
         if timeframe not in _TF:
-            raise DataSourceUnavailable(f"MT5 不支持周期 {timeframe}")
+            raise DataSourceUnavailable(f"MT5 不支持週期 {timeframe}")
         try:
             import MetaTrader5 as mt5
         except ImportError as exc:
-            raise DataSourceUnavailable("未安装 MetaTrader5") from exc
+            raise DataSourceUnavailable("未安裝 MetaTrader5") from exc
 
         with self._lock:
             self.connect()
@@ -88,10 +88,10 @@ class MT5Source(DataSource):
 
         if rates is None or len(rates) == 0:
             raise DataSourceUnavailable(
-                f"MT5 无法获取 {symbol} {timeframe} 数据 {mt5.last_error()}"
+                f"MT5 無法獲取 {symbol} {timeframe} 數據 {mt5.last_error()}"
             )
 
-        # copy_rates_from_pos 返回升序，最后一根为正在形成的 bar
+        # copy_rates_from_pos 返回升序，最後一根為正在形成的 bar
         rows = list(rates)
         if drop_forming and len(rows) > 1:
             rows = rows[:-1]

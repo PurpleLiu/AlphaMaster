@@ -1,15 +1,15 @@
 """
-execution/price_feed.py — MT5 实时价格获取模块
+execution/price_feed.py — MT5 即時價格獲取模組
 
-MT5PriceFeed 负责通过 MetaTrader5 Python API 获取指定品种的最新 bid/ask 报价。
-全同步接口，无 asyncio（Req 7.4）。
+MT5PriceFeed 負責通過 MetaTrader5 Python API 獲取指定品種的最新 bid/ask 報價。
+全同步介面，無 asyncio（Req 7.4）。
 """
 try:
     import MetaTrader5 as mt5
     _MT5_AVAILABLE = True
 except ImportError:
     _MT5_AVAILABLE = False
-    # 测试环境占位，无需真实 MT5 安装
+    # 測試環境占位，無需真實 MT5 安裝
     class _MT5Stub:
         def symbol_info_tick(self, symbol):  # noqa: D401
             return None
@@ -23,30 +23,30 @@ from loguru import logger
 
 
 class MT5PriceFeed:
-    """从 MT5 终端获取实时 bid/ask/mid 报价。
+    """從 MT5 終端獲取即時 bid/ask/mid 報價。
 
-    所有方法均为同步调用，符合 MetaTrader5 Python API 同步特性（Req 7.4）。
+    所有方法均為同步調用，符合 MetaTrader5 Python API 同步特性（Req 7.4）。
     """
 
     @staticmethod
     def get_tick(symbol: str) -> dict | None:
-        """获取指定品种的最新报价。
+        """獲取指定品種的最新報價。
 
-        调用 ``mt5.symbol_info_tick(symbol)`` 取得当前 tick 数据，计算 mid
-        价格并以字典形式返回（Req 7.1、7.2）。
+        調用 ``mt5.symbol_info_tick(symbol)`` 取得當前 tick 數據，計算 mid
+        價格並以字典形式返回（Req 7.1、7.2）。
 
-        若 tick 数据无法获取（symbol 不存在、MT5 未连接等），记录警告日志并
-        返回 None（Req 7.3）。无论日志记录本身是否成功，均保证返回 None。
+        若 tick 數據無法獲取（symbol 不存在、MT5 未連接等），記錄警告日誌並
+        返回 None（Req 7.3）。無論日誌記錄本身是否成功，均保證返回 None。
 
         Args:
-            symbol: MT5 品种标识符，例如 ``"XAUUSD"``、``"EURUSD"``。
+            symbol: MT5 品種標識符，例如 ``"XAUUSD"``、``"EURUSD"``。
 
         Returns:
-            成功时返回::
+            成功時返回::
 
                 {"bid": float, "ask": float, "mid": float}
 
-            失败时返回 ``None``。
+            失敗時返回 ``None``。
         """
         tick = mt5.symbol_info_tick(symbol)
         if tick is None:
@@ -54,7 +54,7 @@ class MT5PriceFeed:
                 logger.warning(
                     f"MT5PriceFeed: symbol_info_tick('{symbol}') returned None"
                 )
-            except Exception:  # pragma: no cover — 日志失败不影响返回值
+            except Exception:  # pragma: no cover — 日誌失敗不影響返回值
                 pass
             return None
 

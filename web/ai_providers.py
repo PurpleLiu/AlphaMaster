@@ -46,7 +46,7 @@ _WORKBUDDY_AUTH_EXPECTED = (
     / "workbuddy-desktop.info"
 )
 
-PROVIDERS = ("deepseek", "openclaw", "openclaw_wb")
+PROVIDERS = ("deepseek", "openclaw", "openclaw_wb", "custom")
 
 
 @dataclass
@@ -128,24 +128,24 @@ def provider_status() -> dict[str, Any]:
     wb_ok = bool(_workbuddy_token())
     wb_env = detect_workbuddy()
     if qclaw_cfg and qclaw_reachable:
-        qclaw_hint = "已检测到本地 QClaw Gateway（可连通）"
+        qclaw_hint = "已檢測到本地 QClaw Gateway（可連通）"
     elif qclaw_cfg:
         qclaw_hint = (
-            "已读取 QClaw 配置，将自动连接本地 Gateway。"
-            "若 QClaw 已打开仍显示未连通，可直接尝试分析（分析时会重新检测）。"
+            "已讀取 QClaw 配置，將自動連接本地 Gateway。"
+            "若 QClaw 已打開仍顯示未連通，可直接嘗試分析（分析時會重新檢測）。"
         )
     else:
-        qclaw_hint = "未检测到 QClaw（需 ~/.qclaw/openclaw.json 且 chatCompletions 已启用）"
+        qclaw_hint = "未檢測到 QClaw（需 ~/.qclaw/openclaw.json 且 chatCompletions 已啟用）"
     if wb_ok:
-        wb_hint = "已自动读取 WorkBuddy 登录 token"
+        wb_hint = "已自動讀取 WorkBuddy 登錄 token"
     elif wb_env:
         wb_hint = (
-            "已检测到 WorkBuddy，但未找到登录 token。"
-            f"请打开 WorkBuddy 并登录（会话文件：{_WORKBUDDY_AUTH_EXPECTED}），"
-            "或设置 WORKBUDDY_API_TOKEN / 写入 ~/.workbuddy/.wb_token"
+            "已檢測到 WorkBuddy，但未找到登錄 token。"
+            f"請打開 WorkBuddy 並登錄（會話文件：{_WORKBUDDY_AUTH_EXPECTED}），"
+            "或設置 WORKBUDDY_API_TOKEN / 寫入 ~/.workbuddy/.wb_token"
         )
     else:
-        wb_hint = "未检测到 WorkBuddy（请先安装并登录 WorkBuddy）"
+        wb_hint = "未檢測到 WorkBuddy（請先安裝並登錄 WorkBuddy）"
     return {
         "providers": [
             {
@@ -175,11 +175,11 @@ def provider_status() -> dict[str, Any]:
 
 
 def _alias_provider_from_key(api_key: str | None) -> str | None:
-    """Map Key 输入里的 openclaw / openclaw_wb 别名到通道 id。"""
+    """Map Key 輸入裡的 openclaw / openclaw_wb 別名到通道 id。"""
     key_lower = (api_key or "").strip().lower()
     if not key_lower:
         return None
-    # openclaw_wb 必须先于 openclaw，避免被 openclaw 前缀误伤
+    # openclaw_wb 必須先於 openclaw，避免被 openclaw 前綴誤傷
     if key_lower in ("openclaw_wb",) or key_lower.startswith("openclaw_wb/"):
         return "openclaw_wb"
     if key_lower in ("openclaw",) or key_lower.startswith("openclaw/"):
@@ -187,22 +187,44 @@ def _alias_provider_from_key(api_key: str | None) -> str | None:
     return None
 
 
-def resolve_provider(provider: str, api_key: str | None = None) -> ResolvedProvider:
+def resolve_provider(
+    provider: str,
+    api_key: str | None = None,
+    *,
+    base_url: str | None = None,
+    model: str | None = None,
+) -> ResolvedProvider:
     pid = (provider or "deepseek").strip().lower()
     key = (api_key or "").strip()
 
-    # API Key 里直接填 openclaw / openclaw_wb 时，自动切换通道并读取本地 token
+    # API Key 裡直接填 openclaw / openclaw_wb 時，自動切換通道並讀取本地 token
     aliased = _alias_provider_from_key(key)
     if aliased:
         pid = aliased
         key = ""
 
     if pid not in PROVIDERS:
-        raise ValueError(f"不支持的 AI 通道: {provider}（可选: {', '.join(PROVIDERS)}）")
+        raise ValueError(f"不支持的 AI 通道: {provider}（可選: {', '.join(PROVIDERS)}）")
+
+    if pid == "custom":
+        burl = (base_url or "").strip().rstrip("/")
+        mdl = (model or "").strip()
+        if not burl or not mdl:
+            raise ValueError("自訂通道需填寫 Base URL 與模型名稱")
+        if not key:
+            raise ValueError("請填寫 API Key")
+        return ResolvedProvider(
+            provider="custom",
+            model=mdl,
+            base_url=burl,
+            api_key=key,
+            label=f"自訂（{mdl}）",
+            needs_user_key=True,
+        )
 
     if pid == "deepseek":
         if not key:
-            raise ValueError("请填写 DeepSeek API Key")
+            raise ValueError("請填寫 DeepSeek API Key")
         return ResolvedProvider(
             provider="deepseek",
             model=DEEPSEEK_MODEL,
@@ -216,15 +238,15 @@ def resolve_provider(provider: str, api_key: str | None = None) -> ResolvedProvi
         info = _qclaw_gateway_info()
         if info is None or not detect_qclaw(require_alive=False):
             raise ValueError(
-                "未检测到本地 QClaw。请确认已安装 QClaw，"
-                "且 ~/.qclaw/openclaw.json 中 chatCompletions 已启用、token 已配置。"
+                "未檢測到本地 QClaw。請確認已安裝 QClaw，"
+                "且 ~/.qclaw/openclaw.json 中 chatCompletions 已啟用、token 已配置。"
             )
         host, port, token = info
         base = f"http://{host}:{port}/v1"
         if not _probe_qclaw_gateway(base, token):
             raise ValueError(
-                f"已读取 QClaw 配置，但暂时无法连接 Gateway（{base}）。"
-                "请确认 QClaw 已打开；若刚启动请稍等几秒后重试。"
+                f"已讀取 QClaw 配置，但暫時無法連接 Gateway（{base}）。"
+                "請確認 QClaw 已打開；若剛啟動請稍等幾秒後重試。"
             )
         model = str(_pick_openclaw_model(base, token) or _OPENCLAW_MODEL)
         return ResolvedProvider(
@@ -236,7 +258,7 @@ def resolve_provider(provider: str, api_key: str | None = None) -> ResolvedProvi
             needs_user_key=False,
         )
 
-    # openclaw_wb：自动从 WorkBuddy 会话 / .wb_token / 环境变量 / Electron DPAPI 读取
+    # openclaw_wb：自動從 WorkBuddy 會話 / .wb_token / 環境變數 / Electron DPAPI 讀取
     token = _workbuddy_token()
     if not token:
         raise ValueError(_workbuddy_token_missing_message())
@@ -267,7 +289,7 @@ def chat_completions(
         parts.append(chunk)
     content = "".join(parts).strip()
     if not content:
-        raise RuntimeError("AI 返回内容为空")
+        raise RuntimeError("AI 返回內容為空")
     return content
 
 
@@ -334,9 +356,9 @@ def stream_chat_completions(
                     yield text
     except urllib.error.HTTPError as exc:
         err_body = exc.read().decode("utf-8", errors="replace")[:800]
-        raise RuntimeError(f"AI 请求失败 HTTP {exc.code}: {err_body}") from exc
+        raise RuntimeError(f"AI 請求失敗 HTTP {exc.code}: {err_body}") from exc
     except Exception as exc:
-        raise RuntimeError(f"AI 请求失败: {exc}") from exc
+        raise RuntimeError(f"AI 請求失敗: {exc}") from exc
 
 
 def _find_qclaw_config() -> Path | None:
@@ -471,14 +493,14 @@ def _read_workbuddy_auth_token(path: Path) -> str | None:
 def _workbuddy_token_missing_message() -> str:
     expected = _WORKBUDDY_AUTH_EXPECTED
     lines = [
-        "未检测到 WorkBuddy token，请确认：",
-        "1. 已打开 WorkBuddy 并完成登录",
-        f"2. 存在会话文件：{expected}",
-        f"3. 或写入 token 文件：{_WORKBUDDY_TOKEN_FILE}",
-        "4. 或设置环境变量 WORKBUDDY_API_TOKEN",
+        "未檢測到 WorkBuddy token，請確認：",
+        "1. 已打開 WorkBuddy 並完成登錄",
+        f"2. 存在會話文件：{expected}",
+        f"3. 或寫入 token 文件：{_WORKBUDDY_TOKEN_FILE}",
+        "4. 或設置環境變數 WORKBUDDY_API_TOKEN",
     ]
     if detect_qclaw(require_alive=False):
-        lines.append("若要用本地 QClaw，请先启动 QClaw。")
+        lines.append("若要用本地 QClaw，請先啟動 QClaw。")
     return "\n".join(lines)
 
 

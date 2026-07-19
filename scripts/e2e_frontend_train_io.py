@@ -24,7 +24,7 @@ URL = "http://127.0.0.1:8765"
 
 def main() -> None:
     # Ensure there is a valid selected file (so buttons can enable)
-    # Use web_settings.json (already set to MT5_K线数据 ADAUSD_H1).
+    # Use web_settings.json (already set to MT5_K線數據 ADAUSD_H1).
     settings_path = ROOT / "web_settings.json"
     if settings_path.exists():
         data = json.loads(settings_path.read_text(encoding="utf-8"))

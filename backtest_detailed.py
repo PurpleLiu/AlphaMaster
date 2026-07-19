@@ -1,8 +1,8 @@
 """
-backtest_detailed.py — 全组详细回测报告
+backtest_detailed.py — 全組詳細回測報告
 
-输出：交易次数、平均持仓、胜率、盈亏比、最大单笔盈亏、平均盈亏、
-      前后半段、滚动 Sharpe、品种相关性矩阵、月度收益等
+輸出：交易次數、平均持倉、勝率、盈虧比、最大單筆盈虧、平均盈虧、
+      前後半段、滾動 Sharpe、品種相關性矩陣、月度收益等
 """
 import sys, json, math
 from pathlib import Path
@@ -97,13 +97,13 @@ def _max_consecutive_loss(pnl):
 
 
 def analyze_trades(pos_np, pnl_np, cost_rate):
-    """分析交易细节：持仓变化点为交易事件"""
+    """分析交易細節：持倉變化點為交易事件"""
     N, T = pos_np.shape
     results = []
     for n in range(N):
         pos = pos_np[n]
         pnl = pnl_np[n]
-        # 找到持仓变化点（开仓/平仓/翻转）
+        # 找到持倉變化點（開倉/平倉/翻轉）
         changes = np.where(np.abs(np.diff(pos)) > 0.01)[0] + 1
         if len(changes) == 0:
             results.append({
@@ -113,7 +113,7 @@ def analyze_trades(pos_np, pnl_np, cost_rate):
             })
             continue
 
-        # 把每段持仓作为一个 trade
+        # 把每段持倉作為一個 trade
         trade_bounds = []
         prev_idx = 0
         for c in changes:
@@ -212,7 +212,7 @@ def backtest_one(formula, feat, target_ret, symbols, cost_rate):
             "sortino":   calc_sortino(p),
             "mdd":       calc_mdd(cum),
             "ic":        calc_ic(factor_np[i:i+1], target_np[i:i+1]),
-            # 交易细节
+            # 交易細節
             "n_trades":      ts["n_trades"],
             "n_long":        ts["n_long"],
             "n_short":       ts["n_short"],
@@ -232,7 +232,7 @@ def backtest_one(formula, feat, target_ret, symbols, cost_rate):
     port_cum = np.cumsum(port_pnl)
     ic = calc_ic(factor_np, target_np)
 
-    # 组合交易统计
+    # 組合交易統計
     port_pos = pos_np.mean(axis=0)
     port_trade = analyze_trades(port_pos.reshape(1, -1), port_pnl.reshape(1, -1), cost_rate)[0]
 
@@ -279,7 +279,7 @@ def backtest_one(formula, feat, target_ret, symbols, cost_rate):
         "n_syms":         N,
         "T":              T,
         "years_span":     T / _H1_PER_YEAR,
-        # 交易细节
+        # 交易細節
         "port_n_trades":      port_trade["n_trades"],
         "port_n_long":        port_trade["n_long"],
         "port_n_short":       port_trade["n_short"],
@@ -327,7 +327,7 @@ def print_detailed_report(group_name, result, symbols, cost_rate, best_score):
     print(f"  Data      : {T} bars (H1)  ~  {years:.2f} years")
     print(f"  Cost rate : {cost_rate}")
 
-    # === 组合概览 ===
+    # === 組合概覽 ===
     print(f"\n  {'─'*70}")
     print(f"  PORTFOLIO OVERVIEW (equal weight, {r['n_syms']} symbols)")
     print(f"  {'─'*70}")
@@ -341,7 +341,7 @@ def print_detailed_report(group_name, result, symbols, cost_rate, best_score):
     print(f"  Avg Turnover/bar   : {r['avg_turnover']:.6f}")
     print(f"  Max Consec Loss    : {r['max_consec_loss']} bars ({r['max_consec_loss']}h)")
 
-    # === 交易统计 ===
+    # === 交易統計 ===
     print(f"\n  {'─'*70}")
     print(f"  TRADING STATISTICS (portfolio level)")
     print(f"  {'─'*70}")
@@ -356,7 +356,7 @@ def print_detailed_report(group_name, result, symbols, cost_rate, best_score):
     print(f"  Max Loss           : {r['port_max_loss']:+.6f}")
     print(f"  Avg Hold           : {r['port_avg_hold_h']:.1f} bars ({r['port_avg_hold_h']:.1f}h)")
 
-    # === 前后半段 ===
+    # === 前後半段 ===
     print(f"\n  {'─'*70}")
     print(f"  CONSISTENCY ANALYSIS")
     print(f"  {'─'*70}")
@@ -380,7 +380,7 @@ def print_detailed_report(group_name, result, symbols, cost_rate, best_score):
     for i, yr in enumerate(r["yearly_ret"]):
         print(f"    Year {i+1}: {yr:+.4f}  ({yr*100:+.2f}%)")
 
-    # === 品种详情 ===
+    # === 品種詳情 ===
     print(f"\n  {'─'*70}")
     print(f"  PER-SYMBOL BREAKDOWN")
     print(f"  {'─'*70}")
@@ -437,7 +437,7 @@ def plot_detailed(result, symbols, group_name, output_dir, cost_rate):
     gs = gridspec.GridSpec(4, 2, height_ratios=[2.5, 1, 1.5, 1.5], width_ratios=[1.5, 1],
                            hspace=0.25, wspace=0.2)
 
-    # 1. 组合资金曲线 + 回撤
+    # 1. 組合資金曲線 + 回撤
     ax_eq = fig.add_subplot(gs[0, :])
     port_cum = r["port_cum"]
     ax_eq.plot(x, port_cum, linewidth=2.0, color="#1565c0",
@@ -459,7 +459,7 @@ def plot_detailed(result, symbols, group_name, output_dir, cost_rate):
     ax_dd.set_ylabel("Drawdown", fontsize=9)
     ax_dd.grid(alpha=0.2)
 
-    # 3. 各品种资金曲线
+    # 3. 各品種資金曲線
     ax_sym = fig.add_subplot(gs[2, 0], sharex=ax_eq)
     colors = ["#e65100", "#00897b", "#6a1b9a", "#b71c1c", "#26418f"]
     for i, sym in enumerate(symbols):
@@ -473,7 +473,7 @@ def plot_detailed(result, symbols, group_name, output_dir, cost_rate):
     ax_sym.legend(loc="upper left", fontsize=7, ncol=2, framealpha=0.85)
     ax_sym.grid(alpha=0.2)
 
-    # 4. 滚动 Sharpe (250 bar window)
+    # 4. 滾動 Sharpe (250 bar window)
     ax_roll = fig.add_subplot(gs[2, 1])
     window = 250
     if T > window:
@@ -492,7 +492,7 @@ def plot_detailed(result, symbols, group_name, output_dir, cost_rate):
     else:
         ax_roll.text(0.5, 0.5, "Insufficient data for rolling", ha="center", va="center", transform=ax_roll.transAxes)
 
-    # 5. 逐年收益柱状图
+    # 5. 逐年收益柱狀圖
     ax_yr = fig.add_subplot(gs[3, 0])
     yearly = r["yearly_ret"]
     if yearly:
@@ -504,9 +504,9 @@ def plot_detailed(result, symbols, group_name, output_dir, cost_rate):
         ax_yr.set_title("Yearly Returns", fontsize=9)
         ax_yr.grid(alpha=0.2)
 
-    # 6. 月度收益热力图
+    # 6. 月度收益熱力圖
     ax_mo = fig.add_subplot(gs[3, 1])
-    # 按月聚合（假设 H1，每月约 520 bars）
+    # 按月聚合（假設 H1，每月約 520 bars）
     bars_per_month = 520
     n_months = T // bars_per_month
     if n_months > 1:

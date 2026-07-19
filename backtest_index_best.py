@@ -1,11 +1,11 @@
 """
-backtest_index_best.py — 对 index 组最优因子做完整回测验证
+backtest_index_best.py — 對 index 組最優因子做完整回測驗證
 
 用法：
     python backtest_index_best.py --offline
 
-加载 strategies/best_index.json 中的因子，在 index 组 5 个品种全量历史数据上回测，
-输出：回测摘要、品种级详情、前后半段一致性诊断、资金曲线图。
+載入 strategies/best_index.json 中的因子，在 index 組 5 個品種全量歷史數據上回測，
+輸出：回測摘要、品種級詳情、前後半段一致性診斷、資金曲線圖。
 """
 import sys, json, math
 from pathlib import Path
@@ -31,7 +31,7 @@ _H1_PER_YEAR = 6240
 OUTPUT_DIR = "backtest_output"
 INDEX_SYMS = Config.SYMBOL_GROUPS["index"]  # ["US30.cash", "US100.cash", "US500.cash", "US2000.cash", "JP225.cash"]
 
-# 指数品种点差成本更高
+# 指數品種點差成本更高
 COST_RATE_INDEX = 0.0003
 
 
@@ -59,7 +59,7 @@ def calc_mdd(cum_pnl):
 
 
 def calc_ic(factor, target_ret):
-    """时序 IC：factor[t] vs target_ret[t+1]，逐品种再取均值。"""
+    """時序 IC：factor[t] vs target_ret[t+1]，逐品種再取均值。"""
     N, T = factor.shape
     ic_list = []
     for n in range(N):
@@ -89,7 +89,7 @@ def calc_calmar(total_ret, mdd, T):
 
 
 def backtest_one(formula, feat, raw_dict, target_ret, cost_rate=COST_RATE_INDEX):
-    """对一个公式跑完整回测，返回统计结果。"""
+    """對一個公式跑完整回測，返回統計結果。"""
     vm = StackVM()
     factor = vm.execute(formula, feat)  # [N, T]
     if factor is None:
@@ -99,18 +99,18 @@ def backtest_one(formula, feat, raw_dict, target_ret, cost_rate=COST_RATE_INDEX)
     factor_np = factor.detach().numpy()
     target_np = target_ret.detach().numpy()
 
-    # 持仓
+    # 持倉
     pos = compute_target_positions_stateless(factor)  # [N, T]
     pos_np = pos.detach().numpy()
 
-    # 换手
+    # 換手
     prev = np.zeros_like(pos_np)
     prev[:, 1:] = pos_np[:, :-1]
     turnover = np.abs(pos_np - prev)
 
     pnl = pos_np * target_np - turnover * cost_rate  # [N, T]
 
-    # 分品种统计
+    # 分品種統計
     per_sym = {}
     for i, sym in enumerate(INDEX_SYMS[:N]):
         p = pnl[i]
@@ -129,14 +129,14 @@ def backtest_one(formula, feat, raw_dict, target_ret, cost_rate=COST_RATE_INDEX)
             "ic":        calc_ic(factor_np[i:i+1], target_np[i:i+1]),
         }
 
-    # 组合（等权）
+    # 組合（等權）
     port_pnl = pnl.mean(axis=0)
     port_cum = np.cumsum(port_pnl)
 
     # IC
     ic = calc_ic(factor_np, target_np)
 
-    # 分段分析：前50% vs 后50%（检查过拟合）
+    # 分段分析：前50% vs 後50%（檢查過擬合）
     split = T // 2
     p1 = port_pnl[:split]
     p2 = port_pnl[split:]
@@ -159,23 +159,23 @@ def backtest_one(formula, feat, raw_dict, target_ret, cost_rate=COST_RATE_INDEX)
         "ic":             ic,
         "n_pos_syms":     sum(1 for d in per_sym.values() if d["total_ret"] > 0),
         "n_syms":         N,
-        # 稳定性：前后半段
+        # 穩定性：前後半段
         "half1_sharpe":   calc_sharpe(p1),
         "half2_sharpe":   calc_sharpe(p2),
         "half1_sortino":  calc_sortino(p1),
         "half2_sortino":  calc_sortino(p2),
         "half1_ret":      float(np.cumsum(p1)[-1]),
         "half2_ret":      float(np.cumsum(p2)[-1]),
-        # 换手
+        # 換手
         "avg_turnover":   float(turnover.mean()),
         "avg_hold_h":     float(np.mean([d["avg_hold"] for d in per_sym.values()])),
-        # FTMO 相关
+        # FTMO 相關
         "max_consec_loss": _max_consecutive_loss(port_pnl),
     }
 
 
 def _max_consecutive_loss(pnl):
-    """最大连续亏损 bar 数"""
+    """最大連續虧損 bar 數"""
     max_streak = 0
     current = 0
     for p in pnl:
@@ -188,7 +188,7 @@ def _max_consecutive_loss(pnl):
 
 
 def plot_equity_curves(result, times_arr, output_dir):
-    """绘制资金曲线 + 回撤 + 各品种详情"""
+    """繪製資金曲線 + 回撤 + 各品種詳情"""
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     fig = plt.figure(figsize=(18, 12), dpi=110)
@@ -201,7 +201,7 @@ def plot_equity_curves(result, times_arr, output_dir):
     T = len(result["port_pnl"]) if "port_pnl" in result else len(result["per_sym"][INDEX_SYMS[0]]["pnl"])
     x = np.arange(T)
 
-    # 组合资金曲线
+    # 組合資金曲線
     port_cum = np.cumsum(result.get("port_pnl", np.zeros(T)))
     ax_eq.plot(x, port_cum, linewidth=2.0, color="#1565c0",
                label=f"Portfolio  (AnnRet={result['port_ann_ret']:+.4f}, Sortino={result['port_sortino']:+.2f}, MDD={result['port_mdd']:.3f})")
@@ -209,7 +209,7 @@ def plot_equity_curves(result, times_arr, output_dir):
     ax_eq.set_ylabel("Cumulative Log Return", fontsize=10)
     ax_eq.legend(loc="upper left", fontsize=9, framealpha=0.85)
     ax_eq.grid(alpha=0.25)
-    ax_eq.set_title(f"Index 组最优因子回测  |  {' + '.join(INDEX_SYMS)} 等权组合\n"
+    ax_eq.set_title(f"Index 組最優因子回測  |  {' + '.join(INDEX_SYMS)} 等權組合\n"
                     f"公式: {result['readable']}", fontsize=11, pad=8)
 
     # 回撤
@@ -221,7 +221,7 @@ def plot_equity_curves(result, times_arr, output_dir):
     ax_dd.grid(alpha=0.2)
     ax_dd.legend(loc="lower left", fontsize=8)
 
-    # 各品种资金曲线
+    # 各品種資金曲線
     colors = ["#e65100", "#00897b", "#6a1b9a", "#b71c1c", "#26418f"]
     for i, sym in enumerate(INDEX_SYMS):
         if sym in result["per_sym"]:
@@ -245,94 +245,94 @@ def plot_equity_curves(result, times_arr, output_dir):
 def main():
     offline = "--offline" in sys.argv
 
-    # ── 加载最优因子
+    # ── 載入最優因子
     strategy_path = Path("strategies/best_index.json")
     if not strategy_path.exists():
         print(f"❌ 策略文件不存在: {strategy_path}")
         return
     data = json.load(open(strategy_path))
     if data.get("vocab_version", "unknown") != VOCAB_VERSION:
-        print(f"❌ 词表版本不匹配: {data.get('vocab_version')} != {VOCAB_VERSION}")
+        print(f"❌ 詞表版本不匹配: {data.get('vocab_version')} != {VOCAB_VERSION}")
         return
 
     formula = data["formula"]
     best_score = data.get("best_score", 0.0)
     print(f"\n{'='*70}")
-    print(f"  Index 组最优因子回测验证")
+    print(f"  Index 組最優因子回測驗證")
     print(f"{'='*70}")
     print(f"  公式 tokens : {formula}")
-    print(f"  可读形式    : {decode(formula)}")
-    print(f"  训练评分    : {best_score:.4f}")
-    print(f"  词表版本    : {VOCAB_VERSION}")
-    print(f"  品种        : {INDEX_SYMS}")
+    print(f"  可讀形式    : {decode(formula)}")
+    print(f"  訓練評分    : {best_score:.4f}")
+    print(f"  詞表版本    : {VOCAB_VERSION}")
+    print(f"  品種        : {INDEX_SYMS}")
     print(f"  成本率      : {COST_RATE_INDEX}")
     print(f"  offline     : {offline}")
     print(f"{'='*70}\n")
 
-    # ── 加载数据
-    print("加载数据...")
+    # ── 載入數據
+    print("載入數據...")
     with MT5DataFetcher(offline=offline) as fetcher:
         mgr = MT5DataManager(fetcher)
         mgr.load()
         raw_dict   = mgr.raw_dict
         syms       = mgr.symbols
         T          = raw_dict["open"].shape[1]
-        print(f"  全部品种: {syms}")
+        print(f"  全部品種: {syms}")
         print(f"  T={T} bars (H1)")
 
-        # 取 index 组品种
+        # 取 index 組品種
         idx_idx = [syms.index(s) for s in INDEX_SYMS if s in syms]
         if len(idx_idx) < len(INDEX_SYMS):
             missing = set(INDEX_SYMS) - set(syms)
-            print(f"  [WARN] 缺失品种: {missing}")
+            print(f"  [WARN] 缺失品種: {missing}")
         idx_raw  = {k: v[idx_idx] for k, v in raw_dict.items()}
         idx_feat = MT5FeatureEngineer.compute_features(idx_raw)
         target_ret = mgr.target_ret[idx_idx]
         idx_syms_loaded = [syms[i] for i in idx_idx]
-        print(f"  Index 品种: {idx_syms_loaded}  feat={idx_feat.shape}\n")
+        print(f"  Index 品種: {idx_syms_loaded}  feat={idx_feat.shape}\n")
 
-        # ── 执行回测
+        # ── 執行回測
         result = backtest_one(formula, idx_feat, idx_raw, target_ret)
         if result is None:
-            print("❌ 因子执行失败！")
+            print("❌ 因子執行失敗！")
             return
 
-        # 补充 port_pnl 用于画图
+        # 補充 port_pnl 用於畫圖
         port_pnl = np.mean([result["per_sym"][s]["pnl"] for s in idx_syms_loaded if s in result["per_sym"]], axis=0)
         result["port_pnl"] = port_pnl
 
-    # ── 打印回测摘要
+    # ── 列印回測摘要
     print(f"\n{'='*70}")
-    print(f"  回测结果摘要（{T} bars H1，index 组 {len(idx_syms_loaded)} 品种）")
+    print(f"  回測結果摘要（{T} bars H1，index 組 {len(idx_syms_loaded)} 品種）")
     print(f"{'='*70}")
     print(f"  公式: {result['readable']}")
     print(f"  ─────────────────────────────────────────")
-    print(f"  组合总收益:   {result['port_total_ret']:+.4f}")
+    print(f"  組合總收益:   {result['port_total_ret']:+.4f}")
     print(f"  年化收益:     {result['port_ann_ret']:+.4f}")
     print(f"  Sharpe:       {result['port_sharpe']:+.4f}")
     print(f"  Sortino:      {result['port_sortino']:+.4f}")
     print(f"  Max DD:       {result['port_mdd']:.4f}")
     print(f"  Calmar:       {result['port_calmar']:+.4f}")
     print(f"  IC:           {result['ic']:.5f}")
-    print(f"  平均换手:     {result['avg_turnover']:.6f}")
-    print(f"  平均持仓:     {result['avg_hold_h']:.1f}h")
-    print(f"  最大连续亏损: {result['max_consec_loss']} bars")
-    print(f"  盈利品种:     {result['n_pos_syms']}/{result['n_syms']}")
+    print(f"  平均換手:     {result['avg_turnover']:.6f}")
+    print(f"  平均持倉:     {result['avg_hold_h']:.1f}h")
+    print(f"  最大連續虧損: {result['max_consec_loss']} bars")
+    print(f"  盈利品種:     {result['n_pos_syms']}/{result['n_syms']}")
 
-    # ── 前后半段一致性
-    print(f"\n  ── 前后半段一致性 ─────────────────────")
+    # ── 前後半段一致性
+    print(f"\n  ── 前後半段一致性 ─────────────────────")
     print(f"  前半段: Sharpe={result['half1_sharpe']:+.4f}  Sortino={result['half1_sortino']:+.4f}  Ret={result['half1_ret']:+.4f}")
-    print(f"  后半段: Sharpe={result['half2_sharpe']:+.4f}  Sortino={result['half2_sortino']:+.4f}  Ret={result['half2_ret']:+.4f}")
+    print(f"  後半段: Sharpe={result['half2_sharpe']:+.4f}  Sortino={result['half2_sortino']:+.4f}  Ret={result['half2_ret']:+.4f}")
     h1, h2 = result["half1_sharpe"], result["half2_sharpe"]
     if h1 > 0 and h2 > 0:
-        print(f"  [OK] 前后半段均为正，一致性良好")
+        print(f"  [OK] 前後半段均為正，一致性良好")
     elif h1 * h2 > 0:
-        print(f"  [WARN] 前后半段同号但均为负，因子方向可能反了")
+        print(f"  [WARN] 前後半段同號但均為負，因子方向可能反了")
     else:
-        print(f"  [FAIL] 前后半段符号相反，过拟合嫌疑！")
+        print(f"  [FAIL] 前後半段符號相反，過擬合嫌疑！")
 
-    # ── 品种级详情
-    print(f"\n  ── 品种级详情 ─────────────────────────")
+    # ── 品種級詳情
+    print(f"\n  ── 品種級詳情 ─────────────────────────")
     for sym, d in result["per_sym"].items():
         sig = "[OK]" if d["total_ret"] > 0 else "[X]"
         print(f"  {sym:12s}: TotRet={d['total_ret']:+.4f}  AnnRet={d['ann_ret']:+.4f}  "
@@ -340,39 +340,39 @@ def main():
               f"MDD={d['mdd']:.4f}  IC={d['ic']:.5f}  "
               f"Trades={d['n_trades']}  AvgHold={d['avg_hold']:.0f}h  {sig}")
 
-    # ── FTMO 评估
+    # ── FTMO 評估
     print(f"\n{'='*70}")
-    print(f"  FTMO 适配性评估")
+    print(f"  FTMO 適配性評估")
     print(f"{'='*70}")
     ftmo_issues = []
     if result["port_mdd"] > 0.10:
         ftmo_issues.append(f"[WARN] MDD={result['port_mdd']:.4f} > 10% FTMO Max Loss 上限")
     else:
-        print(f"  [OK] MDD={result['port_mdd']:.4f} < 10%，符合 FTMO Max Loss 约束")
+        print(f"  [OK] MDD={result['port_mdd']:.4f} < 10%，符合 FTMO Max Loss 約束")
     if result["port_ann_ret"] < 0:
-        ftmo_issues.append(f"[WARN] 年化收益为负，不满足 FTMO 盈利要求")
+        ftmo_issues.append(f"[WARN] 年化收益為負，不滿足 FTMO 盈利要求")
     else:
-        print(f"  [OK] 年化收益={result['port_ann_ret']:+.4f}，方向正确")
+        print(f"  [OK] 年化收益={result['port_ann_ret']:+.4f}，方向正確")
     if result["max_consec_loss"] > 500:
-        ftmo_issues.append(f"[WARN] 最大连续亏损 {result['max_consec_loss']} bars 过长，可能触发 FTMO 每日亏损限制")
+        ftmo_issues.append(f"[WARN] 最大連續虧損 {result['max_consec_loss']} bars 過長，可能觸發 FTMO 每日虧損限制")
     if result["avg_hold_h"] < 2:
-        ftmo_issues.append(f"[WARN] 平均持仓 {result['avg_hold_h']:.1f}h 过短，交易成本侵蚀大")
+        ftmo_issues.append(f"[WARN] 平均持倉 {result['avg_hold_h']:.1f}h 過短，交易成本侵蝕大")
     if result["n_pos_syms"] < result["n_syms"] // 2:
-        ftmo_issues.append(f"[WARN] 仅 {result['n_pos_syms']}/{result['n_syms']} 品种盈利，分散度不足")
+        ftmo_issues.append(f"[WARN] 僅 {result['n_pos_syms']}/{result['n_syms']} 品種盈利，分散度不足")
 
     if ftmo_issues:
-        print(f"\n  问题:")
+        print(f"\n  問題:")
         for iss in ftmo_issues:
             print(f"    {iss}")
     else:
-        print(f"\n  [OK] 未发现明显 FTMO 违规风险")
+        print(f"\n  [OK] 未發現明顯 FTMO 違規風險")
 
-    # ── 画图
-    print(f"\n  绘制资金曲线图...")
+    # ── 畫圖
+    print(f"\n  繪製資金曲線圖...")
     plot_path = plot_equity_curves(result, None, OUTPUT_DIR)
-    print(f"  图表已保存 → {plot_path}")
+    print(f"  圖表已保存 → {plot_path}")
 
-    # ── 保存报告
+    # ── 保存報告
     report = {
         "formula":        formula,
         "readable":       result["readable"],
@@ -414,10 +414,10 @@ def main():
     report_path = Path(OUTPUT_DIR) / "index_best_backtest.json"
     with open(report_path, "w") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
-    print(f"  报告已保存 → {report_path}")
+    print(f"  報告已保存 → {report_path}")
 
     print(f"\n{'='*70}")
-    print(f"  回测完成")
+    print(f"  回測完成")
     print(f"{'='*70}\n")
 
 

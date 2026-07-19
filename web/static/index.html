@@ -11,7 +11,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
-  <!-- 背景动效层 -->
+  <!-- 背景動效層 -->
   <div class="bg-layers" aria-hidden="true">
     <div class="bg-aurora"></div>
     <canvas id="glyphCanvas" class="bg-canvas"></canvas>
@@ -27,70 +27,70 @@
         <div class="brand-mark" data-text="α">α<span class="brand-ring"></span></div>
         <div>
           <h1>AlphaMaster</h1>
-          <p>基于深度神经网络强化学习的量化因子挖掘中心</p>
+          <p>基於深度神經網路強化學習的量化因子挖掘中心</p>
         </div>
       </div>
       <div class="header-meta" id="headerMeta">
         <label class="debug-toggle-label">
           <input type="checkbox" id="debugModeCheck" />
-          <span>调试模式</span>
+          <span>除錯模式</span>
         </label>
-        <span class="pill" id="jobPill"><i class="pill-dot"></i>空闲</span>
+        <span class="pill" id="jobPill"><i class="pill-dot"></i>空閒</span>
         <span class="meta-item" id="deviceMeta">—</span>
       </div>
     </header>
 
-    <!-- 步骤导航 -->
+    <!-- 步驟導航 -->
     <nav class="stepper" id="stepper">
       <button type="button" class="step active" data-page="train">
         <span class="step-index">01</span>
         <span class="step-body">
-          <span class="step-title">模型训练</span>
-          <span class="step-sub">因子挖掘 · 强化学习</span>
+          <span class="step-title">模型訓練</span>
+          <span class="step-sub">因子挖掘 · 強化學習</span>
         </span>
       </button>
       <span class="step-link"></span>
       <button type="button" class="step" data-page="backtest">
         <span class="step-index">02</span>
         <span class="step-body">
-          <span class="step-title">策略回测</span>
-          <span class="step-sub">资金曲线 · 绩效评估</span>
+          <span class="step-title">策略回測</span>
+          <span class="step-sub">資金曲線 · 績效評估</span>
         </span>
       </button>
       <span class="step-link"></span>
       <button type="button" class="step" data-page="realtime">
         <span class="step-index">03</span>
         <span class="step-body">
-          <span class="step-title">实时分析</span>
-          <span class="step-sub">信号雷达 · 多品种并发</span>
+          <span class="step-title">即時分析</span>
+          <span class="step-sub">信號雷達 · 多品種並發</span>
         </span>
       </button>
     </nav>
 
-    <!-- ══════════════ 步骤一：训练页 ══════════════ -->
+    <!-- ══════════════ 步驟一：訓練頁 ══════════════ -->
     <div class="page active" id="page-train">
     <section class="panel launch-panel">
       <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
       <span class="hud-corner bl"></span><span class="hud-corner br"></span>
-      <h2>启动训练</h2>
+      <h2>啟動訓練</h2>
       <div class="launch-form launch-form-file">
         <div class="launch-row launch-row-main">
-          <button type="button" class="btn btn-secondary btn-browse" id="browseBtn">选择数据文件</button>
+          <button type="button" class="btn btn-secondary btn-browse" id="browseBtn">選擇數據文件</button>
           <div class="data-file-card" id="dataFileCard">
-            <div class="data-file-empty">尚未选择数据文件</div>
+            <div class="data-file-empty">尚未選擇數據文件</div>
           </div>
         </div>
-        <div class="launch-actions" role="group" aria-label="训练操作">
-          <button class="btn btn-primary" id="startBtn" disabled>开始训练</button>
-          <button class="btn btn-secondary" id="retrainBtn" disabled title="清除检查点，从头重新搜索（保留已有更优策略）">重新训练</button>
+        <div class="launch-actions" role="group" aria-label="訓練操作">
+          <button class="btn btn-primary" id="startBtn" disabled>開始訓練</button>
+          <button class="btn btn-secondary" id="retrainBtn" disabled title="清除檢查點，從頭重新搜索（保留已有更優策略）">重新訓練</button>
           <button class="btn btn-danger" id="stopBtn" disabled>停止</button>
           <span class="action-sep" aria-hidden="true"></span>
-          <button class="btn btn-secondary" id="exportBtn" disabled title="下载当前品种的最优策略 JSON">导出策略</button>
-          <button class="btn btn-secondary" id="exportTrainingBtn" disabled title="打包 checkpoint、训练曲线与策略为 zip">导出训练</button>
-          <button class="btn btn-secondary" id="importTrainingBtn" disabled title="上传 .zip 或 .pt，下次训练断点续训">导入训练</button>
+          <button class="btn btn-secondary" id="exportBtn" disabled title="下載當前品種的最優策略 JSON">導出策略</button>
+          <button class="btn btn-secondary" id="exportTrainingBtn" disabled title="打包 checkpoint、訓練曲線與策略為 zip">導出訓練</button>
+          <button class="btn btn-secondary" id="importTrainingBtn" disabled title="上傳 .zip 或 .pt，下次訓練斷點續訓">導入訓練</button>
           <input type="file" id="importTrainingFile" accept=".zip,.pt" hidden />
         </div>
-        <small class="field-hint">强制离线：只用本地 Parquet，不连接 MT5。命名：<code>{品种}_{周期}.parquet</code>，如 <code>XAUUSD_H1.parquet</code> / <code>002008_60min.parquet</code>（<code>60min</code>/<code>1h</code> 等同 <code>H1</code>）</small>
+        <small class="field-hint">強制離線：只用本地 Parquet，不連接 MT5。命名：<code>{品種}_{週期}.parquet</code>，如 <code>XAUUSD_H1.parquet</code> / <code>002008_60min.parquet</code>（<code>60min</code>/<code>1h</code> 等同 <code>H1</code>）</small>
       </div>
     </section>
 
@@ -99,33 +99,33 @@
         <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
         <span class="hud-corner bl"></span><span class="hud-corner br"></span>
         <div class="panel-head">
-          <h2 id="chartTitle">训练曲线</h2>
-          <span class="hint" id="chartHint">选择文件并开始训练后显示</span>
+          <h2 id="chartTitle">訓練曲線</h2>
+          <span class="hint" id="chartHint">選擇文件並開始訓練後顯示</span>
         </div>
         <div class="chart-wrap">
           <canvas id="mainChart"></canvas>
         </div>
         <details class="chart-metrics-help" open>
-          <summary>指标说明</summary>
+          <summary>指標說明</summary>
           <ul class="metrics-list">
             <li>
               <span class="metric-swatch" style="--swatch: #34f5c8"></span>
               <div>
-                <strong>最优分数</strong>
-                <p>到目前为止找到的最好因子公式得分，越高表示回测表现越好，曲线阶梯上升说明发现了更优公式。</p>
+                <strong>最優分數</strong>
+                <p>到目前為止找到的最好因子公式得分，越高表示回測表現越好，曲線階梯上升說明發現了更優公式。</p>
               </div>
             </li>
             <li>
               <span class="metric-swatch" style="--swatch: #38bdf8"></span>
               <div>
-                <strong>验证分数</strong>
-                <p>当前这一步在验证集上的平均得分，反映近期一批公式的整体质量，会有起伏属正常。</p>
+                <strong>驗證分數</strong>
+                <p>當前這一步在驗證集上的平均得分，反映近期一批公式的整體質量，會有起伏屬正常。</p>
               </div>
             </li>
           </ul>
         </details>
         <div class="formula-box" id="formulaBox">
-          <span class="formula-label">最优公式</span>
+          <span class="formula-label">最優公式</span>
           <code id="formulaText">—</code>
         </div>
       </section>
@@ -134,10 +134,10 @@
         <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
         <span class="hud-corner bl"></span><span class="hud-corner br"></span>
         <div class="panel-head">
-          <h2>训练日志</h2>
+          <h2>訓練日誌</h2>
           <span class="hint" id="logHint">—</span>
         </div>
-        <pre class="log-view" id="logView">等待任务…</pre>
+        <pre class="log-view" id="logView">等待任務…</pre>
       </section>
     </div>
 
@@ -145,37 +145,37 @@
       <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
       <span class="hud-corner bl"></span><span class="hud-corner br"></span>
       <details class="chart-metrics-help bt-howto" open>
-        <summary>训练说明：并行？最优分数 / 验证分数是什么？</summary>
+        <summary>訓練說明：並行？最優分數 / 驗證分數是什麼？</summary>
         <ol class="bt-howto-list">
           <li>
-            <strong>单品种单周期就已经把 CPU 吃满了</strong>
-            <p>挖因子这一步计算很重：特征、公式搜索、回测验证会把机器算力用到接近满载。这时再并行开第二个品种或另一个周期，大家只是在抢同一批 CPU，谁也跑不快。</p>
+            <strong>單品種單週期就已經把 CPU 吃滿了</strong>
+            <p>挖因子這一步計算很重：特徵、公式搜索、回測驗證會把機器算力用到接近滿載。這時再併行開第二個品種或另一個週期，大家只是在搶同一批 CPU，誰也跑不快。</p>
           </li>
           <li>
-            <strong>并行并不等于整体更快</strong>
-            <p>两路一起跑，往往各自都变慢，总完工时间通常不比「先训完一个再训下一个」更短，有时还更拖。所以默认一次只训一路，把算力集中用在当前任务上更划算。</p>
+            <strong>並行並不等於整體更快</strong>
+            <p>兩路一起跑，往往各自都變慢，總完工時間通常不比「先訓完一個再訓下一個」更短，有時還更拖。所以默認一次只訓一路，把算力集中用在當前任務上更划算。</p>
           </li>
           <li>
-            <strong>只盯一个品种，更好观察训练情况</strong>
-            <p>曲线、日志、最优公式都只对应这一组数据，涨没涨分一眼能看清。多品种并行时页面和日志会搅在一起，反而不容易判断「这个品种还值不值得继续挖」。</p>
+            <strong>只盯一個品種，更好觀察訓練情況</strong>
+            <p>曲線、日誌、最優公式都只對應這一組數據，漲沒漲分一眼能看清。多品種並行時頁面和日誌會攪在一起，反而不容易判斷「這個品種還值不值得繼續挖」。</p>
           </li>
           <li>
-            <strong>最优分数是什么</strong>
-            <p>到目前为止挖到的<strong>最好那条公式</strong>的得分。它一般只升不降：一旦发现更好的公式，这个数就会抬一截；长时间不动，说明这段时间还没挖到更强的。</p>
+            <strong>最優分數是什麼</strong>
+            <p>到目前為止挖到的<strong>最好那條公式</strong>的得分。它一般只升不降：一旦發現更好的公式，這個數就會抬一截；長時間不動，說明這段時間還沒挖到更強的。</p>
           </li>
           <li>
-            <strong>验证分数是什么</strong>
-            <p>当前这一步在<strong>验证集</strong>上算出来的平均表现，反映「最近这批公式整体好不好」。它会上下波动很正常；更值得看的是整体有没有慢慢抬高，而不是盯着单次跳动。</p>
+            <strong>驗證分數是什麼</strong>
+            <p>當前這一步在<strong>驗證集</strong>上算出來的平均表現，反映「最近這批公式整體好不好」。它會上下波動很正常；更值得看的是整體有沒有慢慢抬高，而不是盯著單次跳動。</p>
           </li>
           <li>
-            <strong>为什么验证曲线会一截一截地掉下去再爬起来？</strong>
-            <p>图上的验证分数不是「当前最优那一条」的得分，而是<strong>这一步随机抽出来的一整批公式的平均分</strong>。挖着挖着，模型会越来越爱重复同一类公式（探索变少），系统就会主动「搅一搅」——加大随机、换一批新配方继续搜。刚搅完时，新配方里好坏掺半，平均值会突然掉一截；随后又慢慢学到更好的组合，曲线再往上爬。所以会看到锯齿状起伏。</p>
-            <p>绿色的最优分数只记「历史最好的那一次」，所以不会跟着掉下去，只会阶梯往上抬。锯齿本身多半是在重新探索，不等于训练坏了。</p>
+            <strong>為什麼驗證曲線會一截一截地掉下去再爬起來？</strong>
+            <p>圖上的驗證分數不是「當前最優那一條」的得分，而是<strong>這一步隨機抽出來的一整批公式的平均分</strong>。挖著挖著，模型會越來越愛重複同一類公式（探索變少），系統就會主動「攪一攪」——加大隨機、換一批新配方繼續搜。剛攪完時，新配方裡好壞摻半，平均值會突然掉一截；隨後又慢慢學到更好的組合，曲線再往上爬。所以會看到鋸齒狀起伏。</p>
+            <p>綠色的最優分數隻記「歷史最好的那一次」，所以不會跟著掉下去，只會階梯往上抬。鋸齒本身多半是在重新探索，不等於訓練壞了。</p>
           </li>
           <li>
-            <strong>重新训练有机会找出更好的量化因子</strong>
-            <p>「开始训练」会接着上次的检查点继续挖；「重新训练」会清掉检查点，从零换一条随机路径再搜一遍。因为搜索带随机性，有时能挖到比现在更高的分数。</p>
-            <p>已有的最优策略会当作分数下限留着——只有找到更好的才会覆盖，不会一开局就被弱公式冲掉。代价是要再花一整轮算力，适合本轮训完或最优分数长期不动时再用。</p>
+            <strong>重新訓練有機會找出更好的量化因子</strong>
+            <p>「開始訓練」會接著上次的檢查點繼續挖；「重新訓練」會清掉檢查點，從零換一條隨機路徑再搜一遍。因為搜索帶隨機性，有時能挖到比現在更高的分數。</p>
+            <p>已有的最優策略會當作分數下限留著——只有找到更好的才會覆蓋，不會一開局就被弱公式沖掉。代價是要再花一整輪算力，適合本輪訓完或最優分數長期不動時再用。</p>
           </li>
         </ol>
       </details>
@@ -189,9 +189,9 @@
         <table>
           <thead>
             <tr>
-              <th>品种</th>
-              <th>周期</th>
-              <th>分数</th>
+              <th>品種</th>
+              <th>週期</th>
+              <th>分數</th>
               <th>公式</th>
             </tr>
           </thead>
@@ -204,46 +204,56 @@
       <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
       <span class="hud-corner bl"></span><span class="hud-corner br"></span>
       <div class="panel-head">
-        <h2>调试 / 报错输出</h2>
+        <h2>除錯 / 報錯輸出</h2>
         <span class="hint" id="debugLogPaths">—</span>
       </div>
-      <pre class="debug-view" id="debugView">暂无报错</pre>
+      <pre class="debug-view" id="debugView">暫無報錯</pre>
     </section>
 
     <section class="panel ai-panel" id="aiPanelSection">
       <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
       <span class="hud-corner bl"></span><span class="hud-corner br"></span>
       <div class="panel-head">
-        <h2>AI 分析当前训练情况</h2>
+        <h2>AI 分析當前訓練情況</h2>
         <span class="hint" id="aiProviderHint">DeepSeek · deepseek-v4-flash</span>
       </div>
       <div class="ai-form">
         <div class="ai-row">
+          <label class="ai-field" id="aiBaseUrlField">
+            <span>Base URL（選填，OpenAI 相容端點）</span>
+            <input type="text" id="aiBaseUrlInput" placeholder="留空用 DeepSeek；如 https://xxx.openai.azure.com/openai/v1" autocomplete="off" />
+          </label>
+          <label class="ai-field" id="aiModelField">
+            <span>模型名稱</span>
+            <input type="text" id="aiModelInput" placeholder="如 model-router" autocomplete="off" />
+          </label>
+        </div>
+        <div class="ai-row">
           <label class="ai-field ai-key-field" id="aiKeyField">
             <span>API Key</span>
-            <input type="password" id="aiApiKeyInput" placeholder="填入 DeepSeek API Key" autocomplete="off" />
+            <input type="password" id="aiApiKeyInput" placeholder="填入 API Key" autocomplete="off" />
           </label>
-          <button type="button" class="btn btn-primary" id="aiAnalyzeBtn">开始分析</button>
-          <button type="button" class="btn btn-unlimited" id="aiUnlimitedBtn">获取无限分析功能</button>
+          <button type="button" class="btn btn-primary" id="aiAnalyzeBtn">開始分析</button>
+          <button type="button" class="btn btn-unlimited" id="aiUnlimitedBtn">獲取無限分析功能</button>
         </div>
         <small class="field-hint" id="aiChannelHint">使用 DeepSeek（deepseek-v4-flash · https://api.deepseek.com），填入你的 API Key 即可。</small>
       </div>
-      <div class="ai-answer" id="aiAnswerView">点击「开始分析」后，AI 将回答：当前训练情况怎么样，是否值得继续，以及最新因子的含义与原理。</div>
+      <div class="ai-answer" id="aiAnswerView">點擊「開始分析」後，AI 將回答：當前訓練情況怎麼樣，是否值得繼續，以及最新因子的含義與原理。</div>
     </section>
 
     <div class="modal" id="aiUnlimitedModal" hidden>
       <div class="modal-backdrop" data-close-unlimited></div>
       <div class="modal-card" role="dialog" aria-labelledby="aiUnlimitedTitle">
-        <h3 id="aiUnlimitedTitle">获取无限分析次数</h3>
+        <h3 id="aiUnlimitedTitle">獲取無限分析次數</h3>
         <div class="modal-body">
-          获取无限分析次数方法需付费49.9元，付费后你将获得<br>
-          Deepseek V4 Pro/GLM5.1/Kimi2.6等"满血"模型的无限分析方法<br>
-          注意无限分析次数只支持使用这个分析软件<br>
-          如果你愿意付费，请联系QQ：564020069（付费后提供远程协助部署安装服务）<br><br>
-          如果你不愿意付费，你可以用自己的模型api，如果你不知道模型api是什么<br>
-          可以直接跟龙虾说：<br>
-          AlphaMaster这个程序的模型api有什么作用，该怎么填？<br>
-          请教我填上Deepseek官方的模型API接口
+          獲取無限分析次數方法需付費49.9元，付費後你將獲得<br>
+          Deepseek V4 Pro/GLM5.1/Kimi2.6等"滿血"模型的無限分析方法<br>
+          注意無限分析次數隻支持使用這個分析軟體<br>
+          如果你願意付費，請聯絡QQ：564020069（付費後提供遠程協助部署安裝服務）<br><br>
+          如果你不願意付費，你可以用自己的模型api，如果你不知道模型api是什麼<br>
+          可以直接跟龍蝦說：<br>
+          AlphaMaster這個程序的模型api有什麼作用，該怎麼填？<br>
+          請教我填上Deepseek官方的模型API介面
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-primary" data-close-unlimited>知道了</button>
@@ -252,154 +262,154 @@
     </div>
     </div><!-- /page-train -->
 
-    <!-- ══════════════ 步骤二：回测页 ══════════════ -->
+    <!-- ══════════════ 步驟二：回測頁 ══════════════ -->
     <div class="page" id="page-backtest">
       <section class="panel launch-panel">
         <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
         <span class="hud-corner bl"></span><span class="hud-corner br"></span>
-        <h2>启动回测</h2>
+        <h2>啟動回測</h2>
         <div class="launch-form launch-form-file">
           <div class="launch-row launch-row-main">
-            <button type="button" class="btn btn-secondary btn-browse" id="btBrowseStrategyBtn">选择策略</button>
+            <button type="button" class="btn btn-secondary btn-browse" id="btBrowseStrategyBtn">選擇策略</button>
             <div class="data-file-card" id="btStrategyCard">
-              <div class="data-file-empty">尚未选择策略文件</div>
+              <div class="data-file-empty">尚未選擇策略文件</div>
             </div>
             <div class="launch-actions">
-              <button class="btn btn-primary" id="btStartBtn" disabled>开始回测</button>
+              <button class="btn btn-primary" id="btStartBtn" disabled>開始回測</button>
               <button class="btn btn-danger" id="btStopBtn" disabled>停止</button>
             </div>
           </div>
           <div class="launch-row bt-cost-row">
             <label class="bt-cost-field">
-              <span>手续费（单边 %）</span>
+              <span>手續費（單邊 %）</span>
               <input type="number" id="btCommissionInput" min="0" max="5" step="0.01" value="0.02" />
             </label>
             <label class="bt-cost-field">
-              <span>滑点（单边 %）</span>
+              <span>滑點（單邊 %）</span>
               <input type="number" id="btSlippageInput" min="0" max="5" step="0.01" value="0.01" />
             </label>
-            <span class="bt-cost-sum" id="btCostSumHint">合计单边成本 0.03%</span>
+            <span class="bt-cost-sum" id="btCostSumHint">合計單邊成本 0.03%</span>
           </div>
-          <small class="field-hint">训练/回测均强制使用本地 Parquet，不连接 MT5。回测优先读策略内 <code>data_file</code>；没有则回退训练页同品种文件。单边手续费/滑点开平仓各扣一次。</small>
+          <small class="field-hint">訓練/回測均強制使用本地 Parquet，不連接 MT5。回測優先讀策略內 <code>data_file</code>；沒有則回退訓練頁同品種文件。單邊手續費/滑點開平倉各扣一次。</small>
         </div>
       </section>
 
-      <!-- 回测绩效概览 -->
+      <!-- 回測績效概覽 -->
       <section class="panel bt-summary-panel">
         <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
         <span class="hud-corner bl"></span><span class="hud-corner br"></span>
         <div class="panel-head">
-          <h2>回测绩效</h2>
-          <span class="hint" id="btPortfolioHint">尚未运行回测</span>
+          <h2>回測績效</h2>
+          <span class="hint" id="btPortfolioHint">尚未運行回測</span>
         </div>
         <div class="metric-grid" id="btPortfolioGrid">
-          <div class="metric-empty">运行回测后显示收益、夏普、盈亏比等指标</div>
+          <div class="metric-empty">運行回測後顯示收益、夏普、盈虧比等指標</div>
         </div>
       </section>
 
       <div class="split">
-        <!-- 品种绩效表 -->
+        <!-- 品種績效表 -->
         <section class="panel bt-table-panel">
           <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
           <span class="hud-corner bl"></span><span class="hud-corner br"></span>
           <div class="panel-head">
-            <h2>绩效明细</h2>
+            <h2>績效明細</h2>
             <span class="hint" id="btTableHint">—</span>
           </div>
           <div class="table-wrap">
             <table class="bt-table">
               <thead>
                 <tr>
-                  <th>品种</th>
+                  <th>品種</th>
                   <th>收益</th>
                   <th>Sharpe</th>
                   <th>Sortino</th>
-                  <th>盈亏比</th>
-                  <th>交易数</th>
-                  <th>胜率</th>
+                  <th>盈虧比</th>
+                  <th>交易數</th>
+                  <th>勝率</th>
                 </tr>
               </thead>
               <tbody id="btTableBody">
-                <tr class="empty-row"><td colspan="7">暂无回测结果</td></tr>
+                <tr class="empty-row"><td colspan="7">暫無回測結果</td></tr>
               </tbody>
             </table>
           </div>
         </section>
 
-        <!-- 回测日志 -->
+        <!-- 回測日誌 -->
         <section class="panel log-panel">
           <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
           <span class="hud-corner bl"></span><span class="hud-corner br"></span>
           <div class="panel-head">
-            <h2>回测日志</h2>
+            <h2>回測日誌</h2>
             <span class="hint" id="btLogHint">—</span>
           </div>
           <div class="bt-phase" id="btPhaseBar">
             <div class="bt-phase-track"><div class="bt-phase-fill" id="btPhaseFill"></div></div>
-            <span class="bt-phase-label" id="btPhaseLabel">待机</span>
+            <span class="bt-phase-label" id="btPhaseLabel">待機</span>
           </div>
-          <pre class="log-view" id="btLogView">等待任务…</pre>
+          <pre class="log-view" id="btLogView">等待任務…</pre>
         </section>
       </div>
 
-      <!-- 资金曲线（交互式 HTML 图表） -->
+      <!-- 資金曲線（互動式 HTML 圖表） -->
       <section class="panel bt-charts-panel">
         <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
         <span class="hud-corner bl"></span><span class="hud-corner br"></span>
         <div class="panel-head">
-          <h2>资金曲线</h2>
-          <span class="hint" id="btChartsHint">回测完成后展示资金曲线</span>
+          <h2>資金曲線</h2>
+          <span class="hint" id="btChartsHint">回測完成後展示資金曲線</span>
         </div>
 
         <div class="equity-live" id="btEquityLive" hidden>
           <div class="equity-stats" id="btEquityStats"></div>
           <div class="equity-chart-block">
-            <div class="equity-axis-label">累计对数收益</div>
+            <div class="equity-axis-label">累計對數收益</div>
             <div class="equity-chart-wrap">
               <canvas id="btEquityChart"></canvas>
             </div>
           </div>
           <div class="equity-chart-block roll">
-            <div class="equity-axis-label" id="btRollingLabel">滚动夏普 · Rolling Sharpe</div>
+            <div class="equity-axis-label" id="btRollingLabel">滾動夏普 · Rolling Sharpe</div>
             <div class="equity-chart-wrap roll">
               <canvas id="btRollingChart"></canvas>
             </div>
           </div>
         </div>
 
-        <div class="metric-empty" id="btEquityEmpty">回测完成后展示资金曲线</div>
+        <div class="metric-empty" id="btEquityEmpty">回測完成後展示資金曲線</div>
 
         <details class="chart-metrics-help bt-howto" open>
-          <summary>回测是怎么算的？（一看就懂）</summary>
+          <summary>回測是怎麼算的？（一看就懂）</summary>
           <ol class="bt-howto-list">
             <li>
-              <strong>先拿历史行情“假装交易”</strong>
-              <p>回测不会真的下单。它把过去很多天的价格拿出来，按策略规则一步步走一遍，看看如果当时真做了，钱会变多还是变少。</p>
+              <strong>先拿歷史行情“假裝交易”</strong>
+              <p>回測不會真的下單。它把過去很多天的價格拿出來，按策略規則一步步走一遍，看看如果當時真做了，錢會變多還是變少。</p>
             </li>
             <li>
-              <strong>因子先打一个“信号分”</strong>
-              <p>策略公式会给每一根 K 线打分：正分偏向看涨，负分偏向看跌，靠近 0 就先别乱动。</p>
-              <p>分数的绝对值越大，信号就越明确。比如 +3 比 +0.2 更坚决地看涨，-3 比 -0.2 更坚决地看跌。</p>
+              <strong>因子先打一個“信號分”</strong>
+              <p>策略公式會給每一根 K 線打分：正分偏向看漲，負分偏向看跌，靠近 0 就先別亂動。</p>
+              <p>分數的絕對值越大，信號就越明確。比如 +3 比 +0.2 更堅決地看漲，-3 比 -0.2 更堅決地看跌。</p>
             </li>
             <li>
-              <strong>信号分越大，仓位就越大</strong>
-              <p>仓位不是只有“全仓 / 空仓”两档，而是用 <code>tanh(信号分)</code> 压到大约 -1 到 +1 之间。</p>
+              <strong>信號分越大，倉位就越大</strong>
+              <p>倉位不是只有“全倉 / 空倉”兩檔，而是用 <code>tanh(信號分)</code> 壓到大約 -1 到 +1 之間。</p>
               <ul>
-                <li>正分越大 → 做多越多（最多接近满仓 +1）</li>
-                <li>负分越小 → 做空越多（最多接近满仓 -1）</li>
-                <li>分数很弱 → 仓位接近 0（几乎不持仓）</li>
+                <li>正分越大 → 做多越多（最多接近滿倉 +1）</li>
+                <li>負分越小 → 做空越多（最多接近滿倉 -1）</li>
+                <li>分數很弱 → 倉位接近 0（幾乎不持倉）</li>
               </ul>
-              <p>可以把它想成：信心越大，下注越多；但再大也不会超过“一整份仓位”。</p>
+              <p>可以把它想成：信心越大，下注越多；但再大也不會超過“一整份倉位”。</p>
             </li>
             <li>
-              <strong>赚亏怎么算</strong>
-              <p>这一步大概赚多少 ≈ 仓位 × 价格涨跌。仓位大，涨了赚得多，跌了也亏得多。换仓时还会扣掉你设的手续费和滑点。</p>
+              <strong>賺虧怎麼算</strong>
+              <p>這一步大概賺多少 ≈ 倉位 × 價格漲跌。倉位大，漲了賺得多，跌了也虧得多。換倉時還會扣掉你設的手續費和滑點。</p>
             </li>
             <li>
-              <strong>上面那些图在说什么</strong>
+              <strong>上面那些圖在說什麼</strong>
               <ul>
-                <li>资金曲线：把每一步赚亏累加起来，看账户是往上爬还是往下掉。</li>
-                <li>滚动夏普：看最近一段时间“赚得稳不稳”，越高通常越好。</li>
+                <li>資金曲線：把每一步賺虧累加起來，看帳戶是往上爬還是往下掉。</li>
+                <li>滾動夏普：看最近一段時間“賺得穩不穩”，越高通常越好。</li>
               </ul>
             </li>
           </ol>
@@ -407,86 +417,86 @@
       </section>
     </div><!-- /page-backtest -->
 
-    <!-- ══════════════ 步骤三：实时分析页 ══════════════ -->
+    <!-- ══════════════ 步驟三：即時分析頁 ══════════════ -->
     <div class="page" id="page-realtime">
       <section class="panel launch-panel">
         <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
         <span class="hud-corner bl"></span><span class="hud-corner br"></span>
-        <h2>添加监控</h2>
+        <h2>添加監控</h2>
         <div class="rt-form">
           <label class="rt-field">
-            <span>数据源</span>
+            <span>數據源</span>
             <select id="rtSourceSelect"></select>
           </label>
           <label class="rt-field">
-            <span>品种</span>
+            <span>品種</span>
             <input type="text" id="rtSymbolInput" list="rtSymbolPresets" placeholder="如 XAUUSD / 600519" autocomplete="off" />
             <datalist id="rtSymbolPresets"></datalist>
           </label>
           <label class="rt-field">
-            <span>周期</span>
+            <span>週期</span>
             <select id="rtTimeframeSelect"></select>
           </label>
           <label class="rt-field rt-field-wide">
-            <span>因子来源</span>
+            <span>因子來源</span>
             <select id="rtStrategySelect"></select>
           </label>
           <div class="rt-actions">
-            <button type="button" class="btn btn-secondary" id="rtBrowseStrategyBtn" title="导入本地策略 JSON">导入策略</button>
-            <button type="button" class="btn btn-primary" id="rtAddBtn">加入监控</button>
+            <button type="button" class="btn btn-secondary" id="rtBrowseStrategyBtn" title="導入本地策略 JSON">導入策略</button>
+            <button type="button" class="btn btn-primary" id="rtAddBtn">加入監控</button>
           </div>
         </div>
         <div class="rt-form-foot">
           <span class="rt-source-hint" id="rtSourceHint">—</span>
-          <span class="rt-thr-hint" id="rtThresholdHint">无信号阈值 |tanh(因子)| &lt; 0.05</span>
+          <span class="rt-thr-hint" id="rtThresholdHint">無信號閾值 |tanh(因子)| &lt; 0.05</span>
         </div>
-        <small class="field-hint" id="rtStrategyPicked">因子来源：从已保存策略下拉选择，或「导入策略」选本地 JSON。信号取最后已收盘 bar。</small>
+        <small class="field-hint" id="rtStrategyPicked">因子來源：從已保存策略下拉選擇，或「導入策略」選本地 JSON。信號取最後已收盤 bar。</small>
       </section>
 
       <section class="panel rt-radar-panel">
         <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
         <span class="hud-corner bl"></span><span class="hud-corner br"></span>
         <div class="panel-head">
-          <h2>信号雷达</h2>
+          <h2>信號雷達</h2>
           <div class="rt-head-right">
-            <span class="hint" id="rtStatusHint">未启动</span>
+            <span class="hint" id="rtStatusHint">未啟動</span>
           </div>
         </div>
         <div class="rt-grid" id="rtGrid">
-          <div class="metric-empty">尚无监控项。添加「数据源 + 品种 + 周期 + 因子」后开始实时分析。</div>
+          <div class="metric-empty">尚無監控項。添加「數據源 + 品種 + 週期 + 因子」後開始即時分析。</div>
         </div>
 
         <details class="chart-metrics-help bt-howto" open>
-          <summary>怎么看信号？还有哪些要注意</summary>
+          <summary>怎麼看信號？還有哪些要注意</summary>
           <ol class="bt-howto-list">
             <li>
-              <strong>这张卡怎么看？（一眼看懂）</strong>
+              <strong>這張卡怎麼看？（一眼看懂）</strong>
               <ul>
-                <li>先看中间下面那行方向：<strong>预期上涨</strong>（偏多）或<strong>预期下跌</strong>（偏空）。颜色也会跟着变——绿偏多、红偏空。</li>
-                <li>再看大字把握：策略对这个方向有多坚决——一点把握 → 把握不大 → 一半把握 → 比较有把握 → 很有把握。半环亮得越满，把握越大。</li>
-                <li>若显示「没把握 / 先观望」，表示信号太弱，先别当买卖依据。</li>
-                <li>「因子」是内部算出来的分数，负的偏空、正的偏多，一般不用盯着它；看方向 + 把握就够了。</li>
-                <li>这不是「猜对的概率」，只是策略此刻有多坚决。</li>
+                <li>先看中間下面那行方向：<strong>預期上漲</strong>（偏多）或<strong>預期下跌</strong>（偏空）。顏色也會跟著變——綠偏多、紅偏空。</li>
+                <li>再看大字把握：策略對這個方向有多堅決——一點把握 → 把握不大 → 一半把握 → 比較有把握 → 很有把握。半環亮得越滿，把握越大。</li>
+                <li>若顯示「沒把握 / 先觀望」，表示信號太弱，先別當買賣依據。</li>
+                <li>「因子」是內部算出來的分數，負的偏空、正的偏多，一般不用盯著它；看方向 + 把握就夠了。</li>
+                <li>這不是「猜對的機率」，只是策略此刻有多堅決。</li>
               </ul>
             </li>
             <li>
-              <strong>只在「当前周期」那根 K 线收盘后才重新判断</strong>
-              <p>例如选的是 1 小时周期，就等这一小时走完、K 线正式收盘，才会用最新已收盘的数据重算方向和把握；盘中正在走的那根（未收盘）不会拿来改信号。</p>
+              <strong>只在「當前週期」那根 K 線收盤後才重新判斷</strong>
+              <p>例如選的是 1 小時週期，就等這一小時走完、K 線正式收盤，才會用最新已收盤的數據重算方向和把握；盤中正在走的那根（未收盤）不會拿來改信號。</p>
             </li>
             <li>
-              <strong>为什么这样设计</strong>
-              <p>训练和回测用的都是「已经收盘」的完整 K 线。若盘中用还在变动的价格去算，同一根线里信号会来回跳，也和回测看到的历史不一致，容易误判、频繁改仓。</p>
-              <p>等收盘再用完整 OHLC，信号更稳，也和策略当初学到的数据口径一致。</p>
+              <strong>為什麼這樣設計</strong>
+              <p>訓練和回測用的都是「已經收盤」的完整 K 線。若盤中用還在變動的價格去算，同一根線裡信號會來回跳，也和回測看到的歷史不一致，容易誤判、頻繁改倉。</p>
+              <p>等收盤再用完整 OHLC，信號更穩，也和策略當初學到的數據口徑一致。</p>
             </li>
             <li>
-              <strong>相同品种、不同周期，能不能套同一个策略？</strong>
-              <p>不建议。策略是按<strong>训练时的那个周期</strong>学出来的；公式里的「10 根、20 根」指的是该周期的 K 线根数，不是固定的钟表时间。</p>
-              <p>例如在 1 小时上训练时，「10 根」大约看过去 10 小时；若硬套到日线，「10 根」就变成过去 10 天——价格形态、噪声幅度、趋势节奏全变了，信号含义对不上，回测成绩也推不到新周期上。</p>
-              <p>同品种换周期应重新训练（或至少用该周期单独回测验证）；实时监控时，周期尽量与策略文件里记录的周期一致。</p>
+              <strong>相同品種、不同週期，能不能套同一個策略？</strong>
+              <p>不建議。策略是按<strong>訓練時的那個週期</strong>學出來的；公式裡的「10 根、20 根」指的是該週期的 K 線根數，不是固定的鐘錶時間。</p>
+              <p>例如在 1 小時上訓練時，「10 根」大約看過去 10 小時；若硬套到日線，「10 根」就變成過去 10 天——價格形態、噪聲幅度、趨勢節奏全變了，信號含義對不上，回測成績也推不到新週期上。</p>
+              <p>同品種換週期應重新訓練（或至少用該週期單獨回測驗證）；即時監控時，週期盡量與策略文件裡記錄的週期一致。</p>
             </li>
             <li>
-              <strong>卡片上的「距离下次判断」在倒计什么</strong>
-              <p>倒计时指向下一次收盘、重新判断信号的时刻。到点后会短暂显示「即将重新判断…」，收到新 bar 后再刷新，并开始下一轮倒计时。</p>
+              <strong>卡片上的「距離下次判斷」在倒計什麼</strong>
+              <p>倒數計時指向下一次收盤、重新判斷信號的時刻。到點後會短暫顯示「即將重新判斷…」，收到新 bar 後再刷新，並開始下一輪倒數計時。</p>
             </li>
           </ol>
         </details>
@@ -495,44 +505,74 @@
       <section class="panel rt-feishu-panel">
         <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
         <span class="hud-corner bl"></span><span class="hud-corner br"></span>
-        <h2>飞书转折提醒</h2>
+        <h2>飛書轉折提醒</h2>
         <p class="rt-feishu-desc">
-          仅在信号方向发生变化时推送文字提醒（例如看涨 → 不确定 / 看跌）。
-          在飞书群添加自定义机器人后，把 Webhook 地址填到下面。
+          僅在信號方向發生變化時推送文字提醒（例如看漲 → 不確定 / 看跌）。
+          在飛書群添加自訂機器人後，把 Webhook 地址填到下面。
         </p>
         <div class="rt-feishu-form">
           <label class="rt-feishu-enable">
             <input type="checkbox" id="rtFeishuEnabled" />
-            <span>启用飞书提醒</span>
+            <span>啟用飛書提醒</span>
           </label>
           <label class="rt-field rt-field-wide">
             <span>Webhook URL</span>
             <input type="text" id="rtFeishuWebhook" placeholder="https://open.feishu.cn/open-apis/bot/v2/hook/…" autocomplete="off" />
           </label>
           <label class="rt-field rt-field-wide">
-            <span>签名密钥（可选）</span>
-            <input type="password" id="rtFeishuSecret" placeholder="机器人开启签名校验时填写，否则留空" autocomplete="off" />
+            <span>簽名金鑰（可選）</span>
+            <input type="password" id="rtFeishuSecret" placeholder="機器人開啟簽名校驗時填寫，否則留空" autocomplete="off" />
           </label>
           <div class="rt-actions rt-feishu-actions">
-            <button type="button" class="btn btn-secondary" id="rtFeishuTestBtn">发送测试</button>
+            <button type="button" class="btn btn-secondary" id="rtFeishuTestBtn">發送測試</button>
             <button type="button" class="btn btn-primary" id="rtFeishuSaveBtn">保存</button>
-            <button type="button" class="btn btn-feishu-help" id="rtFeishuHelpBtn">怎么使用飞书功能</button>
+            <button type="button" class="btn btn-feishu-help" id="rtFeishuHelpBtn">怎麼使用飛書功能</button>
           </div>
         </div>
-        <small class="field-hint" id="rtFeishuHint">保存后，监控项方向转折时会自动推送到飞书群。</small>
+        <small class="field-hint" id="rtFeishuHint">保存後，監控項方向轉折時會自動推送到飛書群。</small>
+      </section>
+
+      <section class="panel rt-feishu-panel">
+        <span class="hud-corner tl"></span><span class="hud-corner tr"></span>
+        <span class="hud-corner bl"></span><span class="hud-corner br"></span>
+        <h2>Telegram 轉折提醒</h2>
+        <p class="rt-feishu-desc">
+          與飛書並行：僅在信號方向發生變化時推送文字提醒。
+          在 Telegram 找 @BotFather 建立 bot 取得 Token；私訊 bot 一則訊息後開
+          api.telegram.org/bot&lt;Token&gt;/getUpdates 可查到 chat.id。
+        </p>
+        <div class="rt-feishu-form">
+          <label class="rt-feishu-enable">
+            <input type="checkbox" id="rtTelegramEnabled" />
+            <span>啟用 Telegram 提醒</span>
+          </label>
+          <label class="rt-field rt-field-wide">
+            <span>Bot Token</span>
+            <input type="password" id="rtTelegramToken" placeholder="123456789:AAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
+          </label>
+          <label class="rt-field rt-field-wide">
+            <span>Chat ID</span>
+            <input type="text" id="rtTelegramChatId" placeholder="個人或群組 ID，如 688220938" autocomplete="off" />
+          </label>
+          <div class="rt-actions rt-feishu-actions">
+            <button type="button" class="btn btn-secondary" id="rtTelegramTestBtn">發送測試</button>
+            <button type="button" class="btn btn-primary" id="rtTelegramSaveBtn">保存</button>
+          </div>
+        </div>
+        <small class="field-hint" id="rtTelegramHint">保存後，監控項方向轉折時會自動推送到 Telegram。</small>
       </section>
     </div><!-- /page-realtime -->
 
     <div class="modal" id="rtFeishuHelpModal" hidden>
       <div class="modal-backdrop" data-close-feishu-help></div>
       <div class="modal-card modal-card-feishu-help" role="dialog" aria-labelledby="rtFeishuHelpTitle">
-        <h3 id="rtFeishuHelpTitle">怎么使用飞书功能</h3>
+        <h3 id="rtFeishuHelpTitle">怎麼使用飛書功能</h3>
         <div class="modal-body modal-body-feishu-help">
-          去问龙虾AlphaMaster这个项目怎么使用飞书功能，一步一步教我<br>
-          还是搞不定的话<br>
-          可以联系阿尔法本人QQ：564020069<br><br>
-          赞助49.9元可以帮你远程协助完成飞书设置<br><br>
-          如果之前已经支付过49.9元了，这次只需要赞助30元即可
+          去問龍蝦AlphaMaster這個項目怎麼使用飛書功能，一步一步教我<br>
+          還是搞不定的話<br>
+          可以聯繫阿爾法本人QQ：564020069<br><br>
+          贊助49.9元可以幫你遠程協助完成飛書設置<br><br>
+          如果之前已經支付過49.9元了，這次只需要贊助30元即可
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-primary" data-close-feishu-help>知道了</button>
@@ -543,11 +583,11 @@
     <div class="modal" id="tvBlockedModal" hidden>
       <div class="modal-backdrop" data-close-tv-blocked></div>
       <div class="modal-card" role="dialog" aria-labelledby="tvBlockedTitle">
-        <h3 id="tvBlockedTitle">无法使用 TradingView</h3>
+        <h3 id="tvBlockedTitle">無法使用 TradingView</h3>
         <pre class="modal-body modal-tv-blocked-body" id="tvBlockedBody"></pre>
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" id="tvBlockedMt5Btn">切换回 MT5</button>
-          <button type="button" class="btn btn-primary" id="tvBlockedCloudBtn">使用云服务器</button>
+          <button type="button" class="btn btn-secondary" id="tvBlockedMt5Btn">切換回 MT5</button>
+          <button type="button" class="btn btn-primary" id="tvBlockedCloudBtn">使用雲端伺服器</button>
         </div>
       </div>
     </div>
@@ -555,10 +595,10 @@
     <div class="modal" id="errorModal" hidden>
       <div class="modal-backdrop" data-close-error></div>
       <div class="modal-card modal-card-error" role="dialog" aria-labelledby="errorModalTitle">
-        <h3 id="errorModalTitle">出错了</h3>
+        <h3 id="errorModalTitle">出錯了</h3>
         <pre class="modal-error-detail" id="errorModalDetail"></pre>
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" id="errorModalCopyBtn">复制详情</button>
+          <button type="button" class="btn btn-secondary" id="errorModalCopyBtn">複製詳情</button>
           <button type="button" class="btn btn-primary" data-close-error>知道了</button>
         </div>
       </div>

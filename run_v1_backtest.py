@@ -1,4 +1,4 @@
-"""run_v1_backtest.py — 用 v1 公式对所有品种回测（单公式对比）"""
+"""run_v1_backtest.py — 用 v1 公式對所有品種回測（單公式對比）"""
 import sys, json, math
 from pathlib import Path
 import numpy as np
@@ -11,7 +11,7 @@ from backtest_viz import BacktestEngine
 from model_core.features import MT5FeatureEngineer
 from model_core.vocab import FORMULA_VOCAB
 
-# v1 公式（策略库 strategy_v1_20260702.json）
+# v1 公式（策略庫 strategy_v1_20260702.json）
 V1_FORMULA = [6, 44, 3, 39, 4, 29, 34, 27]
 names = FORMULA_VOCAB.token_names
 readable = ' -> '.join(names[t] for t in V1_FORMULA)
@@ -25,7 +25,7 @@ def sortino(p):
     return float(np.clip(m/ds*math.sqrt(_H1_PER_YEAR),-20,20))
 def mdd(c): return float((np.maximum.accumulate(c)-c).max())
 
-# 真实点差
+# 真實點差
 import MetaTrader5 as mt5
 mt5.initialize()
 costs = {}
@@ -38,7 +38,7 @@ for sym in Config.SYMBOLS:
         costs[sym] = 0.0001
 mt5.shutdown()
 
-print(f"\nV1 公式（单公式，所有品种共用）")
+print(f"\nV1 公式（單公式，所有品種共用）")
 print(f"  {readable}\n")
 
 with MT5DataFetcher() as f:
@@ -49,7 +49,7 @@ with MT5DataFetcher() as f:
     feat = MT5FeatureEngineer.compute_features(raw)
     T    = feat.shape[2]
 
-print(f"{'品种':12s} {'PnL':>8} {'Sharpe':>8} {'Sortino':>8} {'MaxDD':>8} {'Trades':>7} {'AvgH':>6}")
+print(f"{'品種':12s} {'PnL':>8} {'Sharpe':>8} {'Sortino':>8} {'MaxDD':>8} {'Trades':>7} {'AvgH':>6}")
 print('─'*65)
 
 all_pnls = []
@@ -64,10 +64,10 @@ for i, sym in enumerate(syms):
     print(f"{sym:12s} {r.total_return:+8.3f} {sharpe(pnl):+8.3f} {sortino(pnl):+8.3f}"
           f" {mdd(cum):8.3f} {r.n_trades:7d} {r.avg_hold_bars:6.1f}h")
 
-# 组合
+# 組合
 port = np.stack(all_pnls).mean(0)
 cum_p = np.cumsum(port)
 print('─'*65)
 print(f"{'Portfolio':12s} {cum_p[-1]:+8.3f} {sharpe(port):+8.3f} {sortino(port):+8.3f}"
       f" {mdd(cum_p):8.3f}")
-print(f"\n  正收益品种: {sum(1 for p in all_pnls if np.cumsum(p)[-1]>0)}/{len(syms)}")
+print(f"\n  正收益品種: {sum(1 for p in all_pnls if np.cumsum(p)[-1]>0)}/{len(syms)}")

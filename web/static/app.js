@@ -10,12 +10,12 @@ let clientErrors = [];
 let debugMode = false;
 let lastDebugViewContent = "";
 
-// 分页与回测状态
+// 分頁與回測狀態
 let currentPage = "train";
 let btActive = false;
-let btBuster = "";      // 图表缓存刷新键（用 job 时间戳）
-let btPortfolioSig = ""; // 绩效卡签名：变化时才重建 + 播放数字动画，避免每次轮询重播
-let lastEquityData = null; // 最近一次资金曲线数据，供绩效卡 sparkline 复用
+let btBuster = "";      // 圖表快取刷新鍵（用 job 時間戳）
+let btPortfolioSig = ""; // 績效卡簽名：變化時才重建 + 播放數字動畫，避免每次輪詢重播
+let lastEquityData = null; // 最近一次資金曲線數據，供績效卡 sparkline 復用
 let lastTrainingActive = false;
 let btLastAlertKey = "";
 let lastErrorPopupText = "";
@@ -23,35 +23,35 @@ let lastErrorPopupAt = 0;
 
 const $ = (id) => document.getElementById(id);
 
-const CPU_TRAINING_NOTE = `暂无报错
+const CPU_TRAINING_NOTE = `暫無報錯
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-【为什么用 CPU 训练，不用 GPU？】
+【為什麼用 CPU 訓練，不用 GPU？】
 
-你可以把 GPU 想象成一辆超大的货车，CPU 想象成一辆灵活的小电瓶车。
+你可以把 GPU 想像成一輛超大的貨車，CPU 想像成一輛靈活的小電瓶車。
 
-我们这个项目的训练，就像要做很多很多道「小题」：
-每道题只算一点点数字，算完马上换下一道。
-货车虽然一次能装很多，但每装卸一次都要准备很久才能再出发；
-电瓶车一次装的少，但说走就走，一道接一道做，反而更快。
+我們這個項目的訓練，就像要做很多很多道「小題」：
+每道題只算一點點數字，算完馬上換下一道。
+貨車雖然一次能裝很多，但每裝卸一次都要準備很久才能再出發；
+電瓶車一次裝的少，但說走就走，一道接一道做，反而更快。
 
-再打个比方：
-GPU 像很多厨师一起做大锅饭，适合一次炒一大锅；
-我们这个训练更像一道道菜分开炒，而且每道菜份量很小。
-大锅饭团队每次开火、洗锅、集合都要时间，小菜一碟反而耽误在「准备」上。
+再打個比方：
+GPU 像很多廚師一起做大鍋飯，適合一次炒一大鍋；
+我們這個訓練更像一道道菜分開炒，而且每道菜份量很小。
+大鍋飯糰隊每次開火、洗鍋、集合都要時間，小事一樁反而耽誤在「準備」上。
 
-所以具体原因是：
-1. 每次要算的数据不多，GPU「启动一次计算」的等待，有时比真正算数还久。
-2. 训练是一步接一步、一条公式接一条公式地指挥，GPU 经常闲着等下一道题，没法一直满负荷。
-3. 数据还要在 CPU 和 GPU 之间来回搬运，也要花时间。
+所以具體原因是：
+1. 每次要算的數據不多，GPU「啟動一次計算」的等待，有時比真正算數還久。
+2. 訓練是一步接一步、一條公式接一條公式地指揮，GPU 經常閒著等下一道題，沒辦法一直滿負荷。
+3. 數據還要在 CPU 和 GPU 之間來回搬運，也要花時間。
 
-我们实测过（同样训练 50 步）：GPU 大约 4.5 秒一步，CPU 大约 1.9 秒一步。
-这不是显卡坏了，也不是没装驱动，而是这个项目的做题方式，更适合 CPU。
+我們實測過（同樣訓練 50 步）：GPU 大約 4.5 秒一步，CPU 大約 1.9 秒一步。
+這不是顯示卡壞了，也不是沒裝驅動，而是這個項目的做題方式，更適合 CPU。
 
-说白了就是这个项目用CPU训练的速度比用GPU训练的速度更快`;
+說白了就是這個項目用CPU訓練的速度比用GPU訓練的速度更快`;
 
 function emptyDebugMessage() {
-  return debugMode ? "暂无日志" : CPU_TRAINING_NOTE;
+  return debugMode ? "暫無日誌" : CPU_TRAINING_NOTE;
 }
 
 function formatApiError(data, status, path) {
@@ -78,7 +78,7 @@ async function logClientError(message, context = {}) {
   const silent = !!context.silent;
   if (!silent) {
     const detail = context.detail ? `${message}\n\n${context.detail}` : message;
-    showErrorPopup("出错了", detail);
+    showErrorPopup("出錯了", detail);
   }
   try {
     await fetch(API + "/api/debug/client-log", {
@@ -99,12 +99,12 @@ function showErrorPopup(title, detail) {
     window.alert(`${title}\n\n${detail}`);
     return;
   }
-  const text = String(detail || "").trim() || "未知错误";
+  const text = String(detail || "").trim() || "未知錯誤";
   const now = Date.now();
   if (text === lastErrorPopupText && now - lastErrorPopupAt < 2500) return;
   lastErrorPopupText = text;
   lastErrorPopupAt = now;
-  if (titleEl) titleEl.textContent = title || "出错了";
+  if (titleEl) titleEl.textContent = title || "出錯了";
   detailEl.textContent = text;
   modal.hidden = false;
 }
@@ -136,13 +136,13 @@ function isViewAtBottom(el, threshold = 40) {
 function renderDebugView(serverLines = [], errorLines = []) {
   const parts = [];
   if (clientErrors.length) {
-    parts.push("=== 前端报错 ===", ...clientErrors);
+    parts.push("=== 前端報錯 ===", ...clientErrors);
   }
   if (errorLines.length) {
-    parts.push("\n=== 服务端错误日志 (logs/web_errors.log) ===", ...errorLines);
+    parts.push("\n=== 服務端錯誤日誌 (logs/web_errors.log) ===", ...errorLines);
   }
   if (debugMode && serverLines.length) {
-    parts.push("\n=== 服务端运行日志 (logs/web_server.log) ===", ...serverLines);
+    parts.push("\n=== 服務端運行日誌 (logs/web_server.log) ===", ...serverLines);
   }
   const el = $("debugView");
   const atBottom = isViewAtBottom(el);
@@ -165,7 +165,7 @@ async function setDebugMode(enabled) {
       body: JSON.stringify({ debug_mode: debugMode }),
     });
   } catch (e) {
-    await logClientError("切换调试模式失败: " + e.message);
+    await logClientError("切換除錯模式失敗: " + e.message);
   }
   if (!debugMode) {
     renderDebugView([], []);
@@ -203,7 +203,7 @@ async function fetchJSON(path, opts = {}) {
     try {
       res = await fetch(API + path, fetchOpts);
     } catch (e) {
-      lastNetworkMsg = `网络错误 ${path}: ${e.message}`;
+      lastNetworkMsg = `網路錯誤 ${path}: ${e.message}`;
       if (attempt < maxRetries) {
         await new Promise((r) => setTimeout(r, retryDelayMs));
         continue;
@@ -220,7 +220,7 @@ async function fetchJSON(path, opts = {}) {
     }
     return data;
   }
-  throw new Error(lastNetworkMsg || `网络错误 ${path}`);
+  throw new Error(lastNetworkMsg || `網路錯誤 ${path}`);
 }
 
 function formatScore(v) {
@@ -234,7 +234,7 @@ function renderDataFileCard(info) {
 
   if (!info || !info.data_file) {
     card.className = "data-file-card";
-    card.innerHTML = '<div class="data-file-empty">尚未选择数据文件</div>';
+    card.innerHTML = '<div class="data-file-empty">尚未選擇數據文件</div>';
     selectedDataFile = null;
     selectedSymbol = null;
     startBtn.disabled = true;
@@ -251,7 +251,7 @@ function renderDataFileCard(info) {
   if (info.valid === false) {
     card.className = "data-file-card invalid";
     card.innerHTML = `
-      <div class="data-file-error">${info.message || "文件无效"}</div>
+      <div class="data-file-error">${info.message || "文件無效"}</div>
       <div class="data-file-path">${info.data_file}</div>
     `;
     startBtn.disabled = true;
@@ -265,15 +265,15 @@ function renderDataFileCard(info) {
   const yearsText = info.years_h1 != null ? `${info.years_h1} 年` : "—";
   card.innerHTML = `
     <div class="data-file-row">
-      <div class="item"><span class="label">品种</span><span class="value sym">${info.symbol}</span></div>
-      <div class="item"><span class="label">周期</span><span class="value">${info.timeframe}</span></div>
-      <div class="item"><span class="label">K线</span><span class="value">${info.bars?.toLocaleString()}</span></div>
-      <div class="item"><span class="label">数据年限</span><span class="value">${yearsText}</span></div>
-      <div class="item"><span class="label">进度</span><span class="value" id="fileProgressPct">—</span></div>
-      <div class="item"><span class="label">本次训练时长</span><span class="value" id="fileElapsedTime">—</span></div>
-      <div class="item"><span class="label">历史训练总时长</span><span class="value" id="fileHistoryElapsedTime">—</span></div>
-      <div class="item"><span class="label">最优分数</span><span class="value score-best" id="fileBestScore">—</span></div>
-      <div class="item"><span class="label">验证分数</span><span class="value score-val" id="fileValScore">—</span></div>
+      <div class="item"><span class="label">品種</span><span class="value sym">${info.symbol}</span></div>
+      <div class="item"><span class="label">週期</span><span class="value">${info.timeframe}</span></div>
+      <div class="item"><span class="label">K線</span><span class="value">${info.bars?.toLocaleString()}</span></div>
+      <div class="item"><span class="label">數據年限</span><span class="value">${yearsText}</span></div>
+      <div class="item"><span class="label">進度</span><span class="value" id="fileProgressPct">—</span></div>
+      <div class="item"><span class="label">本次訓練時長</span><span class="value" id="fileElapsedTime">—</span></div>
+      <div class="item"><span class="label">歷史訓練總時長</span><span class="value" id="fileHistoryElapsedTime">—</span></div>
+      <div class="item"><span class="label">最優分數</span><span class="value score-best" id="fileBestScore">—</span></div>
+      <div class="item"><span class="label">驗證分數</span><span class="value score-val" id="fileValScore">—</span></div>
     </div>
     <div class="path" title="${info.data_file}">${info.filename || info.data_file}</div>
   `;
@@ -297,7 +297,7 @@ function renderStrategyFileCard(info) {
 
   if (!info || !info.strategy_file) {
     card.className = "data-file-card";
-    card.innerHTML = '<div class="data-file-empty">尚未选择策略文件</div>';
+    card.innerHTML = '<div class="data-file-empty">尚未選擇策略文件</div>';
     selectedStrategyFile = null;
     selectedStrategySymbol = null;
     updateBtStartBtn();
@@ -307,7 +307,7 @@ function renderStrategyFileCard(info) {
   if (info.valid === false) {
     card.className = "data-file-card invalid";
     card.innerHTML = `
-      <div class="data-file-error">${info.message || "文件无效"}</div>
+      <div class="data-file-error">${info.message || "文件無效"}</div>
       <div class="data-file-path">${info.strategy_file}</div>
     `;
     selectedStrategyFile = null;
@@ -320,23 +320,23 @@ function renderStrategyFileCard(info) {
   selectedStrategySymbol = info.symbol || null;
   card.className = "data-file-card valid";
   const timeframeItem = info.timeframe
-    ? `<div class="item"><span class="label">周期</span><span class="value">${info.timeframe}</span></div>`
+    ? `<div class="item"><span class="label">週期</span><span class="value">${info.timeframe}</span></div>`
     : "";
   const dataPath = info.data_file || "";
   const dataOk = info.data_file_exists;
   const dataHint = dataPath
     ? (dataOk ? dataPath : `（文件不存在）${dataPath}`)
-    : "未记录数据路径 — 回测前请先在训练页选择同品种 Parquet";
+    : "未記錄數據路徑 — 回測前請先在訓練頁選擇同品種 Parquet";
   card.innerHTML = `
     <div class="data-file-row">
-      <div class="item"><span class="label">品种</span><span class="value sym">${info.symbol || "—"}</span></div>
+      <div class="item"><span class="label">品種</span><span class="value sym">${info.symbol || "—"}</span></div>
       ${timeframeItem}
-      <div class="item"><span class="label">最优分数</span><span class="value score-best">${formatScore(info.best_score)}</span></div>
-      <div class="item"><span class="label">词表版本</span><span class="value">${info.vocab_version || "—"}</span></div>
-      <div class="item"><span class="label">公式长度</span><span class="value">${info.formula_decoded ? info.formula_decoded.split("→").length : "—"}</span></div>
+      <div class="item"><span class="label">最優分數</span><span class="value score-best">${formatScore(info.best_score)}</span></div>
+      <div class="item"><span class="label">詞表版本</span><span class="value">${info.vocab_version || "—"}</span></div>
+      <div class="item"><span class="label">公式長度</span><span class="value">${info.formula_decoded ? info.formula_decoded.split("→").length : "—"}</span></div>
     </div>
     <div class="path" title="${info.strategy_file}">策略: ${info.filename || info.strategy_file}</div>
-    <div class="path ${dataPath && dataOk ? "" : "data-file-missing"}" title="${dataPath || ""}">数据: ${dataHint}</div>
+    <div class="path ${dataPath && dataOk ? "" : "data-file-missing"}" title="${dataPath || ""}">數據: ${dataHint}</div>
   `;
   updateBtStartBtn();
 }
@@ -355,8 +355,8 @@ function formatDurationSeconds(secs) {
   const total = Math.floor(secs);
   const h = Math.floor(total / 3600);
   const m = Math.floor((total % 3600) / 60);
-  if (h > 0) return `${h}小时${m}分`;
-  if (m > 0) return `${m}分钟`;
+  if (h > 0) return `${h}小時${m}分`;
+  if (m > 0) return `${m}分鐘`;
   return `${total}秒`;
 }
 
@@ -403,11 +403,11 @@ function updateFileProgress(progress) {
 }
 
 const CHART_SERIES = [
-  { key: "best_score", label: "最优分数", borderColor: "#34f5c8", fillRGB: "52, 245, 200", yAxisID: "y" },
-  { key: "val_score", label: "验证分数", borderColor: "#38bdf8", fillRGB: "56, 189, 248", yAxisID: "y" },
+  { key: "best_score", label: "最優分數", borderColor: "#34f5c8", fillRGB: "52, 245, 200", yAxisID: "y" },
+  { key: "val_score", label: "驗證分數", borderColor: "#38bdf8", fillRGB: "56, 189, 248", yAxisID: "y" },
 ];
 
-// 让曲线在填充区形成竖向渐变
+// 讓曲線在填充區形成豎向漸變
 function makeGradient(ctx, area, rgb) {
   if (!area) return `rgba(${rgb}, 0.08)`;
   const g = ctx.createLinearGradient(0, area.top, 0, area.bottom);
@@ -417,7 +417,7 @@ function makeGradient(ctx, area, rgb) {
   return g;
 }
 
-// 发光效果：在每条数据线绘制前设置对应颜色的柔和阴影
+// 發光效果：在每條傳輸線繪製前設置對應顏色的柔和陰影
 const glowPlugin = {
   id: "neonGlow",
   beforeDatasetDraw(chart, args) {
@@ -476,7 +476,7 @@ const CHART_OPTIONS = {
       border: { color: "rgba(120,190,235,0.12)" },
     },
     y: {
-      title: { display: true, text: "分数（最优 / 验证）", color: "#7dd3fc", font: { family: "'DM Sans'", size: 10, weight: "600" } },
+      title: { display: true, text: "分數（最優 / 驗證）", color: "#7dd3fc", font: { family: "'DM Sans'", size: 10, weight: "600" } },
       ticks: { color: "#6b7d92", font: { family: "'JetBrains Mono'", size: 10 } },
       grid: { color: "rgba(120,190,235,0.05)" },
       border: { color: "rgba(120,190,235,0.12)" },
@@ -547,9 +547,9 @@ function renderChart(history, label, progress) {
   if (!steps.length) {
     destroyChart();
     if (progress?.current_step > 0) {
-      $("chartHint").textContent = `训练中 第 ${progress.current_step}/${progress.train_steps} 步，曲线每步更新`;
+      $("chartHint").textContent = `訓練中 第 ${progress.current_step}/${progress.train_steps} 步，曲線每步更新`;
     } else {
-      $("chartHint").textContent = "暂无历史数据（首步约需 15–30 秒）";
+      $("chartHint").textContent = "暫無歷史數據（首步約需 15–30 秒）";
     }
     return;
   }
@@ -563,8 +563,8 @@ function renderChart(history, label, progress) {
     chartSymbol = label;
   }
 
-  $("chartTitle").textContent = `${label} 训练曲线`;
-  $("chartHint").textContent = `${steps.length} 个记录点`;
+  $("chartTitle").textContent = `${label} 訓練曲線`;
+  $("chartHint").textContent = `${steps.length} 個紀錄點`;
 }
 
 async function loadSymbolChart(symbol, progress) {
@@ -581,7 +581,7 @@ async function loadSymbolChart(symbol, progress) {
 function renderStrategies(rows) {
   const tbody = $("strategiesBody");
   if (!rows.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="4">暂无已保存策略</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="4">暫無已保存策略</td></tr>';
     return;
   }
   tbody.innerHTML = rows
@@ -606,7 +606,7 @@ function updateTrainingUI(training, progress) {
   const stopBtn = $("stopBtn");
 
   if (!job || job.state === "idle") {
-    pill.innerHTML = '<i class="pill-dot"></i>空闲';
+    pill.innerHTML = '<i class="pill-dot"></i>空閒';
     pill.className = "pill";
     startBtn.disabled = !selectedDataFile;
     if (retrainBtn) retrainBtn.disabled = !selectedDataFile;
@@ -617,12 +617,12 @@ function updateTrainingUI(training, progress) {
   }
 
   const stateLabel = {
-    running: "训练中",
+    running: "訓練中",
     completed: "已完成",
-    failed: "失败",
+    failed: "失敗",
     stopped: "已停止",
   };
-  const label = job.symbol ? `${job.symbol} ${job.timeframe || ""}`.trim() : "训练";
+  const label = job.symbol ? `${job.symbol} ${job.timeframe || ""}`.trim() : "訓練";
   const stateText = stateLabel[job.state] || job.state;
   pill.innerHTML = `<i class="pill-dot"></i>${stateText} · ${label}`;
   pill.className = "pill " + (job.state === "running" ? "running" : job.state);
@@ -635,7 +635,7 @@ function updateTrainingUI(training, progress) {
 
   const logView = $("logView");
   const atBottom = isViewAtBottom(logView);
-  logView.textContent = (training.log_tail || []).join("\n") || "等待输出…";
+  logView.textContent = (training.log_tail || []).join("\n") || "等待輸出…";
   if (atBottom) logView.scrollTop = logView.scrollHeight;
 }
 
@@ -682,7 +682,7 @@ async function loadConfig() {
   const health = await fetch(API + "/api/health").then((r) => r.json()).catch(() => ({}));
   if (!health.version) {
     await logClientError(
-      "后端版本过旧或未启动新版服务。请关闭旧进程后重新运行: python run_web.py",
+      "後端版本過舊或未啟動新版服務。請關閉舊進程後重新運行: python run_web.py",
       { health }
     );
   }
@@ -721,7 +721,7 @@ function updateBtCostHint() {
   if (!hint) return;
   const { commission_pct, slippage_pct } = readBacktestCosts();
   const fee = Number((commission_pct + slippage_pct).toFixed(4));
-  hint.textContent = `单边成本 ${fee}%`;
+  hint.textContent = `單邊成本 ${fee}%`;
 }
 
 async function refreshAiProviderStatus() {
@@ -742,6 +742,8 @@ async function initAiPanel(cfg) {
   else if (cfg?.ai_provider === "openclaw" || cfg?.ai_provider === "openclaw_wb") {
     keyInput.value = cfg.ai_provider;
   }
+  if ($("aiBaseUrlInput") && cfg?.ai_base_url) $("aiBaseUrlInput").value = cfg.ai_base_url;
+  if ($("aiModelInput") && cfg?.ai_model) $("aiModelInput").value = cfg.ai_model;
 
   await refreshAiProviderStatus();
   if (!keyInput.dataset.aiStatusBound) {
@@ -755,12 +757,16 @@ async function initAiPanel(cfg) {
 
 function resolveAiFromKey(raw) {
   const v = (raw || "").trim().toLowerCase();
-  // openclaw_wb 必须先于 openclaw，避免前缀误匹配
+  // openclaw_wb 必須先於 openclaw，避免前綴誤匹配
   if (v === "openclaw_wb" || v.startsWith("openclaw_wb/")) {
     return { provider: "openclaw_wb", apiKey: raw.trim(), isAlias: true };
   }
   if (v === "openclaw" || v.startsWith("openclaw/")) {
     return { provider: "openclaw", apiKey: raw.trim(), isAlias: true };
+  }
+  const baseUrl = ($("aiBaseUrlInput")?.value || "").trim();
+  if (baseUrl) {
+    return { provider: "custom", apiKey: (raw || "").trim(), isAlias: false };
   }
   return { provider: "deepseek", apiKey: (raw || "").trim(), isAlias: false };
 }
@@ -775,17 +781,22 @@ function updateAiChannelHint() {
   const status = window.__aiProviderStatus;
   const row = (status?.providers || []).find((p) => p.id === resolved.provider);
 
-  if (resolved.provider === "deepseek") {
+  if (resolved.provider === "custom") {
+    const burl = ($("aiBaseUrlInput")?.value || "").trim();
+    const mdl = ($("aiModelInput")?.value || "").trim() || "（未填模型）";
+    if (headHint) headHint.textContent = `自訂 · ${mdl}`;
+    hint.textContent = `當前：自訂 OpenAI 相容端點（${mdl} · ${burl}）。`;
+  } else if (resolved.provider === "deepseek") {
     if (headHint) headHint.textContent = "DeepSeek · deepseek-v4-flash";
-    hint.textContent = "当前：DeepSeek（deepseek-v4-flash · https://api.deepseek.com）。";
+    hint.textContent = "當前：DeepSeek（deepseek-v4-flash · https://api.deepseek.com）。";
   } else if (resolved.provider === "openclaw") {
     if (headHint) {
-      headHint.textContent = row?.available ? "openclaw (QClaw) · 已匹配" : "openclaw (QClaw) · 未就绪";
+      headHint.textContent = row?.available ? "openclaw (QClaw) · 已匹配" : "openclaw (QClaw) · 未就緒";
     }
-    hint.textContent = row?.hint || "已匹配 openclaw：将自动使用本地 QClaw token。";
+    hint.textContent = row?.hint || "已匹配 openclaw：將自動使用本地 QClaw token。";
   } else {
-    if (headHint) headHint.textContent = row?.available ? "openclaw_wb · 已匹配" : "openclaw_wb · 未就绪";
-    hint.textContent = row?.hint || "已匹配 openclaw_wb：将自动使用 WorkBuddy token。";
+    if (headHint) headHint.textContent = row?.available ? "openclaw_wb · 已匹配" : "openclaw_wb · 未就緒";
+    hint.textContent = row?.hint || "已匹配 openclaw_wb：將自動使用 WorkBuddy token。";
   }
 }
 
@@ -808,15 +819,27 @@ async function runAiAnalyze() {
 
   if (resolved.provider === "deepseek" && !resolved.apiKey) {
     view.className = "ai-answer error";
-    view.textContent = "请填写 DeepSeek API Key";
+    view.textContent = "請填寫 DeepSeek API Key";
     return;
+  }
+  if (resolved.provider === "custom") {
+    if (!($("aiModelInput")?.value || "").trim()) {
+      view.className = "ai-answer error";
+      view.textContent = "使用自訂端點時請填寫模型名稱";
+      return;
+    }
+    if (!resolved.apiKey) {
+      view.className = "ai-answer error";
+      view.textContent = "請填寫 API Key";
+      return;
+    }
   }
 
   await refreshAiProviderStatus();
 
   if (btn) btn.disabled = true;
   view.className = "ai-answer loading";
-  view.textContent = `正在通过 ${resolved.provider} 连接并流式分析…`;
+  view.textContent = `正在通過 ${resolved.provider} 連接並流式分析…`;
 
   let header = "";
   let answer = "";
@@ -829,13 +852,15 @@ async function runAiAnalyze() {
         provider: resolved.provider,
         api_key: resolved.apiKey,
         symbol: selectedSymbol || null,
+        base_url: ($("aiBaseUrlInput")?.value || "").trim(),
+        model: ($("aiModelInput")?.value || "").trim(),
       }),
     });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       throw new Error(formatApiError(data, res.status, "/api/ai/analyze-training"));
     }
-    if (!res.body) throw new Error("浏览器不支持流式响应");
+    if (!res.body) throw new Error("瀏覽器不支持流式響應");
 
     const reader = res.body.getReader();
     const decoder = new TextDecoder("utf-8");
@@ -865,7 +890,7 @@ async function runAiAnalyze() {
           header =
             `[${event.label || event.provider || resolved.provider} · ${event.model || ""} · ${event.symbol || ""}${event.timeframe ? " " + event.timeframe : ""}]` +
             (event.prior_count
-              ? ` · 已带入前 ${event.prior_count} 次同品种同周期分析`
+              ? ` · 已帶入前 ${event.prior_count} 次同品種同週期分析`
               : " · 首次分析") +
             `\n\n`;
           view.textContent = header;
@@ -875,21 +900,21 @@ async function runAiAnalyze() {
           view.textContent = header + answer;
           view.scrollTop = view.scrollHeight;
         } else if (event.type === "error") {
-          throw new Error(event.message || "分析失败");
+          throw new Error(event.message || "分析失敗");
         } else if (event.type === "done") {
           answer = event.answer || answer;
           view.className = "ai-answer";
-          view.textContent = header + (answer || "（无内容）");
+          view.textContent = header + (answer || "（無內容）");
         }
       }
     }
     if (!answer && view.className.includes("streaming")) {
-      throw new Error("流式分析中断，未收到完整回复");
+      throw new Error("流式分析中斷，未收到完整回復");
     }
     view.className = "ai-answer";
   } catch (e) {
     view.className = "ai-answer error";
-    view.textContent = `分析失败: ${e.message}`;
+    view.textContent = `分析失敗: ${e.message}`;
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -950,7 +975,7 @@ async function browseDataFile() {
 
 async function startTraining() {
   if (!selectedDataFile) {
-    await logClientError("请先选择数据文件");
+    await logClientError("請先選擇數據文件");
     return;
   }
   try {
@@ -969,13 +994,13 @@ async function startTraining() {
 
 async function retrainFromScratch() {
   if (!selectedDataFile) {
-    await logClientError("请先选择数据文件");
+    await logClientError("請先選擇數據文件");
     return;
   }
   const ok = window.confirm(
-    "重新训练会清除该品种的检查点，从第 0 步重新搜索。\n" +
-      "已有的更优策略会保留，只有挖到更高分才会覆盖。\n\n" +
-      "确定要重新训练吗？"
+    "重新訓練會清除該品種的檢查點，從第 0 步重新搜索。\n" +
+      "已有的更優策略會保留，只有挖到更高分才會覆蓋。\n\n" +
+      "確定要重新訓練嗎？"
   );
   if (!ok) return;
   try {
@@ -1006,13 +1031,13 @@ function updateTrainingBtns(progress, training) {
   const exportBtn = $("exportTrainingBtn");
   const importBtn = $("importTrainingBtn");
 
-  let exportTitle = "打包 checkpoint、训练曲线与策略为 zip";
+  let exportTitle = "打包 checkpoint、訓練曲線與策略為 zip";
   if (!sym) {
-    exportTitle = "请先选择数据文件";
+    exportTitle = "請先選擇數據文件";
   } else if (active) {
-    exportTitle = "训练进行中，请停止后再导出";
+    exportTitle = "訓練進行中，請停止後再導出";
   } else if (!hasCheckpoint) {
-    exportTitle = "该品种尚无检查点：至少训练满 20 步后才会生成（每 20 步保存一次）";
+    exportTitle = "該品種尚無檢查點：至少訓練滿 20 步後才會生成（每 20 步保存一次）";
   }
 
   if (exportBtn) {
@@ -1021,14 +1046,14 @@ function updateTrainingBtns(progress, training) {
   }
   if (importBtn) {
     importBtn.disabled = !sym || !!active;
-    importBtn.title = active ? "训练进行中，请停止后再导入" : "上传 .zip 或 .pt，下次训练断点续训";
+    importBtn.title = active ? "訓練進行中，請停止後再導入" : "上傳 .zip 或 .pt，下次訓練斷點續訓";
   }
 }
 
 async function exportTraining() {
   const sym = selectedSymbol;
   if (!sym) {
-    await logClientError("请先选择数据文件");
+    await logClientError("請先選擇數據文件");
     return;
   }
   const path = `/api/training/${encodeURIComponent(sym)}/export`;
@@ -1051,7 +1076,7 @@ async function exportTraining() {
     a.remove();
     URL.revokeObjectURL(url);
   } catch (e) {
-    await logClientError(`导出训练失败: ${e.message}`);
+    await logClientError(`導出訓練失敗: ${e.message}`);
     $("debugView").scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 }
@@ -1071,7 +1096,7 @@ async function handleImportTrainingFile(event) {
 
   const sym = selectedSymbol;
   if (!sym) {
-    await logClientError("请先选择数据文件");
+    await logClientError("請先選擇數據文件");
     return;
   }
 
@@ -1090,12 +1115,12 @@ async function handleImportTrainingFile(event) {
     if (data.symbol && data.symbol !== sym) {
       selectedSymbol = data.symbol;
     }
-    clientErrors.push(`[${new Date().toLocaleString()}] ${data.message || "训练文件导入成功"}`);
+    clientErrors.push(`[${new Date().toLocaleString()}] ${data.message || "訓練文件導入成功"}`);
     if (clientErrors.length > 80) clientErrors = clientErrors.slice(-80);
     renderDebugView();
     await refreshOverview();
   } catch (e) {
-    await logClientError(`导入训练失败: ${e.message}`);
+    await logClientError(`導入訓練失敗: ${e.message}`);
     $("debugView").scrollIntoView({ behavior: "smooth", block: "nearest" });
   } finally {
     input.value = "";
@@ -1113,7 +1138,7 @@ function parseContentDispositionFilename(header) {
 async function exportStrategy() {
   const sym = selectedSymbol;
   if (!sym) {
-    await logClientError("请先选择数据文件");
+    await logClientError("請先選擇數據文件");
     return;
   }
   const path = `/api/strategies/${encodeURIComponent(sym)}/export`;
@@ -1135,7 +1160,7 @@ async function exportStrategy() {
     a.remove();
     URL.revokeObjectURL(url);
   } catch (e) {
-    await logClientError(`导出策略失败: ${e.message}`);
+    await logClientError(`導出策略失敗: ${e.message}`);
     $("debugView").scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 }
@@ -1152,7 +1177,7 @@ async function stopTraining() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 分页切换
+// 分頁切換
 // ═══════════════════════════════════════════════════════════════════
 function switchPage(page) {
   if (page !== "train" && page !== "backtest" && page !== "realtime") return;
@@ -1173,7 +1198,7 @@ function switchPage(page) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 回测：格式化辅助
+// 回測：格式化輔助
 // ═══════════════════════════════════════════════════════════════════
 function fmtPct(v, digits = 2) {
   if (v == null || Number.isNaN(v)) return "—";
@@ -1185,7 +1210,7 @@ function fmtSigned(v, digits = 3) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 回测：状态轮询 + UI 更新
+// 回測：狀態輪詢 + UI 更新
 // ═══════════════════════════════════════════════════════════════════
 async function refreshBacktest() {
   let st;
@@ -1198,17 +1223,17 @@ async function refreshBacktest() {
   const job = st.job;
   const state = job?.state || "idle";
 
-  // 按钮
+  // 按鈕
   const stopBtn = $("btStopBtn");
   updateBtStartBtn();
   if (stopBtn) stopBtn.disabled = !btActive;
 
-  // 缓存刷新键：用最近一次任务的结束/开始时间
+  // 快取刷新鍵：用最近一次任務的結束/開始時間
   btBuster = job?.finished_at || job?.started_at || btBuster;
 
-  // 日志
+  // 日誌
   const logView = $("btLogView");
-  const logText = (st.log_tail || []).join("\n") || "等待任务…";
+  const logText = (st.log_tail || []).join("\n") || "等待任務…";
   if (logView) {
     const atBottom = isViewAtBottom(logView);
     logView.textContent = logText;
@@ -1216,33 +1241,33 @@ async function refreshBacktest() {
   }
   if ($("btLogHint")) $("btLogHint").textContent = job?.log_path || "—";
 
-  // 阶段进度条
+  // 階段進度條
   updateBacktestPhase(st, state);
 
   if (state === "failed") {
     const alertKey = `${job?.log_path || ""}|${job?.finished_at || ""}|${job?.exit_code ?? ""}`;
     if (alertKey && alertKey !== btLastAlertKey) {
       btLastAlertKey = alertKey;
-      const errLine = job?.error ? `\n错误: ${job.error}` : "";
+      const errLine = job?.error ? `\n錯誤: ${job.error}` : "";
       showErrorPopup(
-        "回测失败",
-        `退出码: ${job?.exit_code ?? "?"}${errLine}\n日志: ${job?.log_path || "—"}\n\n${logText}`
+        "回測失敗",
+        `退出碼: ${job?.exit_code ?? "?"}${errLine}\n日誌: ${job?.log_path || "—"}\n\n${logText}`
       );
     }
   }
 
-  // 结果报告（非运行态时刷新，运行态保留上次结果）
+  // 結果報告（非運行態時刷新，運行態保留上次結果）
   if (!btActive) {
     await refreshBacktestReport();
   }
 }
 
 const BT_STATE_LABEL = {
-  running: "回测中",
+  running: "回測中",
   completed: "已完成",
-  failed: "失败",
+  failed: "失敗",
   stopped: "已停止",
-  idle: "待机",
+  idle: "待機",
 };
 
 function updateBacktestPhase(st, state) {
@@ -1256,7 +1281,7 @@ function updateBacktestPhase(st, state) {
   let pct;
   if (btActive) {
     pct = Math.min(96, Math.round(((idx + 1) / total) * 100));
-    label.textContent = `${st.phase_label || "回测中"}…`;
+    label.textContent = `${st.phase_label || "回測中"}…`;
     fill.classList.add("animate");
   } else if (state === "completed") {
     pct = 100;
@@ -1268,7 +1293,7 @@ function updateBacktestPhase(st, state) {
     fill.classList.remove("animate");
   } else {
     pct = 0;
-    label.textContent = "待机";
+    label.textContent = "待機";
     fill.classList.remove("animate");
   }
   fill.style.width = pct + "%";
@@ -1286,13 +1311,13 @@ async function refreshBacktestReport() {
     return;
   }
   if (!data.available || !data.report) {
-    if ($("btPortfolioHint")) $("btPortfolioHint").textContent = "尚未运行回测";
+    if ($("btPortfolioHint")) $("btPortfolioHint").textContent = "尚未運行回測";
     lastEquityData = null;
     btPortfolioSig = "";
     renderEquity(null);
     return;
   }
-  // 先取资金曲线（写入 lastEquityData），再渲染绩效卡，让 sparkline 用上真实数据
+  // 先取資金曲線（寫入 lastEquityData），再渲染績效卡，讓 sparkline 用上真實數據
   await refreshEquityCurve();
   renderPortfolio(data.report);
   renderBacktestTable(data.report.symbols || {});
@@ -1314,7 +1339,7 @@ async function refreshEquityCurve() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 迷你 sparkline + 数字滚动动画（终端仪表盘质感）
+// 迷你 sparkline + 數字滾動動畫（終端儀錶板質感）
 // ═══════════════════════════════════════════════════════════════════
 const METRIC_FMT = {
   pct: (v) => (v >= 0 ? "+" : "") + (v * 100).toFixed(2) + "%",
@@ -1329,7 +1354,7 @@ function prefersReducedMotion() {
   return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
 }
 
-// 短促 count-up（≈420ms, easeOutCubic），克制不浮夸
+// 短促 count-up（≈420ms, easeOutCubic），克制不浮誇
 function animateCount(el, to, fmt) {
   const fn = METRIC_FMT[fmt] || ((v) => String(v));
   if (!Number.isFinite(to)) {
@@ -1359,7 +1384,7 @@ function runCountUp(root) {
   });
 }
 
-// 均匀降采样为 <= target 个有限点
+// 均勻降採樣為 <= target 個有限點
 function downsampleSeries(arr, target) {
   const clean = (arr || [])
     .map(Number)
@@ -1371,7 +1396,7 @@ function downsampleSeries(arr, target) {
   return out;
 }
 
-// 生成极小趋势微线（内联 SVG，轻量、清晰）
+// 生成極小趨勢微線（內聯 SVG，輕量、清晰）
 function sparklineSVG(values, { color = "#5eead4", fillRGB = null, w = 74, h = 22 } = {}) {
   const v = downsampleSeries(values, 56);
   if (v.length < 2) return "";
@@ -1389,7 +1414,7 @@ function sparklineSVG(values, { color = "#5eead4", fillRGB = null, w = 74, h = 2
   return `<svg class="spark-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none" aria-hidden="true">${area}<path d="${line}" fill="none" stroke="${color}" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>${dot}</svg>`;
 }
 
-// 取当前主资金曲线序列（组合优先，否则第一个品种）
+// 取當前主資金曲線序列（組合優先，否則第一個品種）
 function mainEquitySeries() {
   const d = lastEquityData;
   if (!d) return null;
@@ -1407,7 +1432,7 @@ function renderPortfolio(report) {
   const symData = focus ? (report.symbols || {})[focus] : null;
 
   if (!Object.keys(p).length) {
-    grid.innerHTML = '<div class="metric-empty">回测结果无绩效数据</div>';
+    grid.innerHTML = '<div class="metric-empty">回測結果無績效數據</div>';
     btPortfolioSig = "";
     return;
   }
@@ -1416,7 +1441,7 @@ function renderPortfolio(report) {
   const nTrades = symData?.n_trades ?? p.n_trades;
   const winRate = symData?.win_rate;
 
-  // sparkline 数据源：主资金曲线 + 滚动夏普
+  // sparkline 數據源：主資金曲線 + 滾動夏普
   const eq = mainEquitySeries();
   const posColor = p.total_return >= 0 ? "#4ade80" : "#f87171";
   const posRGB = p.total_return >= 0 ? "74, 222, 128" : "248, 113, 113";
@@ -1424,18 +1449,18 @@ function renderPortfolio(report) {
   const rollSpark = eq ? sparklineSVG(eq.rolling_sharpe, { color: "#5eead4", fillRGB: "94, 234, 212" }) : "";
 
   const cards = [
-    { label: "总收益", raw: p.total_return, fmt: "pct", cls: p.total_return >= 0 ? "pos" : "neg", spark: equitySpark },
+    { label: "總收益", raw: p.total_return, fmt: "pct", cls: p.total_return >= 0 ? "pos" : "neg", spark: equitySpark },
     { label: "Sharpe", raw: p.sharpe, fmt: "signed", cls: "accent", spark: rollSpark },
     { label: "Sortino", raw: p.sortino, fmt: "signed", cls: "accent", spark: rollSpark },
-    { label: "盈亏比", raw: Number.isFinite(plNum) ? plNum : null, fmt: "ratio", cls: Number.isFinite(plNum) ? "accent" : "" },
-    { label: "交易数", raw: Number.isFinite(Number(nTrades)) ? Number(nTrades) : null, fmt: "int", cls: "" },
-    { label: "胜率", raw: winRate != null ? Number(winRate) : null, fmt: "winrate", cls: "" },
+    { label: "盈虧比", raw: Number.isFinite(plNum) ? plNum : null, fmt: "ratio", cls: Number.isFinite(plNum) ? "accent" : "" },
+    { label: "交易數", raw: Number.isFinite(Number(nTrades)) ? Number(nTrades) : null, fmt: "int", cls: "" },
+    { label: "勝率", raw: winRate != null ? Number(winRate) : null, fmt: "winrate", cls: "" },
   ];
 
-  // 签名守卫：数值/焦点/资金曲线未变则不重建，避免每次轮询重播动画
+  // 簽名守衛：數值/焦點/資金曲線未變則不重建，避免每次輪詢重播動畫
   const sig = [focus, btEquitySig, ...cards.map((c) => c.raw)].join("|");
   if (sig === btPortfolioSig) {
-    if ($("btPortfolioHint")) $("btPortfolioHint").textContent = focus ? `${focus} 回测绩效` : "回测绩效";
+    if ($("btPortfolioHint")) $("btPortfolioHint").textContent = focus ? `${focus} 回測績效` : "回測績效";
     return;
   }
   btPortfolioSig = sig;
@@ -1459,7 +1484,7 @@ function renderPortfolio(report) {
   runCountUp(grid);
 
   if ($("btPortfolioHint")) {
-    $("btPortfolioHint").textContent = focus ? `${focus} 回测绩效` : "回测绩效";
+    $("btPortfolioHint").textContent = focus ? `${focus} 回測績效` : "回測績效";
   }
 }
 
@@ -1468,11 +1493,11 @@ function renderBacktestTable(symbols) {
   if (!tbody) return;
   const rows = Object.entries(symbols);
   if (!rows.length) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">暂无回测结果</td></tr>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">暫無回測結果</td></tr>';
     if ($("btTableHint")) $("btTableHint").textContent = "—";
     return;
   }
-  if ($("btTableHint")) $("btTableHint").textContent = rows.length === 1 ? rows[0][0] : `${rows.length} 个品种`;
+  if ($("btTableHint")) $("btTableHint").textContent = rows.length === 1 ? rows[0][0] : `${rows.length} 個品種`;
   tbody.innerHTML = rows
     .map(([sym, d]) => {
       const retCls = (d.total_return || 0) >= 0 ? "pos" : "neg";
@@ -1492,7 +1517,7 @@ function renderBacktestTable(symbols) {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 交互式资金曲线（HTML / Chart.js）
+// 互動式資金曲線（HTML / Chart.js）
 // ═══════════════════════════════════════════════════════════════════
 let equityChart = null;
 let rollingChart = null;
@@ -1583,8 +1608,8 @@ const ROLLING_OPTIONS = {
       callbacks: {
         label: (c) => {
           const v = c.parsed.y;
-          if (v == null || Number.isNaN(v)) return " 滚动夏普: —";
-          return ` 滚动夏普: ${Number(v).toFixed(3)}`;
+          if (v == null || Number.isNaN(v)) return " 滾動夏普: —";
+          return ` 滾動夏普: ${Number(v).toFixed(3)}`;
         },
       },
     },
@@ -1624,12 +1649,12 @@ function renderEquityStats(name, series) {
   }
   const plNum = Number(pl);
   const cards = [
-    { label: "总收益", raw: series.total_return, fmt: "pct", cls: series.total_return >= 0 ? "pos" : "neg" },
+    { label: "總收益", raw: series.total_return, fmt: "pct", cls: series.total_return >= 0 ? "pos" : "neg" },
     { label: "夏普", raw: series.sharpe, fmt: "signed", cls: "accent" },
-    { label: "索提诺", raw: series.sortino, fmt: "signed", cls: "accent" },
-    { label: "盈亏比", raw: Number.isFinite(plNum) ? plNum : null, fmt: "ratio", cls: "accent" },
+    { label: "索提諾", raw: series.sortino, fmt: "signed", cls: "accent" },
+    { label: "盈虧比", raw: Number.isFinite(plNum) ? plNum : null, fmt: "ratio", cls: "accent" },
     {
-      label: "最新滚动夏普",
+      label: "最新滾動夏普",
       raw: lastRoll,
       fmt: "signed",
       cls: lastRoll == null ? "" : lastRoll >= 0 ? "accent" : "neg",
@@ -1675,7 +1700,7 @@ function buildEquityChart(labels, symbols, portfolio) {
   });
   if (portfolio) {
     datasets.push({
-      label: "等权组合",
+      label: "等權組合",
       data: portfolio.equity,
       borderColor: "#e8edf4",
       borderWidth: 2.4,
@@ -1704,8 +1729,8 @@ function buildRollingChart(labels, series, windowBars) {
   const labelEl = $("btRollingLabel");
   if (labelEl) {
     labelEl.textContent = windowBars
-      ? `滚动夏普 · ${windowBars} bars`
-      : "滚动夏普 · Rolling Sharpe";
+      ? `滾動夏普 · ${windowBars} bars`
+      : "滾動夏普 · Rolling Sharpe";
   }
   rollingChart = new Chart(canvas.getContext("2d"), {
     type: "line",
@@ -1713,7 +1738,7 @@ function buildRollingChart(labels, series, windowBars) {
       labels,
       datasets: [
         {
-          label: "滚动夏普",
+          label: "滾動夏普",
           data,
           borderColor: "#fbbf24",
           borderWidth: 1.5,
@@ -1752,7 +1777,7 @@ function renderEquity(resp) {
 
   const focus = resp.focus_symbol;
   const sig = [focus, data.total_bars, data.n_points, data.rolling_window, symNames.join(",")].join("|") + "|" + btBuster;
-  if (sig === btEquitySig && equityChart) return; // 无变化，避免重建闪烁
+  if (sig === btEquitySig && equityChart) return; // 無變化，避免重建閃爍
   btEquitySig = sig;
 
   if (live) live.hidden = false;
@@ -1761,7 +1786,7 @@ function renderEquity(resp) {
   const portfolio = data.portfolio || null;
   let mainName, mainSeries;
   if (portfolio) {
-    mainName = "等权组合";
+    mainName = "等權組合";
     mainSeries = portfolio;
   } else {
     const key = focus && symbols[focus] ? focus : symNames[0];
@@ -1774,13 +1799,13 @@ function renderEquity(resp) {
   buildRollingChart(data.labels, mainSeries, data.rolling_window);
 
   if ($("btChartsHint")) {
-    $("btChartsHint").textContent = `${mainName} · 交互式资金曲线 · 悬停查看数值`;
+    $("btChartsHint").textContent = `${mainName} · 互動式資金曲線 · 懸停查看數值`;
   }
 }
 
 async function startBacktest() {
   if (!selectedStrategyFile) {
-    await logClientError("请先选择策略文件");
+    await logClientError("請先選擇策略文件");
     return;
   }
   const startBtn = $("btStartBtn");
@@ -1814,7 +1839,7 @@ async function stopBacktest() {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// 实时行情分析（信号雷达）
+// 即時行情分析（信號雷達）
 // ═══════════════════════════════════════════════════════════════════
 let rtInited = false;
 let rtEngineRunning = false;
@@ -1827,40 +1852,40 @@ let rtCountdownTimer = null;
 let rtTvBlockedShownAt = 0;
 let rtTvWikiUrl = "https://my.feishu.cn/wiki/FuqnwkPwdiCLhQkPloKc7r1lntg";
 const RT_TV_BLOCKED_MSG =
-  "当前设备无法连接 TradingView 数据服务，将无法获取以下 K 线数据：\n" +
-  "  · A 股（上证 SSE、深证 SZSE）\n" +
+  "當前設備無法連接 TradingView 數據服務，將無法獲取以下 K 線數據：\n" +
+  "  · A 股（上證 SSE、深證 SZSE）\n" +
   "  · 港股（HKEX）\n" +
-  "  · 美股及指数（NYSE、NASDAQ、SP）\n" +
-  "  · 外汇、贵金属、商品期货\n\n" +
-  "解决方案：\n" +
-  "  · 把你的VPN工具设成全局，并开启TUN(虚拟网卡)模式，如果还不行：\n" +
-  "  · 使用云服务器部署本程序（推荐）—— 云服务器可正常连接 TradingView\n" +
-  "  · 或切换回 MT5 数据源，仅使用 MT5 提供的品种数据";
+  "  · 美股及指數（NYSE、NASDAQ、SP）\n" +
+  "  · 外匯、貴金屬、商品期貨\n\n" +
+  "解決方案：\n" +
+  "  · 把你的VPN工具設成全局，並開啟TUN(虛擬網卡)模式，如果還不行：\n" +
+  "  · 使用雲端伺服器部署本程式（推薦）—— 雲端伺服器可正常連接 TradingView\n" +
+  "  · 或切換回 MT5 數據源，僅使用 MT5 提供的品種數據";
 const RT_TV_BLOCKED_CODE = "TV_CONNECTIVITY_BLOCKED";
 
 const RT_DIR = {
-  LONG: { label: "↑ 预期上涨", cls: "rt-long", color: "#4ade80" },
-  SHORT: { label: "↓ 预期下跌", cls: "rt-short", color: "#f87171" },
-  FLAT: { label: "— 先观望", cls: "rt-flat", color: "#7a8a9e" },
+  LONG: { label: "↑ 預期上漲", cls: "rt-long", color: "#4ade80" },
+  SHORT: { label: "↓ 預期下跌", cls: "rt-short", color: "#f87171" },
+  FLAT: { label: "— 先觀望", cls: "rt-flat", color: "#7a8a9e" },
 };
 const RT_STATE_LABEL = {
-  pending: "等待首次计算",
-  ok: "运行中",
-  insufficient: "历史不足",
-  error: "错误",
+  pending: "等待首次計算",
+  ok: "運行中",
+  insufficient: "歷史不足",
+  error: "錯誤",
 };
 
-/** 把 0~1 强度翻成「把握」白话 */
+/** 把 0~1 強度翻成「把握」白話 */
 function rtSizePlain(strength, direction) {
   if (direction === "FLAT" || direction == null) {
-    return { size: "没把握" };
+    return { size: "沒把握" };
   }
   const s = Math.max(0, Math.min(1, Number(strength) || 0));
   let size;
-  if (s < 0.2) size = "一点把握";
+  if (s < 0.2) size = "一點把握";
   else if (s < 0.4) size = "把握不大";
   else if (s < 0.6) size = "一半把握";
-  else if (s < 0.8) size = "比较有把握";
+  else if (s < 0.8) size = "比較有把握";
   else size = "很有把握";
   return { size };
 }
@@ -1888,9 +1913,9 @@ function rtFmtCountdown(sec) {
   if (m < 60) return `${m}分${String(rs).padStart(2, "0")}秒`;
   const h = Math.floor(m / 60);
   const rm = m % 60;
-  if (h < 48) return `${h}小时${rm}分`;
+  if (h < 48) return `${h}小時${rm}分`;
   const d = Math.floor(h / 24);
-  return `${d}天${h % 24}小时`;
+  return `${d}天${h % 24}小時`;
 }
 
 function ensureRtCountdownTimer() {
@@ -1906,11 +1931,11 @@ function tickRtCountdowns() {
     }
     const nxt = Number(el.dataset.nextClose);
     if (!Number.isFinite(nxt) || nxt <= 0) {
-      el.textContent = "距离下次判断 —";
+      el.textContent = "距離下次判斷 —";
       return;
     }
     const left = nxt - rtNowSec();
-    el.textContent = left <= 0 ? "即将重新判断…" : `距离下次判断 ${rtFmtCountdown(left)}`;
+    el.textContent = left <= 0 ? "即將重新判斷…" : `距離下次判斷 ${rtFmtCountdown(left)}`;
   });
   const hintCd = $("rtNextHint");
   if (hintCd) {
@@ -1923,7 +1948,7 @@ function tickRtCountdowns() {
       if (Number.isFinite(nxt) && nxt > 0) {
         const left = nxt - rtNowSec();
         hintCd.textContent =
-          left <= 0 ? "即将重新判断" : `距离下次判断 ${rtFmtCountdown(left)}`;
+          left <= 0 ? "即將重新判斷" : `距離下次判斷 ${rtFmtCountdown(left)}`;
       }
     }
   }
@@ -1940,18 +1965,93 @@ async function initRealtimeOnce() {
     const sel = $("rtSourceSelect");
     if (sel) {
       sel.innerHTML = rtSources
-        .map((s) => `<option value="${s.id}">${escHtml(s.label)}${s.available ? "" : " · 未就绪"}</option>`)
+        .map((s) => `<option value="${s.id}">${escHtml(s.label)}${s.available ? "" : " · 未就緒"}</option>`)
         .join("");
     }
     if (data.min_exposure != null && $("rtThresholdHint")) {
-      $("rtThresholdHint").textContent = `无信号阈值 |tanh(因子)| < ${data.min_exposure}`;
+      $("rtThresholdHint").textContent = `無信號閾值 |tanh(因子)| < ${data.min_exposure}`;
     }
     onRtSourceChange();
   } catch (e) {
-    await logClientError("加载数据源失败: " + e.message);
+    await logClientError("載入數據源失敗: " + e.message);
   }
   await loadRtStrategies();
   await loadRtFeishuSettings();
+  await loadRtTelegramSettings();
+}
+
+async function loadRtTelegramSettings() {
+  try {
+    const data = await fetchJSON("/api/realtime/telegram");
+    if ($("rtTelegramEnabled")) $("rtTelegramEnabled").checked = !!data.enabled;
+    if ($("rtTelegramToken")) $("rtTelegramToken").value = data.bot_token || "";
+    if ($("rtTelegramChatId")) $("rtTelegramChatId").value = data.chat_id || "";
+  } catch (e) {
+    const hint = $("rtTelegramHint");
+    if (hint) {
+      hint.textContent = "載入 Telegram 設置失敗: " + e.message;
+      hint.classList.add("bad");
+    }
+  }
+}
+
+async function saveRtTelegramSettings() {
+  const hint = $("rtTelegramHint");
+  const btn = $("rtTelegramSaveBtn");
+  if (btn) btn.disabled = true;
+  try {
+    await fetchJSON("/api/realtime/telegram", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        enabled: !!$("rtTelegramEnabled")?.checked,
+        bot_token: $("rtTelegramToken")?.value || "",
+        chat_id: $("rtTelegramChatId")?.value || "",
+      }),
+    });
+    if (hint) {
+      hint.textContent = "✓ 已保存，方向轉折時會推送到 Telegram。";
+      hint.classList.remove("bad", "invalid");
+      hint.classList.add("valid");
+    }
+  } catch (e) {
+    if (hint) {
+      hint.textContent = "保存失敗: " + e.message;
+      hint.classList.remove("valid");
+      hint.classList.add("bad", "invalid");
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function testRtTelegram() {
+  const hint = $("rtTelegramHint");
+  const btn = $("rtTelegramTestBtn");
+  if (btn) btn.disabled = true;
+  try {
+    await fetchJSON("/api/realtime/telegram/test", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        bot_token: $("rtTelegramToken")?.value || "",
+        chat_id: $("rtTelegramChatId")?.value || "",
+      }),
+    });
+    if (hint) {
+      hint.textContent = "✓ 測試消息已發送，請到 Telegram 查收。";
+      hint.classList.remove("bad", "invalid");
+      hint.classList.add("valid");
+    }
+  } catch (e) {
+    if (hint) {
+      hint.textContent = "測試失敗: " + e.message;
+      hint.classList.remove("valid");
+      hint.classList.add("bad", "invalid");
+    }
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 
 async function loadRtFeishuSettings() {
@@ -1966,7 +2066,7 @@ async function loadRtFeishuSettings() {
   } catch (e) {
     const hint = $("rtFeishuHint");
     if (hint) {
-      hint.textContent = "加载飞书设置失败: " + e.message;
+      hint.textContent = "載入飛書設置失敗: " + e.message;
       hint.classList.add("bad");
     }
   }
@@ -1987,7 +2087,7 @@ async function saveRtFeishuSettings() {
       }),
     });
     if (hint) {
-      hint.textContent = "✓ 已保存，方向转折时会推送到飞书群。";
+      hint.textContent = "✓ 已保存，方向轉折時會推送到飛書群。";
       hint.classList.remove("bad", "invalid");
       hint.classList.add("valid");
     }
@@ -2000,7 +2100,7 @@ async function saveRtFeishuSettings() {
     }
   } catch (e) {
     if (hint) {
-      hint.textContent = "保存失败: " + e.message;
+      hint.textContent = "保存失敗: " + e.message;
       hint.classList.remove("valid");
       hint.classList.add("bad", "invalid");
     }
@@ -2023,13 +2123,13 @@ async function testRtFeishu() {
       }),
     });
     if (hint) {
-      hint.textContent = "✓ 测试消息已发送，请到飞书群查收。";
+      hint.textContent = "✓ 測試消息已發送，請到飛書群查收。";
       hint.classList.remove("bad", "invalid");
       hint.classList.add("valid");
     }
   } catch (e) {
     if (hint) {
-      hint.textContent = "测试失败: " + e.message;
+      hint.textContent = "測試失敗: " + e.message;
       hint.classList.remove("valid");
       hint.classList.add("bad", "invalid");
     }
@@ -2056,18 +2156,18 @@ async function loadRtStrategies() {
     const data = await fetchJSON("/api/realtime/strategies");
     rows = data.strategies || [];
   } catch (_) {}
-  const opts = ['<option value="">— 选择已保存策略 —</option>'];
+  const opts = ['<option value="">— 選擇已保存策略 —</option>'];
   if (rtImportedStrategy) {
     const isym = escHtml(rtImportedStrategy.symbol || "");
     opts.push(
-      `<option value="${escHtml(rtImportedStrategy.path)}" data-symbol="${isym}">导入: ${escHtml(rtImportedStrategy.name)}</option>`
+      `<option value="${escHtml(rtImportedStrategy.path)}" data-symbol="${isym}">導入: ${escHtml(rtImportedStrategy.name)}</option>`
     );
   }
   rows.forEach((r) => {
     const score = r.best_score != null ? Number(r.best_score).toFixed(3) : "—";
     const tf = r.timeframe ? ` ${r.timeframe}` : "";
     opts.push(
-      `<option value="${escHtml(r.strategy_file)}" data-symbol="${escHtml(r.symbol || "")}">${escHtml(r.symbol)}${tf} · 分数 ${score}</option>`
+      `<option value="${escHtml(r.strategy_file)}" data-symbol="${escHtml(r.symbol || "")}">${escHtml(r.symbol)}${tf} · 分數 ${score}</option>`
     );
   });
   const prev = sel.value;
@@ -2120,8 +2220,8 @@ function onRtStrategyChange() {
   if (!sel || !picked) return;
   const opt = sel.options[sel.selectedIndex];
   picked.textContent = sel.value
-    ? `因子来源：${opt ? opt.textContent : sel.value}。信号取最后已收盘 bar。`
-    : "因子来源：从已保存策略下拉选择，或「导入策略」选本地 JSON。信号取最后已收盘 bar。";
+    ? `因子來源：${opt ? opt.textContent : sel.value}。信號取最後已收盤 bar。`
+    : "因子來源：從已保存策略下拉選擇，或「導入策略」選本地 JSON。信號取最後已收盤 bar。";
   if (!sel.value) return;
   const fromOpt = (opt && opt.dataset.symbol) || "";
   const fromImport =
@@ -2145,7 +2245,7 @@ async function rtBrowseStrategy() {
     await loadRtStrategies();
     rtApplySymbolFromStrategy(rtImportedStrategy.symbol);
   } catch (e) {
-    await logClientError("导入策略失败: " + e.message);
+    await logClientError("導入策略失敗: " + e.message);
   }
 }
 
@@ -2156,11 +2256,11 @@ async function rtAddWatch() {
   const strategy_file = $("rtStrategySelect")?.value;
   const picked = $("rtStrategyPicked");
   if (!symbol) {
-    if (picked) { picked.textContent = "请填写品种"; picked.classList.add("bad"); }
+    if (picked) { picked.textContent = "請填寫品種"; picked.classList.add("bad"); }
     return;
   }
   if (!strategy_file) {
-    if (picked) { picked.textContent = "请选择或导入策略因子"; picked.classList.add("bad"); }
+    if (picked) { picked.textContent = "請選擇或導入策略因子"; picked.classList.add("bad"); }
     return;
   }
   const btn = $("rtAddBtn");
@@ -2180,7 +2280,7 @@ async function rtAddWatch() {
     rtGridSig = "";
     await refreshRealtime();
   } catch (e) {
-    if (picked) { picked.textContent = "添加失败: " + e.message; picked.classList.add("bad"); }
+    if (picked) { picked.textContent = "添加失敗: " + e.message; picked.classList.add("bad"); }
   } finally {
     if (btn) btn.disabled = false;
   }
@@ -2189,7 +2289,7 @@ async function rtAddWatch() {
 async function rtEnsureTradingViewReachable() {
   const picked = $("rtStrategyPicked");
   if (picked) {
-    picked.textContent = "正在检测 TradingView 连通性…";
+    picked.textContent = "正在檢測 TradingView 連通性…";
     picked.classList.remove("bad");
   }
   try {
@@ -2204,14 +2304,14 @@ async function rtEnsureTradingViewReachable() {
     if (res?.wiki_url) rtTvWikiUrl = res.wiki_url;
     await showTvBlockedDialog(res?.message || RT_TV_BLOCKED_MSG);
     if (picked) {
-      picked.textContent = "TradingView 不可用，请开 VPN 或换云服务器";
+      picked.textContent = "TradingView 不可用，請開 VPN 或換雲端伺服器";
       picked.classList.add("bad");
     }
     return false;
   } catch (e) {
     await showTvBlockedDialog(RT_TV_BLOCKED_MSG);
     if (picked) {
-      picked.textContent = "TradingView 检测失败: " + (e.message || e);
+      picked.textContent = "TradingView 檢測失敗: " + (e.message || e);
       picked.classList.add("bad");
     }
     return false;
@@ -2220,7 +2320,7 @@ async function rtEnsureTradingViewReachable() {
 
 function showTvBlockedDialog(message) {
   const now = Date.now();
-  // 避免轮询反复弹出
+  // 避免輪詢反覆彈出
   if (now - rtTvBlockedShownAt < 60_000) {
     return Promise.resolve("dedupe");
   }
@@ -2287,7 +2387,7 @@ async function rtRemoveWatch(id) {
     rtGridSig = "";
     await refreshRealtime();
   } catch (e) {
-    await logClientError("移除监控失败: " + e.message);
+    await logClientError("移除監控失敗: " + e.message);
   }
 }
 
@@ -2298,7 +2398,7 @@ async function refreshRealtime() {
   } catch (_) {
     return;
   }
-  // 有监控项却未在跑时自动拉起（不再提供手动开关）
+  // 有監控項卻未在跑時自動拉起（不再提供手動開關）
   if (st.count > 0 && !st.running) {
     try {
       st = await fetchJSON("/api/realtime/start", { method: "POST", silent: true });
@@ -2326,8 +2426,8 @@ async function refreshRealtime() {
   const hint = $("rtStatusHint");
   if (hint) {
     const base = st.count
-      ? `${rtEngineRunning ? "运行中" : "已暂停"} · ${st.count} 项`
-      : "暂无监控项";
+      ? `${rtEngineRunning ? "運行中" : "已暫停"} · ${st.count} 項`
+      : "暫無監控項";
     if (nearestClose) {
       hint.innerHTML = `${base} · <span id="rtNextHint" data-next-close="${nearestClose}"></span>`;
     } else if (anyOk && !anyLive) {
@@ -2342,7 +2442,7 @@ async function refreshRealtime() {
   tickRtCountdowns();
 }
 
-// 半环表盘（180° 上半环，值弧按强度填充）
+// 半環錶盤（180° 上半環，值弧按強度填充）
 const RT_ARC_LEN = 150.8; // π * 48
 function halfRingGauge(strength, colorHex) {
   const s = Math.max(0, Math.min(1, strength || 0));
@@ -2359,12 +2459,12 @@ function renderRealtimeGrid(watches) {
   if (!grid) return;
   if (!watches.length) {
     grid.innerHTML =
-      '<div class="metric-empty">尚无监控项。添加「数据源 + 品种 + 周期 + 因子」后开始实时分析。</div>';
+      '<div class="metric-empty">尚無監控項。添加「數據源 + 品種 + 週期 + 因子」後開始即時分析。</div>';
     rtGridSig = "";
     return;
   }
 
-  // 签名：只在信号相关字段变化时重建（避免每次轮询重播动画）
+  // 簽名：只在信號相關欄位變化時重建（避免每次輪詢重播動畫）
   const sig = watches
     .map((w) =>
       [
@@ -2381,7 +2481,7 @@ function renderRealtimeGrid(watches) {
       ].join("~")
     )
     .join("|");
-  // 签名未变时仍同步休市/倒计时锚点
+  // 簽名未變時仍同步休市/倒數計時錨點
   if (sig === rtGridSig) {
     watches.forEach((w) => {
       const el = grid.querySelector(`.rt-card[data-id="${CSS.escape(w.id)}"] .rt-countdown`);
@@ -2415,7 +2515,7 @@ function renderRealtimeGrid(watches) {
       const warn = w.warn ? `<div class="rt-warn" title="${escHtml(w.warn)}">⚠ ${escHtml(w.warn)}</div>` : "";
       const displayMsg =
         w.message === RT_TV_BLOCKED_CODE || w.tv_blocked
-          ? "无法连接 TradingView：请开启全局 VPN（TUN）或使用云服务器"
+          ? "無法連接 TradingView：請開啟全局 VPN（TUN）或使用雲端伺服器"
           : w.message;
       const msg =
         w.state !== "ok" && displayMsg
@@ -2424,7 +2524,7 @@ function renderRealtimeGrid(watches) {
       const sizeText = plain ? plain.size : "—";
       return `
     <div class="rt-card ${dirCls}" data-id="${escHtml(w.id)}">
-      <button class="rt-remove" data-remove="${escHtml(w.id)}" title="移除监控">×</button>
+      <button class="rt-remove" data-remove="${escHtml(w.id)}" title="移除監控">×</button>
       <div class="rt-card-head">
         <span class="rt-sym">${escHtml(w.symbol)}</span>
         <span class="rt-tf">${escHtml(w.timeframe)}</span>
@@ -2452,10 +2552,10 @@ function renderRealtimeGrid(watches) {
               : ""
         }>${
           w.session_live && w.next_bar_close_at
-            ? "距离下次判断 …"
+            ? "距離下次判斷 …"
             : w.state === "ok"
               ? "休市中"
-              : "距离下次判断 —"
+              : "距離下次判斷 —"
         }</span>
       </div>
       ${warn}
@@ -2481,7 +2581,7 @@ async function init() {
     await loadConfig();
     await refreshOverview();
   } catch (e) {
-    await logClientError("初始化失败: " + e.message);
+    await logClientError("初始化失敗: " + e.message);
   }
   $("browseBtn").addEventListener("click", browseDataFile);
   $("startBtn").addEventListener("click", startTraining);
@@ -2492,7 +2592,30 @@ async function init() {
   $("importTrainingBtn").addEventListener("click", triggerImportTraining);
   $("importTrainingFile").addEventListener("change", handleImportTrainingFile);
   $("debugModeCheck").addEventListener("change", (e) => setDebugMode(e.target.checked));
+  // 欄位一改就自動存檔（500ms 防抖），不必等按「開始分析」
+  let aiSaveTimer = null;
+  const autoSaveAiSettings = () => {
+    if (aiSaveTimer) clearTimeout(aiSaveTimer);
+    aiSaveTimer = setTimeout(() => {
+      fetchJSON("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ai_base_url: ($("aiBaseUrlInput")?.value || "").trim(),
+          ai_model: ($("aiModelInput")?.value || "").trim(),
+          ai_api_key: ($("aiApiKeyInput")?.value || "").trim(),
+        }),
+      }).catch(() => {});
+    }, 500);
+  };
+  for (const id of ["aiBaseUrlInput", "aiModelInput"]) {
+    if ($(id)) {
+      $(id).addEventListener("input", () => { updateAiChannelHint(); autoSaveAiSettings(); });
+      $(id).addEventListener("change", () => { updateAiChannelHint(); autoSaveAiSettings(); });
+    }
+  }
   if ($("aiApiKeyInput")) {
+    $("aiApiKeyInput").addEventListener("input", autoSaveAiSettings);
     $("aiApiKeyInput").addEventListener("input", updateAiChannelHint);
     $("aiApiKeyInput").addEventListener("change", updateAiChannelHint);
   }
@@ -2508,12 +2631,12 @@ async function init() {
     $("errorModalCopyBtn").addEventListener("click", copyErrorPopupDetail);
   }
 
-  // 步骤导航
+  // 步驟導航
   document.querySelectorAll(".stepper .step").forEach((btn) => {
     btn.addEventListener("click", () => switchPage(btn.dataset.page));
   });
 
-  // 回测控制
+  // 回測控制
   if ($("btBrowseStrategyBtn")) $("btBrowseStrategyBtn").addEventListener("click", browseStrategyFile);
   if ($("btStartBtn")) $("btStartBtn").addEventListener("click", startBacktest);
   if ($("btStopBtn")) $("btStopBtn").addEventListener("click", stopBacktest);
@@ -2524,7 +2647,7 @@ async function init() {
     el.addEventListener("change", updateBtCostHint);
   });
 
-  // 实时分析控制
+  // 即時分析控制
   if ($("rtSourceSelect")) $("rtSourceSelect").addEventListener("change", onRtSourceChange);
   if ($("rtStrategySelect")) $("rtStrategySelect").addEventListener("change", onRtStrategyChange);
   if ($("rtBrowseStrategyBtn")) $("rtBrowseStrategyBtn").addEventListener("click", rtBrowseStrategy);
@@ -2537,6 +2660,8 @@ async function init() {
   if ($("rtFeishuSaveBtn")) $("rtFeishuSaveBtn").addEventListener("click", saveRtFeishuSettings);
   if ($("rtFeishuTestBtn")) $("rtFeishuTestBtn").addEventListener("click", testRtFeishu);
   if ($("rtFeishuHelpBtn")) $("rtFeishuHelpBtn").addEventListener("click", openRtFeishuHelpModal);
+  if ($("rtTelegramSaveBtn")) $("rtTelegramSaveBtn").addEventListener("click", saveRtTelegramSettings);
+  if ($("rtTelegramTestBtn")) $("rtTelegramTestBtn").addEventListener("click", testRtTelegram);
   document.querySelectorAll("[data-close-feishu-help]").forEach((el) => {
     el.addEventListener("click", closeRtFeishuHelpModal);
   });

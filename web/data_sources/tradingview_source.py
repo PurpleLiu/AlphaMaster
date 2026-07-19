@@ -1,4 +1,4 @@
-"""TradingView 数据源（tvdatafeed，匿名可用）。"""
+"""TradingView 數據源（tvdatafeed，匿名可用）。"""
 from __future__ import annotations
 
 import threading
@@ -17,7 +17,7 @@ _TF = {
     "1M": "in_monthly",
 }
 
-# 自动探测交易所（symbol 未显式带 EXCHANGE: 前缀时）
+# 自動探測交易所（symbol 未顯式帶 EXCHANGE: 前綴時）
 _PROBE_EXCHANGES = ["", "OANDA", "FX_IDC", "TVC", "NASDAQ", "NYSE", "SSE", "SZSE", "BINANCE"]
 
 _PRESETS = ["XAUUSD", "EURUSD", "GBPUSD", "USDJPY", "NASDAQ:AAPL", "SSE:600519", "BINANCE:BTCUSDT"]
@@ -38,9 +38,9 @@ class TradingViewSource(DataSource):
         except ImportError:
             return (
                 False,
-                "未安装 tvdatafeed：pip install git+https://github.com/rongardF/tvdatafeed.git",
+                "未安裝 tvdatafeed：pip install git+https://github.com/rongardF/tvdatafeed.git",
             )
-        return (True, "匿名访问 · 交易所自动探测")
+        return (True, "匿名訪問 · 交易所自動探測")
 
     def supported_timeframes(self) -> list[str]:
         return list(_TF.keys())
@@ -54,7 +54,7 @@ class TradingViewSource(DataSource):
         try:
             from tvDatafeed import TvDatafeed
         except ImportError as exc:
-            raise DataSourceUnavailable("未安装 tvdatafeed") from exc
+            raise DataSourceUnavailable("未安裝 tvdatafeed") from exc
         try:
             self._tv = TvDatafeed()
             try:
@@ -62,7 +62,7 @@ class TradingViewSource(DataSource):
             except Exception:
                 pass
         except Exception as exc:
-            raise DataSourceUnavailable(f"TradingView 连接失败: {exc}") from exc
+            raise DataSourceUnavailable(f"TradingView 連接失敗: {exc}") from exc
 
     def _split_symbol(self, symbol: str) -> tuple[str, str | None]:
         s = symbol.strip()
@@ -75,11 +75,11 @@ class TradingViewSource(DataSource):
         self, symbol: str, timeframe: str, n: int, drop_forming: bool = True
     ) -> list[Bar]:
         if timeframe not in _TF:
-            raise DataSourceUnavailable(f"TradingView 不支持周期 {timeframe}")
+            raise DataSourceUnavailable(f"TradingView 不支持週期 {timeframe}")
         try:
             from tvDatafeed import Interval
         except ImportError as exc:
-            raise DataSourceUnavailable("未安装 tvdatafeed") from exc
+            raise DataSourceUnavailable("未安裝 tvdatafeed") from exc
 
         code, exchange = self._split_symbol(symbol)
         interval = getattr(Interval, _TF[timeframe])
@@ -101,7 +101,7 @@ class TradingViewSource(DataSource):
 
         if df is None or df.empty:
             raise DataSourceUnavailable(
-                f"TradingView 无数据：{symbol}（可用 EXCHANGE:CODE 指定交易所）"
+                f"TradingView 無數據：{symbol}（可用 EXCHANGE:CODE 指定交易所）"
             )
 
         rows = list(df.itertuples(index=True))
@@ -132,7 +132,7 @@ class TradingViewSource(DataSource):
         except Exception:
             return None
         finally:
-            # tvdatafeed 每次 get_hist 都新建 socket 且不关闭，主动关掉防泄漏
+            # tvdatafeed 每次 get_hist 都新建 socket 且不關閉，主動關掉防洩漏
             ws = getattr(self._tv, "ws", None)
             if ws is not None:
                 try:

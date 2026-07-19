@@ -1,4 +1,4 @@
-# Feature: mt5-alphagpt-refactor, Property 12: 策略信号触发买单
+# Feature: mt5-alphagpt-refactor, Property 12: 策略信號觸發買單
 """
 Property-based tests for strategy_manager.runner (MT5StrategyRunner).
 
@@ -135,7 +135,7 @@ def score_scenario_strategy(draw):
     }
 
 
-# ── Property 12: 策略信号触发买单 ─────────────────────────────────────────────
+# ── Property 12: 策略信號觸發買單 ─────────────────────────────────────────────
 # Validates: Requirements 10.4
 
 
@@ -143,11 +143,11 @@ def score_scenario_strategy(draw):
 @given(scenario=score_scenario_strategy())
 def test_property12_buy_signal_triggers_buy(scenario: dict):
     """
-    Property 12: neutral band 信号触发正确动作。
+    Property 12: neutral band 信號觸發正確動作。
 
-    用 _reconcile_positions 替代已删除的 _scan_for_entries。
-    目标仓位由外部构造传入（模拟 _compute_targets 输出），
-    验证 reconcile_action 正确决定 open/close/hold。
+    用 _reconcile_positions 替代已刪除的 _scan_for_entries。
+    目標倉位由外部構造傳入（模擬 _compute_targets 輸出），
+    驗證 reconcile_action 正確決定 open/close/hold。
 
     Validates: Requirements 10.4
     """
@@ -160,7 +160,7 @@ def test_property12_buy_signal_triggers_buy(scenario: dict):
     raw_scores: List[float] = scenario["scores"]
     held_symbols: List[str] = scenario["held_symbols"]
 
-    # 把 scores 转换为 neutral band 目标仓位：>0.6 → +1, <-0.6 → -1, else 0
+    # 把 scores 轉換為 neutral band 目標倉位：>0.6 → +1, <-0.6 → -1, else 0
     targets = torch.zeros(len(symbols))
     for i, s in enumerate(raw_scores):
         if s > 0.6:
@@ -170,10 +170,10 @@ def test_property12_buy_signal_triggers_buy(scenario: dict):
 
     runner = _make_runner(symbols, held_symbols)
 
-    # 直接调用 _reconcile_positions，不走 StackVM
+    # 直接調用 _reconcile_positions，不走 StackVM
     runner._reconcile_positions(targets)
 
-    # 验证每个品种的 reconcile 结果
+    # 驗證每個品種的 reconcile 結果
     for idx, sym in enumerate(symbols):
         target  = target_to_direction(float(targets[idx].item()))
         current = 1 if sym in held_symbols else 0
@@ -182,9 +182,9 @@ def test_property12_buy_signal_triggers_buy(scenario: dict):
         if expected_action == OPEN_LONG:
             runner.trader.buy.assert_any_call(
                 sym, pytest.approx(0.01, abs=1e-6), unittest=True
-            ) if False else None  # 只验证 buy 被调用过（mock 不追踪参数精度）
-        # 核心验证：open_long 时 buy 必须被调用过
-        # 由于 mock 是全局的，只验证 symbol 级别行为
+            ) if False else None  # 只驗證 buy 被調用過（mock 不追蹤參數精度）
+        # 核心驗證：open_long 時 buy 必須被調用過
+        # 由於 mock 是全局的，只驗證 symbol 級別行為
         buy_syms = {c.args[0] for c in runner.trader.buy.call_args_list if c.args}
         sell_syms = {c.args[0] for c in runner.trader.sell.call_args_list if c.args}
 

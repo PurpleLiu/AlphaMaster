@@ -1,4 +1,4 @@
-"""OKX 数据源（公开 REST，USDT 永续 / 现货）。"""
+"""OKX 數據源（公開 REST，USDT 永續 / 現貨）。"""
 from __future__ import annotations
 
 import json
@@ -12,7 +12,7 @@ from web.data_sources.base import Bar, DataSource, DataSourceUnavailable
 
 OKX_BASE = "https://www.okx.com"
 
-# 项目周期 -> OKX bar
+# 項目週期 -> OKX bar
 _TF = {
     "1m": "1m",
     "5m": "5m",
@@ -38,10 +38,10 @@ _PRESETS = [
 
 
 def _normalize_inst_id(symbol: str) -> str:
-    """BTCUSDT / BTC-USDT / BTC-USDT-SWAP -> BTC-USDT-SWAP（优先永续）。"""
+    """BTCUSDT / BTC-USDT / BTC-USDT-SWAP -> BTC-USDT-SWAP（優先永續）。"""
     s = (symbol or "").strip().upper().replace("/", "-").replace("_", "-")
     if not s:
-        raise DataSourceUnavailable("请填写品种")
+        raise DataSourceUnavailable("請填寫品種")
     if s.endswith("-SWAP"):
         return s
     if s.count("-") >= 1:
@@ -55,7 +55,7 @@ def _normalize_inst_id(symbol: str) -> str:
         if s.endswith(quote) and len(s) > len(quote):
             base = s[: -len(quote)]
             return f"{base}-{quote}-SWAP"
-    raise DataSourceUnavailable(f"无法识别 OKX 品种：{symbol}（示例 BTCUSDT）")
+    raise DataSourceUnavailable(f"無法識別 OKX 品種：{symbol}（範例 BTCUSDT）")
 
 
 def _okx_get(path: str, params: dict[str, str], retries: int = 3) -> list:
@@ -74,7 +74,7 @@ def _okx_get(path: str, params: dict[str, str], retries: int = 3) -> list:
             last_err = exc
             if attempt + 1 < retries:
                 time.sleep(min(8, 2**attempt))
-    raise DataSourceUnavailable(f"OKX 请求失败: {last_err}")
+    raise DataSourceUnavailable(f"OKX 請求失敗: {last_err}")
 
 
 class OKXSource(DataSource):
@@ -85,7 +85,7 @@ class OKXSource(DataSource):
         self._lock = threading.Lock()
 
     def available(self) -> tuple[bool, str]:
-        return (True, "公开行情 · USDT 永续（示例 BTCUSDT）")
+        return (True, "公開行情 · USDT 永續（範例 BTCUSDT）")
 
     def supported_timeframes(self) -> list[str]:
         return list(_TF.keys())
@@ -97,7 +97,7 @@ class OKXSource(DataSource):
         self, symbol: str, timeframe: str, n: int, drop_forming: bool = True
     ) -> list[Bar]:
         if timeframe not in _TF:
-            raise DataSourceUnavailable(f"OKX 不支持周期 {timeframe}")
+            raise DataSourceUnavailable(f"OKX 不支持週期 {timeframe}")
         inst_id = _normalize_inst_id(symbol)
         bar = _TF[timeframe]
         want = min(max(n + 2, 20), 300)
@@ -118,7 +118,7 @@ class OKXSource(DataSource):
                 )
 
         if not raw:
-            raise DataSourceUnavailable(f"OKX 无数据：{symbol}")
+            raise DataSourceUnavailable(f"OKX 無數據：{symbol}")
 
         bars: list[Bar] = []
         for item in raw:
@@ -136,7 +136,7 @@ class OKXSource(DataSource):
         bars.sort(key=lambda b: b.ts)
         if drop_forming and len(bars) > 1:
             newest = raw[0]  # API 返回降序
-            # confirm==0 未收盘；缺字段时保守剔除最新一根
+            # confirm==0 未收盤；缺欄位時保守剔除最新一根
             if len(newest) <= 8 or str(newest[8]) == "0":
                 bars = bars[:-1]
         return bars[-n:]

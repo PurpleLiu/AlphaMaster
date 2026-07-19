@@ -94,20 +94,20 @@ def parse_parquet_filename(path: str | Path) -> tuple[str, str]:
     """
     name = Path(path).name
     if Path(path).suffix.lower() != ".parquet":
-        raise ValueError(f"请选择 .parquet 文件；当前: {name}")
+        raise ValueError(f"請選擇 .parquet 文件；當前: {name}")
     stem = Path(path).stem
     if "_" not in stem:
         raise ValueError(
-            f"文件名须为 {{品种}}_{{周期}}.parquet，例如 AAPL_H1.parquet / 002008_60min.parquet；"
-            f"当前: {name}"
+            f"檔案名須為 {{品種}}_{{週期}}.parquet，例如 AAPL_H1.parquet / 002008_60min.parquet；"
+            f"當前: {name}"
         )
     symbol, tf_raw = stem.rsplit("_", 1)
     symbol = symbol.strip()
     timeframe = normalize_timeframe_token(tf_raw)
     if not symbol or timeframe is None:
         raise ValueError(
-            f"文件名须为 {{品种}}_{{周期}}.parquet，例如 AAPL_H1.parquet / 002008_60min.parquet；"
-            f"支持周期别名: H1/60min/1h, M5/5min, D1/1d …；当前: {name}"
+            f"檔案名須為 {{品種}}_{{週期}}.parquet，例如 AAPL_H1.parquet / 002008_60min.parquet；"
+            f"支持週期別名: H1/60min/1h, M5/5min, D1/1d …；當前: {name}"
         )
     return symbol, timeframe
 
@@ -117,14 +117,14 @@ def inspect_parquet_file(path: str | Path) -> dict[str, Any]:
     if not p.exists():
         raise FileNotFoundError(f"文件不存在: {p}")
     if p.suffix.lower() != ".parquet":
-        raise ValueError("请选择 .parquet 文件")
+        raise ValueError("請選擇 .parquet 文件")
 
     symbol, timeframe = parse_parquet_filename(p)
     df = pd.read_parquet(p)
     bars = len(df)
     if bars < Config.MIN_BARS:
         raise ValueError(
-            f"数据不足: {bars} bars（至少需要 {Config.MIN_BARS}）"
+            f"數據不足: {bars} bars（至少需要 {Config.MIN_BARS}）"
         )
 
     years = round(bars / 6240, 2) if timeframe == "H1" else None
@@ -153,7 +153,7 @@ class ParquetDataManager:
         df = pd.read_parquet(self.file_path)
         if len(df) < Config.MIN_BARS:
             raise ValueError(
-                f"数据不足: {len(df)} bars（至少需要 {Config.MIN_BARS}）"
+                f"數據不足: {len(df)} bars（至少需要 {Config.MIN_BARS}）"
             )
 
         volume_col = "tick_volume" if "tick_volume" in df.columns else "volume"
@@ -164,14 +164,14 @@ class ParquetDataManager:
 
         sub = df[required].copy().rename(columns={volume_col: "volume"})
 
-        # 兼容性修复：某些 A 股 parquet 导出工具把 Unix 秒时间戳误存为
-        # "秒/1000"（数值被缩小 1000 倍，导致日期变成 1970 年）。
-        # 若最大时间戳 < 1e7（1970-04-27 之前），则视为被除过 1000，乘回。
+        # 相容性修復：某些 A 股 parquet 導出工具把 Unix 秒時間戳誤存為
+        # "秒/1000"（數值被縮小 1000 倍，導致日期變成 1970 年）。
+        # 若最大時間戳 < 1e7（1970-04-27 之前），則視為被除過 1000，乘回。
         if pd.api.types.is_numeric_dtype(sub["time"]) and sub["time"].max() < 10_000_000:
             sub["time"] = sub["time"] * 1000
             logger.info(
-                f"[数据] {self.file_path.name} 时间戳被识别为秒/1000，"
-                f"已乘 1000 恢复为 Unix 秒。"
+                f"[數據] {self.file_path.name} 時間戳被識別為秒/1000，"
+                f"已乘 1000 恢復為 Unix 秒。"
             )
 
         sub = sub.sort_values("time")
@@ -192,8 +192,8 @@ class ParquetDataManager:
         self._raw_dict = raw
         self._target_ret = MT5DataManager._compute_target_ret(raw["open"])
         logger.info(
-            f"[数据] 已加载 {self.symbol} {self.timeframe}，"
-            f"共 {raw['open'].shape[1]} 根K线，文件 {self.file_path.name}"
+            f"[數據] 已載入 {self.symbol} {self.timeframe}，"
+            f"共 {raw['open'].shape[1]} 根K線，文件 {self.file_path.name}"
         )
 
     @property

@@ -90,7 +90,7 @@ class TrainingManager:
             self._refresh_state()
             if self._proc is not None and self._proc.poll() is None:
                 sym = self._job.symbol if self._job else "unknown"
-                raise RuntimeError(f"已有训练任务在运行: {sym}")
+                raise RuntimeError(f"已有訓練任務在運行: {sym}")
 
             ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
             safe_sym = symbol.replace(".", "_")
@@ -155,7 +155,7 @@ class TrainingManager:
             return True
 
     def parse_step_from_log(self) -> int | None:
-        """从日志尾部解析当前步数，用于 checkpoint 写入前的进度展示。"""
+        """從日誌尾部解析當前步數，用於 checkpoint 寫入前的進度展示。"""
         import re
 
         for line in reversed(self.tail_log(80)):
@@ -197,12 +197,12 @@ class TrainingManager:
             else:
                 self._job.state = JobState.FAILED
         if self._job.state == JobState.FAILED and self._job.error is None:
-            self._job.error = f"训练进程异常退出 (exit_code={code})"
+            self._job.error = f"訓練進程異常退出 (exit_code={code})"
             try:
                 if self._job.log_path:
                     path = PROJECT_ROOT / self._job.log_path
                     with path.open("a", encoding="utf-8") as fp:
-                        fp.write(f"\n[Web] 训练进程已结束，退出码: {code}\n")
+                        fp.write(f"\n[Web] 訓練進程已結束，退出碼: {code}\n")
             except OSError:
                 pass
         if self._log_fp:

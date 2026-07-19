@@ -1,25 +1,25 @@
 """
-model_core/vocab.py -- Formula_Vocabulary 集成与确定性版本（R3）
+model_core/vocab.py -- Formula_Vocabulary 集成與確定性版本（R3）
 
-本模块把 Formula_Vocabulary 从「手工维护的特征名元组 + 手工版本字符串」迁移为
-由注册层（`model_core.registry.Registry`）驱动、版本确定性派生的实现：
+本模組把 Formula_Vocabulary 從「手工維護的特徵名元組 + 手工版本字串」遷移為
+由註冊層（`model_core.registry.Registry`）驅動、版本確定性派生的實現：
 
-  - `feature_names` 来自 `features.FEATURE_REGISTRY`（有序）。
-  - `operator_names` 来自 `ops.OPERATOR_REGISTRY`（有序）。
-  - token id 分段：feature id ∈ [0, F-1]，operator id ∈ [F, F+O-1]，两段严格
+  - `feature_names` 來自 `features.FEATURE_REGISTRY`（有序）。
+  - `operator_names` 來自 `ops.OPERATOR_REGISTRY`（有序）。
+  - token id 分段：feature id ∈ [0, F-1]，operator id ∈ [F, F+O-1]，兩段嚴格
     不相交（`operator_offset == feature_count`，R3.3）。
-  - 构建时用集合校验 token 名称全局唯一、无缺失/重复/多余（R3.1、R3.2）。
-  - `VOCAB_VERSION` 由有序 token 名称列表确定性派生（R3.4、R3.5）：
+  - 構建時用集合校驗 token 名稱全局唯一、無缺失/重複/多餘（R3.1、R3.2）。
+  - `VOCAB_VERSION` 由有序 token 名稱列表確定性派生（R3.4、R3.5）：
         VOCAB_VERSION = "v" + sha256("\n".join(token_names)).hexdigest()[:12]
-    相同有序列表 → 相同版本；任意组成/顺序变化 → 不同版本。
-  - `FORMULA_VOCAB.verify(artifact_version)`：版本不匹配抛
-    `VocabVersionMismatchError`，拒绝且不消费任何 token（R3.7）。
-  - `VOCAB_SCHEMA_TAG`：人类可读的 schema 标签，仅供日志展示，不参与兼容判定。
+    相同有序列表 → 相同版本；任意組成/順序變化 → 不同版本。
+  - `FORMULA_VOCAB.verify(artifact_version)`：版本不匹配拋
+    `VocabVersionMismatchError`，拒絕且不消費任何 token（R3.7）。
+  - `VOCAB_SCHEMA_TAG`：人類可讀的 schema 標籤，僅供日誌展示，不參與相容判定。
 
-import 方向说明：`features.py` / `ops.py` 只依赖 `.registry`，本模块从二者读取
-注册表视图不构成循环依赖。下游 `vm.py` / `config.py` /
-`alphagpt.py` / `engine.py` 对 `FEATURE_NAMES` / `FORMULA_VOCAB` / `VOCAB_VERSION`
-的 import 保持兼容。
+import 方向說明：`features.py` / `ops.py` 只依賴 `.registry`，本模組從二者讀取
+註冊表視圖不構成循環依賴。下游 `vm.py` / `config.py` /
+`alphagpt.py` / `engine.py` 對 `FEATURE_NAMES` / `FORMULA_VOCAB` / `VOCAB_VERSION`
+的 import 保持相容。
 """
 from __future__ import annotations
 
@@ -29,29 +29,29 @@ from dataclasses import dataclass
 from .features import FEATURE_REGISTRY
 from .ops import OPERATOR_REGISTRY
 
-# 人类可读 schema 标签（仅供日志/报告展示，不参与兼容性判定，R3.5）
+# 人類可讀 schema 標籤（僅供日誌/報告展示，不參與相容性判定，R3.5）
 VOCAB_SCHEMA_TAG = "4.0-registry"
 
 
-# ── 版本层异常（R3.7）───────────────────────────────────────────────────
+# ── 版本層異常（R3.7）───────────────────────────────────────────────────
 
 class VocabVersionMismatchError(Exception):
-    """加载产物版本 ≠ 当前派生 VOCAB_VERSION（R3.7）。
+    """載入產物版本 ≠ 當前派生 VOCAB_VERSION（R3.7）。
 
-    由 `FORMULA_VOCAB.verify()` 在版本不匹配时抛出；调用方应拒绝加载且不消费
+    由 `FORMULA_VOCAB.verify()` 在版本不匹配時拋出；調用方應拒絕載入且不消費
     任何 token。
     """
 
 
-# ── 确定性版本派生（R3.4、R3.5）─────────────────────────────────────────
+# ── 確定性版本派生（R3.4、R3.5）─────────────────────────────────────────
 
 def compute_vocab_version(token_names: tuple[str, ...]) -> str:
-    """由有序 token 名称列表确定性派生紧凑版本标识。
+    """由有序 token 名稱列表確定性派生緊湊版本標識。
 
     VOCAB_VERSION = "v" + sha256("\n".join(token_names)).hexdigest()[:12]
 
-    性质：相同的有序列表 → 相同版本；任意组成或顺序变化 → 不同版本。使用换行
-    作为稳定分隔符，避免名称拼接歧义。
+    性質：相同的有序列表 → 相同版本；任意組成或順序變化 → 不同版本。使用換行
+    作為穩定分隔符號，避免名稱拼接歧義。
     """
     joined = "\n".join(token_names)
     digest = hashlib.sha256(joined.encode("utf-8")).hexdigest()
@@ -69,7 +69,7 @@ class FormulaVocab:
 
     @property
     def operator_offset(self) -> int:
-        # feature id 段 [0, F-1]、operator id 段 [F, F+O-1] 严格不相交（R3.3）
+        # feature id 段 [0, F-1]、operator id 段 [F, F+O-1] 嚴格不相交（R3.3）
         return self.feature_count
 
     @property
@@ -82,34 +82,34 @@ class FormulaVocab:
 
     @property
     def version(self) -> str:
-        """当前词表组成确定性派生的 VOCAB_VERSION（R3.4）。"""
+        """當前詞表組成確定性派生的 VOCAB_VERSION（R3.4）。"""
         return compute_vocab_version(self.token_names)
 
     def verify(self, artifact_version: str) -> None:
-        """校验产物版本与当前派生版本一致（R3.7）。
+        """校驗產物版本與當前派生版本一致（R3.7）。
 
-        不匹配抛 `VocabVersionMismatchError`，调用方据此拒绝加载、不消费任何
-        token。匹配则静默返回。
+        不匹配拋 `VocabVersionMismatchError`，調用方據此拒絕載入、不消費任何
+        token。匹配則靜默返回。
         """
         current = self.version
         if artifact_version != current:
             raise VocabVersionMismatchError(
-                f"词表版本不匹配：产物版本 {artifact_version!r} != "
-                f"当前派生版本 {current!r}；旧 checkpoint / best_strategy.json "
-                f"需重新训练/重建后加载"
+                f"詞表版本不匹配：產物版本 {artifact_version!r} != "
+                f"當前派生版本 {current!r}；舊 checkpoint / best_strategy.json "
+                f"需重新訓練/重建後載入"
             )
 
 
-# ── 构建 FORMULA_VOCAB（由 registry 派生）与完整性校验（R3.1、R3.2）──────
+# ── 構建 FORMULA_VOCAB（由 registry 派生）與完整性校驗（R3.1、R3.2）──────
 
 def _build_formula_vocab() -> FormulaVocab:
-    """由 FEATURE_REGISTRY / OPERATOR_REGISTRY 构建词表并做完整性校验。
+    """由 FEATURE_REGISTRY / OPERATOR_REGISTRY 構建詞表並做完整性校驗。
 
-    校验（用集合，R3.1、R3.2）：
-      - feature / operator 名称各自无重复；
-      - feature 与 operator 名称跨段全局唯一（无交集）；
-      - size == F + O（无缺失/多余）。
-    任一校验失败即抛错，不产出不一致的词表。
+    校驗（用集合，R3.1、R3.2）：
+      - feature / operator 名稱各自無重複；
+      - feature 與 operator 名稱跨段全局唯一（無交集）；
+      - size == F + O（無缺失/多餘）。
+    任一校驗失敗即拋錯，不產出不一致的詞表。
     """
     feature_names = tuple(FEATURE_REGISTRY.feature_names)
     operator_names = tuple(OPERATOR_REGISTRY.operator_names)
@@ -117,40 +117,40 @@ def _build_formula_vocab() -> FormulaVocab:
     feat_set = set(feature_names)
     op_set = set(operator_names)
 
-    # 段内唯一
+    # 段內唯一
     if len(feat_set) != len(feature_names):
         dup = sorted({n for n in feature_names if feature_names.count(n) > 1})
-        raise ValueError(f"feature 名称存在重复: {dup}")
+        raise ValueError(f"feature 名稱存在重複: {dup}")
     if len(op_set) != len(operator_names):
         dup = sorted({n for n in operator_names if operator_names.count(n) > 1})
-        raise ValueError(f"operator 名称存在重复: {dup}")
+        raise ValueError(f"operator 名稱存在重複: {dup}")
 
-    # 跨段全局唯一（feature/operator 名称不得冲突）
+    # 跨段全局唯一（feature/operator 名稱不得衝突）
     overlap = feat_set & op_set
     if overlap:
-        raise ValueError(f"feature 与 operator 名称冲突: {sorted(overlap)}")
+        raise ValueError(f"feature 與 operator 名稱衝突: {sorted(overlap)}")
 
     vocab = FormulaVocab(feature_names=feature_names, operator_names=operator_names)
 
-    # 计数一致性：size == F + O，无缺失/重复/多余（R3.2）
+    # 計數一致性：size == F + O，無缺失/重複/多餘（R3.2）
     expected = len(feature_names) + len(operator_names)
     if vocab.size != expected:
         raise ValueError(
-            f"词表计数不一致: size={vocab.size} != F+O={expected}"
+            f"詞表計數不一致: size={vocab.size} != F+O={expected}"
         )
-    # 全局 token 名称唯一（无缺失/重复/多余）
+    # 全局 token 名稱唯一（無缺失/重複/多餘）
     if len(set(vocab.token_names)) != vocab.size:
-        raise ValueError("token 名称存在重复或缺失，词表完整性校验失败")
+        raise ValueError("token 名稱存在重複或缺失，詞表完整性校驗失敗")
 
     return vocab
 
 
 FORMULA_VOCAB = _build_formula_vocab()
 
-# 由注册表导出有序特征名视图（保持下游 import 兼容）
+# 由註冊表導出有序特徵名視圖（保持下游 import 相容）
 FEATURE_NAMES = FORMULA_VOCAB.feature_names
 
-# 词表版本：由有序 token 名称列表确定性派生（R3.4、R3.5）。
-# 特征/算子的组成或顺序变化都会改变本值，旧 checkpoint / best_strategy.json 将
-# 因版本不匹配而被 verify() 拒绝加载。
+# 詞表版本：由有序 token 名稱列表確定性派生（R3.4、R3.5）。
+# 特徵/運算元的組成或順序變化都會改變本值，舊 checkpoint / best_strategy.json 將
+# 因版本不匹配而被 verify() 拒絕載入。
 VOCAB_VERSION = FORMULA_VOCAB.version

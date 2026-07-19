@@ -1,13 +1,13 @@
 """
-deep_backtest_metals.py — metals_comm FTMO 最佳因子深入回测分析
+deep_backtest_metals.py — metals_comm FTMO 最佳因子深入回測分析
 
-对 strategies/best_metals_comm.json 中的因子在 XAUUSD/AAVUSD/COCOA.c 上：
-  - 全量历史回测
-  - Walk-Forward 分折统计
+對 strategies/best_metals_comm.json 中的因子在 XAUUSD/AAVUSD/COCOA.c 上：
+  - 全量歷史回測
+  - Walk-Forward 分折統計
   - 年度/月度收益分解
-  - FTMO 合规性检查
-  - 品种相关性、换手率、持仓时间
-  - 输出可视化图表和 JSON 报告
+  - FTMO 合規性檢查
+  - 品種相關性、換手率、持倉時間
+  - 輸出可視化圖表和 JSON 報告
 """
 import sys, json, math
 from pathlib import Path
@@ -25,7 +25,7 @@ from model_core.features import MT5FeatureEngineer
 from strategy_manager.signal import compute_target_positions_stateless
 
 H1_PER_YEAR = 6240
-COST_RATE = 0.0001  # 默认点差成本
+COST_RATE = 0.0001  # 默認點差成本
 ACCOUNT = 100_000.0
 
 
@@ -60,7 +60,7 @@ def max_dd(pnl):
 
 
 def avg_hold(position):
-    """计算平均持仓时间（bars）"""
+    """計算平均持倉時間（bars）"""
     pos = np.sign(position)
     if pos.size == 0:
         return 0.0
@@ -90,7 +90,7 @@ def daily_pnl(pnl_hourly):
 
 
 def ftmo_stats(daily, max_daily_loss=0.05, max_overall_loss=0.10, profit_target=0.10):
-    """FTMO 2-Step 统计"""
+    """FTMO 2-Step 統計"""
     scaled = daily * ACCOUNT
     balance = ACCOUNT
     peak = ACCOUNT
@@ -122,16 +122,16 @@ def ftmo_stats(daily, max_daily_loss=0.05, max_overall_loss=0.10, profit_target=
 def main():
     offline = "--offline" in sys.argv
 
-    # ── 加载因子 ─────────────────────────────────────────────────
+    # ── 載入因子 ─────────────────────────────────────────────────
     data = json.load(open("strategies/best_metals_comm.json"))
     if data.get("vocab_version") != VOCAB_VERSION:
         print("[ERROR] vocab 版本不符"); return
     formula = data["formula"]
     readable = " -> ".join(FORMULA_VOCAB.token_names[t] for t in formula)
     print(f"\n因子: {readable}")
-    print(f"训练 score: {data['best_score']:.4f}  (step {data.get('step', '?')})\n")
+    print(f"訓練 score: {data['best_score']:.4f}  (step {data.get('step', '?')})\n")
 
-    # ── 加载数据 ─────────────────────────────────────────────────
+    # ── 載入數據 ─────────────────────────────────────────────────
     original_symbols = Config.SYMBOLS[:]
     Config.SYMBOLS = data.get("symbol_group", "metals_comm").split(",") if "," in data.get("symbol_group", "") else Config.SYMBOL_GROUPS["metals_comm"]
     symbols = Config.SYMBOLS
@@ -144,13 +144,13 @@ def main():
             raw_dict = mgr.raw_dict
             target_ret = mgr.target_ret
             T = raw_dict["open"].shape[1]
-            print(f"数据: {symbols}  T={T} bars\n")
+            print(f"數據: {symbols}  T={T} bars\n")
 
             feat = MT5FeatureEngineer.compute_features(raw_dict)
             vm = StackVM()
             factor = vm.execute(formula, feat)
             if factor is None:
-                print("[ERROR] 因子执行失败"); return
+                print("[ERROR] 因子執行失敗"); return
 
             position = compute_target_positions_stateless(factor)
             prev_pos = torch.roll(position, 1, dims=1)
@@ -161,26 +161,26 @@ def main():
     finally:
         Config.SYMBOLS = original_symbols
 
-    # ── 总体统计 ─────────────────────────────────────────────────
+    # ── 總體統計 ─────────────────────────────────────────────────
     port_pnl = pnl.mean(dim=0).numpy()
     print(f"{'='*70}")
-    print(f"  组合总体统计（等权 {len(symbols)} 品种）")
+    print(f"  組合總體統計（等權 {len(symbols)} 品種）")
     print(f"{'='*70}")
-    print(f"  累计收益:    {port_pnl.sum():+.4f}")
+    print(f"  累計收益:    {port_pnl.sum():+.4f}")
     print(f"  年化收益:    {port_pnl.mean() * H1_PER_YEAR:+.4f}")
     print(f"  Sharpe:      {sharpe(port_pnl):+.4f}")
     print(f"  Sortino:     {sortino(port_pnl):+.4f}")
     print(f"  Calmar:      {calmar(port_pnl):+.4f}")
     print(f"  MaxDD:       {max_dd(port_pnl):.4f}")
-    print(f"  交易次数:    {int(np.sum(np.abs(np.diff(np.sign(port_pnl), prepend=0)) > 0))}")
-    print(f"  平均持仓:    {avg_hold(port_pnl):.1f}h")
+    print(f"  交易次數:    {int(np.sum(np.abs(np.diff(np.sign(port_pnl), prepend=0)) > 0))}")
+    print(f"  平均持倉:    {avg_hold(port_pnl):.1f}h")
     print()
 
-    # ── 分品种统计 ───────────────────────────────────────────────
+    # ── 分品種統計 ───────────────────────────────────────────────
     print(f"{'='*70}")
-    print(f"  分品种统计")
+    print(f"  分品種統計")
     print(f"{'='*70}")
-    print(f"  {'品种':12s}{'累计':>10s}{'年化':>10s}{'Sharpe':>8s}{'Sortino':>8s}{'MaxDD':>8s}{'持仓(h)':>8s}")
+    print(f"  {'品種':12s}{'累計':>10s}{'年化':>10s}{'Sharpe':>8s}{'Sortino':>8s}{'MaxDD':>8s}{'持倉(h)':>8s}")
     print(f"  {'─'*70}")
     per_sym = {}
     for i, sym in enumerate(symbols):
@@ -197,7 +197,7 @@ def main():
 
     # ── Walk-Forward 4 折 ────────────────────────────────────────
     print(f"\n{'='*70}")
-    print(f"  Walk-Forward 4 折（按时间顺序）")
+    print(f"  Walk-Forward 4 折（按時間順序）")
     print(f"{'='*70}")
     fold_size = T // 4
     wf = []
@@ -227,29 +227,29 @@ def main():
         yearly.append({"year": y + 1, "total": float(yp.sum()), "sharpe": sharpe(yp)})
         print(f"  Year {y+1}: Tot={yp.sum():+.4f}  Sharpe={sharpe(yp):+.2f}")
 
-    # ── FTMO 合规性 ──────────────────────────────────────────────
+    # ── FTMO 合規性 ──────────────────────────────────────────────
     print(f"\n{'='*70}")
-    print(f"  FTMO 2-Step 合规性（1.0x 仓位）")
+    print(f"  FTMO 2-Step 合規性（1.0x 倉位）")
     print(f"{'='*70}")
     dly = daily_pnl(port_pnl)
     ft = ftmo_stats(dly)
-    print(f"  最大日亏:    {ft['max_daily_loss']:.2%} (限 5%)")
-    print(f"  违规次数:    {ft['violations']}")
-    print(f"  交易天数:    {ft['trading_days']}")
-    print(f"  达标 10% 日: {ft['target_day']}")
+    print(f"  最大日虧:    {ft['max_daily_loss']:.2%} (限 5%)")
+    print(f"  違規次數:    {ft['violations']}")
+    print(f"  交易天數:    {ft['trading_days']}")
+    print(f"  達標 10% 日: {ft['target_day']}")
 
-    # ── 不同仓位倍数 ─────────────────────────────────────────────
+    # ── 不同倉位倍數 ─────────────────────────────────────────────
     print(f"\n{'='*70}")
-    print(f"  仓位缩放对 FTMO 的影响")
+    print(f"  倉位縮放對 FTMO 的影響")
     print(f"{'='*70}")
-    print(f"  {'倍数':>6s}{'累计':>10s}{'最大日亏':>10s}{'达标日':>8s}{'违规':>6s}")
+    print(f"  {'倍數':>6s}{'累計':>10s}{'最大日虧':>10s}{'達標日':>8s}{'違規':>6s}")
     print(f"  {'─'*46}")
     for scale in [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]:
         sd = daily_pnl(port_pnl * scale)
         ft2 = ftmo_stats(sd)
         print(f"  {scale:>5.1f}x {port_pnl.sum()*scale:>+9.4f} {ft2['max_daily_loss']:>9.2%} {str(ft2['target_day']):>8s} {ft2['violations']:>6d}")
 
-    # ── 保存报告 ─────────────────────────────────────────────────
+    # ── 保存報告 ─────────────────────────────────────────────────
     def _to_native(obj):
         if isinstance(obj, np.floating): return float(obj)
         if isinstance(obj, np.integer): return int(obj)
@@ -283,7 +283,7 @@ def main():
     out_path = out_dir / "metals_comm_deep_report.json"
     with open(out_path, "w") as f:
         json.dump(report, f, indent=2)
-    print(f"\n报告已保存: {out_path}\n")
+    print(f"\n報告已保存: {out_path}\n")
 
 
 if __name__ == "__main__":

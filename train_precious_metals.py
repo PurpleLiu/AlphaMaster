@@ -1,5 +1,5 @@
 """
-train_precious_metals.py — 贵金属策略训练（XAUUSD + XAGUSD）
+train_precious_metals.py — 貴金屬策略訓練（XAUUSD + XAGUSD）
 """
 import sys, time
 from pathlib import Path
@@ -15,11 +15,11 @@ def main():
     t0 = time.time()
 
     print(f"\n{'='*60}")
-    print(f"  AlphaGPT 训练 — precious_metals 组 (贵金属)")
+    print(f"  AlphaGPT 訓練 — precious_metals 組 (貴金屬)")
     print(f"{'='*60}")
-    print(f"  品种: {Config.SYMBOL_GROUPS['precious_metals']}")
-    print(f"  奖励模式: {ModelConfig.REWARD_MODE}")
-    print(f"  训练步数: {ModelConfig.TRAIN_STEPS}")
+    print(f"  品種: {Config.SYMBOL_GROUPS['precious_metals']}")
+    print(f"  獎勵模式: {ModelConfig.REWARD_MODE}")
+    print(f"  訓練步數: {ModelConfig.TRAIN_STEPS}")
     print(f"  offline={offline}")
     print(f"{'='*60}")
 
@@ -30,10 +30,10 @@ def main():
             print(f"\n<<< [precious_metals] 完成: score={eng.best_score:.4f}")
             print(f"    {eng._decode_formula(eng.best_formula)}")
         else:
-            print("\n<<< [precious_metals] 失败")
+            print("\n<<< [precious_metals] 失敗")
 
     elapsed = time.time() - t0
-    print(f"\n耗时 {elapsed/3600:.2f}h")
+    print(f"\n耗時 {elapsed/3600:.2f}h")
 
 if __name__ == "__main__":
     main()

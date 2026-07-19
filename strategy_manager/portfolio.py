@@ -1,7 +1,7 @@
 """
-strategy_manager/portfolio.py — MT5 仓位管理器
+strategy_manager/portfolio.py — MT5 倉位管理器
 
-管理 MT5 仓位状态，支持 JSON 持久化和 MT5 实时同步。
+管理 MT5 倉位狀態，支持 JSON 持久化和 MT5 即時同步。
 """
 import json
 import time
@@ -22,29 +22,29 @@ try:
     _CONFIG_AVAILABLE = True
 except ImportError:
     _CONFIG_AVAILABLE = False
-    # 测试环境回退默认值
+    # 測試環境回退預設值
     class Config:
         PORTFOLIO_FILE = "portfolio_state.json"
 
 
 @dataclass
 class Position:
-    """MT5 仓位数据结构。"""
+    """MT5 倉位數據結構。"""
     symbol: str
     ticket: int
     entry_price: float
     entry_time: float
     lot_size: float
     direction: str          # "BUY" | "SELL"
-    highest_price: float    # 多头追踪止损用（最高价）
-    lowest_price: float     # 空头追踪止损用（最低价）
+    highest_price: float    # 多頭追蹤止損用（最高價）
+    lowest_price: float     # 空頭追蹤止損用（最低價）
     is_partial_closed: bool
 
 
 class MT5PortfolioManager:
-    """MT5 仓位管理器。
+    """MT5 倉位管理器。
 
-    负责记录、更新、持久化仓位状态，并与 MT5 终端实时同步。
+    負責記錄、更新、持久化倉位狀態，並與 MT5 終端即時同步。
     """
 
     def __init__(self) -> None:
@@ -53,7 +53,7 @@ class MT5PortfolioManager:
         self.load_state()
 
     # ─────────────────────────────────────────────────────────────
-    # 仓位增删改查
+    # 倉位增刪改查
     # ─────────────────────────────────────────────────────────────
 
     def add_position(
@@ -64,13 +64,13 @@ class MT5PortfolioManager:
         lot: float,
         direction: str,
     ) -> None:
-        """记录一个新开仓位。
+        """記錄一個新開倉位。
 
         Args:
-            symbol:    交易品种
+            symbol:    交易品種
             ticket:    MT5 order ticket（由 mt5.order_send() 返回）
-            price:     入场价格
-            lot:       手数
+            price:     入場價格
+            lot:       手數
             direction: "BUY" 或 "SELL"
         """
         pos = Position(
@@ -89,10 +89,10 @@ class MT5PortfolioManager:
         logger.info(f"[Portfolio] Position added: {symbol} {direction} lot={lot} @ {price} ticket={ticket}")
 
     def close_position(self, symbol: str) -> None:
-        """从本地状态移除仓位（不发出 MT5 订单，仅清除记录）。
+        """從本地狀態移除倉位（不發出 MT5 訂單，僅清除記錄）。
 
         Args:
-            symbol: 要关闭的品种
+            symbol: 要關閉的品種
         """
         if symbol in self.positions:
             pos = self.positions.pop(symbol)
@@ -102,10 +102,10 @@ class MT5PortfolioManager:
             logger.warning(f"[Portfolio] close_position: {symbol} not found in local state")
 
     def get_direction(self, symbol: str) -> int:
-        """返回品种当前持仓方向的整数表示。
+        """返回品種當前持倉方向的整數表示。
 
         Returns:
-            +1 多头 / -1 空头 / 0 空仓
+            +1 多頭 / -1 空頭 / 0 空倉
         """
         if symbol not in self.positions:
             return 0
@@ -113,7 +113,7 @@ class MT5PortfolioManager:
         return 1 if d == "BUY" else -1
 
     def update_price(self, symbol: str, price: float) -> None:
-        """更新当前价格，分别追踪多头最高价和空头最低价。"""
+        """更新當前價格，分別追蹤多頭最高價和空頭最低價。"""
         if symbol not in self.positions:
             return
         pos = self.positions[symbol]
@@ -128,7 +128,7 @@ class MT5PortfolioManager:
             self.save_state()
 
     def get_open_count(self) -> int:
-        """返回当前持仓数量。"""
+        """返回當前持倉數量。"""
         return len(self.positions)
 
     # ─────────────────────────────────────────────────────────────
@@ -136,12 +136,12 @@ class MT5PortfolioManager:
     # ─────────────────────────────────────────────────────────────
 
     def sync_from_mt5(self) -> None:
-        """与 MT5 终端同步仓位状态。
+        """與 MT5 終端同步倉位狀態。
 
-        1. 调用 mt5.positions_get() 获取当前所有持仓。
-        2. 将本地记录中已不在 MT5 的仓位移除（外部平仓）。
-        3. 将 MT5 中有但本地没有的仓位补录（漏记情况）。
-        4. 同步 direction（以 MT5 为准）。
+        1. 調用 mt5.positions_get() 獲取當前所有持倉。
+        2. 將本地記錄中已不在 MT5 的倉位移除（外部平倉）。
+        3. 將 MT5 中有但本地沒有的倉位補錄（漏記情況）。
+        4. 同步 direction（以 MT5 為準）。
         """
         if not _MT5_AVAILABLE or mt5 is None:
             logger.warning("[Portfolio] MT5 not available, skipping sync")
@@ -155,8 +155,8 @@ class MT5PortfolioManager:
         allowed_symbols = set(getattr(Config, "SYMBOLS", []) or [])
         excluded_symbols = set(getattr(Config, "EXCLUDED_TRADE_SYMBOLS", []) or [])
 
-        # 以 symbol 为 key 建立 MT5 持仓索引，仅同步当前自动交易品种。
-        # 兼容 mock：若 symbol 属性是字符串才使用；否则降级为按 ticket 匹配
+        # 以 symbol 為 key 建立 MT5 持倉索引，僅同步當前自動交易品種。
+        # 相容 mock：若 symbol 屬性是字串才使用；否則降級為按 ticket 匹配
         live_by_symbol: dict[str, object] = {}
         live_tickets: set[int] = set()
         for p in live_positions:
@@ -173,13 +173,13 @@ class MT5PortfolioManager:
                 live_tickets.add(ticket)
 
         if live_by_symbol:
-            # 新逻辑：按 symbol 对账（symbol 属性为字符串时）
+            # 新邏輯：按 symbol 對帳（symbol 屬性為字串時）
             to_remove = [s for s in self.positions if s not in live_by_symbol]
             for s in to_remove:
                 pos = self.positions.pop(s)
                 logger.info(f"[Portfolio] Externally closed, removed: {s} ticket={pos.ticket}")
 
-            # 同步 direction 并补录漏记仓位
+            # 同步 direction 並補錄漏記倉位
             for sym, p in live_by_symbol.items():
                 direction = "BUY" if getattr(p, "type", 0) == 0 else "SELL"
                 if sym in self.positions:
@@ -197,9 +197,9 @@ class MT5PortfolioManager:
                         lowest_price=price,
                         is_partial_closed=False,
                     )
-                    logger.info(f"[Portfolio] 补录MT5持仓: {sym} {direction}")
+                    logger.info(f"[Portfolio] 補錄MT5持倉: {sym} {direction}")
         else:
-            # 降级逻辑：只有 ticket 可用时，按 ticket 移除已不存在的仓位
+            # 降級邏輯：只有 ticket 可用時，按 ticket 移除已不存在的倉位
             to_remove = [
                 s for s, pos in self.positions.items()
                 if pos.ticket not in live_tickets
@@ -217,7 +217,7 @@ class MT5PortfolioManager:
     # ─────────────────────────────────────────────────────────────
 
     def save_state(self) -> None:
-        """将当前仓位状态保存到 JSON 文件（Config.PORTFOLIO_FILE）。"""
+        """將當前倉位狀態保存到 JSON 文件（Config.PORTFOLIO_FILE）。"""
         data = {symbol: asdict(pos) for symbol, pos in self.positions.items()}
         try:
             with open(self.state_file, "w", encoding="utf-8") as f:
@@ -227,10 +227,10 @@ class MT5PortfolioManager:
             logger.error(f"[Portfolio] Failed to save state: {e}")
 
     def load_state(self) -> None:
-        """从 JSON 文件恢复仓位状态。
+        """從 JSON 文件恢復倉位狀態。
 
-        文件不存在时静默初始化为空仓位集合。
-        JSON 字段不匹配时记录 WARNING 并跳过该条目。
+        文件不存在時靜默初始化為空倉位集合。
+        JSON 欄位不匹配時記錄 WARNING 並跳過該條目。
         """
         try:
             with open(self.state_file, "r", encoding="utf-8") as f:

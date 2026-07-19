@@ -130,9 +130,9 @@ def mt5_data_file() -> str:
 
 
 def test_static_and_health() -> str | None:
-    print("\n== 1. 静态资源与健康检查 ==")
+    print("\n== 1. 靜態資源與健康檢查 ==")
     if not wait_server():
-        fail("server", "8766 无响应")
+        fail("server", "8766 無響應")
         return None
 
     st, body, _ = get("/api/health")
@@ -153,13 +153,13 @@ def test_static_and_health() -> str | None:
     if missing:
         fail("routes", f"缺少 {missing}")
     else:
-        ok("routes", f"{len(paths)} 条")
+        ok("routes", f"{len(paths)} 條")
 
     st, html, _ = get("/")
     if st != 200 or b"exportTrainingBtn" not in html:
-        fail("index.html", "缺少导出训练按钮")
+        fail("index.html", "缺少導出訓練按鈕")
     else:
-        ok("index.html", "含导出/导入训练按钮")
+        ok("index.html", "含導出/導入訓練按鈕")
 
     for asset in ["/static/app.js?v=14", "/static/style.css?v=5", "/static/bg.js?v=1"]:
         st, content, _ = get(asset.split("?")[0])
@@ -178,7 +178,7 @@ def test_static_and_health() -> str | None:
 
 
 def test_settings(data_file: str) -> None:
-    print("\n== 2. 设置与数据文件 ==")
+    print("\n== 2. 設置與數據文件 ==")
     st, body = get("/api/settings")[0:2]
     if st != 200:
         fail("settings get", str(body))
@@ -226,17 +226,17 @@ def test_settings(data_file: str) -> None:
 
 
 def test_strategies(symbol: str) -> None:
-    print("\n== 3. 策略列表与导出 ==")
+    print("\n== 3. 策略列表與導出 ==")
     st, body, _ = get("/api/strategies")
     strategies = body.get("strategies") or []
     if st != 200 or not strategies:
         fail("strategies list", "empty")
     else:
-        ok("strategies list", f"{len(strategies)} 条")
+        ok("strategies list", f"{len(strategies)} 條")
 
     has = any(s.get("symbol") == symbol for s in strategies)
     if not has:
-        warn("strategy for symbol", f"{symbol} 不在列表（可能无 best_*.json）")
+        warn("strategy for symbol", f"{symbol} 不在列表（可能無 best_*.json）")
     else:
         ok("strategy exists", symbol)
 
@@ -261,10 +261,10 @@ def test_strategies(symbol: str) -> None:
 
 
 def test_training_io(symbol: str) -> Path | None:
-    print("\n== 4. 训练包导出/导入 ==")
+    print("\n== 4. 訓練包導出/導入 ==")
     st, _, _ = get(f"/api/training/{symbol}/export")
     if st == 404:
-        warn("export training", f"{symbol} 无 checkpoint，创建临时 fixture")
+        warn("export training", f"{symbol} 無 checkpoint，創建臨時 fixture")
         from data_pipeline.parquet_manager import ParquetDataManager
         from model_core.engine import AlphaEngine
 
@@ -321,7 +321,7 @@ def test_training_io(symbol: str) -> Path | None:
 
 
 def test_training_live(data_file: str, symbol: str) -> None:
-    print("\n== 5. 训练启停 / 日志 / 曲线同步 ==")
+    print("\n== 5. 訓練啟停 / 日誌 / 曲線同步 ==")
     post_json("/api/training/stop")
 
     st, body = post_json("/api/training/start", {"data_file": data_file})
@@ -366,10 +366,10 @@ def test_training_live(data_file: str, symbol: str) -> None:
             if any(ord(c) > 127 for c in last):
                 pass  # has non-ascii (Chinese) - good
             if "[Web]" in last and i > 2:
-                warn("log tail", "出现 Web 结束标记，训练可能已停")
+                warn("log tail", "出現 Web 結束標記，訓練可能已停")
 
         if active and chart_n >= 3 and cur >= 3:
-            # 需观察到步数增长，避免仅用旧 checkpoint 历史误判
+            # 需觀察到步數增長，避免僅用舊 checkpoint 歷史誤判
             if i >= 2 and chart_n > 0 and abs(cur - (int(steps[-1]) + 1)) <= 2:
                 sync_ok = True
                 ok("log/chart sync", f"step≈{cur} chart={chart_n}")
@@ -377,9 +377,9 @@ def test_training_live(data_file: str, symbol: str) -> None:
 
     if not sync_ok:
         if last_log_len == 0:
-            fail("training log", "无日志输出")
+            fail("training log", "無日誌輸出")
         else:
-            warn("log/chart sync", f"60s 内未确认同步 prog={cur} chart={chart_n}")
+            warn("log/chart sync", f"60s 內未確認同步 prog={cur} chart={chart_n}")
 
     st, body = post_json("/api/training/stop")
     time.sleep(2)
@@ -387,7 +387,7 @@ def test_training_live(data_file: str, symbol: str) -> None:
     job = status.get("job") or {}
     state = job.get("state")
     if state == "failed":
-        warn("stop state", f"停止后状态为 failed（Windows 上 exit_code=1），建议显示为已停止")
+        warn("stop state", f"停止後狀態為 failed（Windows 上 exit_code=1），建議顯示為已停止")
     elif state in ("stopped", "completed"):
         ok("training stop", state)
     else:
@@ -402,11 +402,11 @@ def test_training_live(data_file: str, symbol: str) -> None:
         else:
             warn("training_history file", "empty steps")
     else:
-        warn("training_history file", "不存在（训练步数过少或未写入）")
+        warn("training_history file", "不存在（訓練步數過少或未寫入）")
 
 
 def test_debug() -> None:
-    print("\n== 6. 调试接口 ==")
+    print("\n== 6. 除錯介面 ==")
     st, body = post_json("/api/debug/client-log", {
         "level": "error",
         "message": "automated test message",
@@ -425,7 +425,7 @@ def test_debug() -> None:
 
 
 def main() -> None:
-    print("=== AlphaMaster 全功能实测 ===")
+    print("=== AlphaMaster 全功能實測 ===")
     data_file = test_static_and_health()
     if not data_file:
         print_summary()
@@ -435,7 +435,7 @@ def main() -> None:
 
     info = inspect_parquet_file(data_file)
     symbol = info["symbol"]
-    print(f"\n数据文件: {info['filename']} ({symbol} {info['timeframe']})")
+    print(f"\n數據文件: {info['filename']} ({symbol} {info['timeframe']})")
 
     test_settings(data_file)
     test_strategies(symbol)
@@ -450,17 +450,17 @@ def main() -> None:
 
 def print_summary() -> None:
     print("\n" + "=" * 50)
-    print(f"通过: {len(passed)}  失败: {len(failed)}  警告: {len(warnings)}")
+    print(f"通過: {len(passed)}  失敗: {len(failed)}  警告: {len(warnings)}")
     if warnings:
         print("\n警告:")
         for w in warnings:
             print(f"  - {w}")
     if failed:
-        print("\n失败:")
+        print("\n失敗:")
         for f in failed:
             print(f"  - {f}")
     else:
-        print("\n未发现阻断性问题。")
+        print("\n未發現阻斷性問題。")
 
 
 if __name__ == "__main__":

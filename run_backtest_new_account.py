@@ -1,7 +1,7 @@
 """
-run_backtest_new_account.py — 用新账号品种名跑旧因子回测
+run_backtest_new_account.py — 用新帳號品種名跑舊因子回測
 
-新账号品种映射：
+新帳號品種映射：
   EURUSDm  → EURUSD
   USDJPYm  → USDJPY
   XAUUSDm  → XAUUSD
@@ -25,7 +25,7 @@ from backtest_viz import BacktestEngine, BacktestChart
 
 _H1_PER_YEAR = 6240
 
-# ── 品种映射（旧名 → 新名）────────────────────────────────────────────
+# ── 品種映射（舊名 → 新名）────────────────────────────────────────────
 SYMBOL_MAP = {
     "EURUSDm": "EURUSD",
     "USDJPYm": "USDJPY",
@@ -34,16 +34,16 @@ SYMBOL_MAP = {
     "US500m":  "US500.cash",
 }
 
-# ── 要测试的因子（旧名 → formula tokens）────────────────────────────
+# ── 要測試的因子（舊名 → formula tokens）────────────────────────────
 STRATEGIES = {
     "v1_all":    {"formula": [6, 44, 3, 39, 4, 29, 34, 27],
-                  "name": "v1 通用（均线差排名）",
+                  "name": "v1 通用（均線差排名）",
                   "symbols": ["EURUSDm","USDJPYm","XAUUSDm","USTECm","US500m"]},
     "us500_v2":  {"formula": [5, 4, 28, 16, 23, 47, 18, 27],
-                  "name": "US500 专属（ATR斜率/量价）",
+                  "name": "US500 專屬（ATR斜率/量價）",
                   "symbols": ["US500m"]},
     "xauusd_v1": {"formula": [6, 44, 3, 39, 4, 29, 34, 27],
-                  "name": "XAU 专属（v1）",
+                  "name": "XAU 專屬（v1）",
                   "symbols": ["XAUUSDm"]},
 }
 
@@ -76,7 +76,7 @@ names = FORMULA_VOCAB.token_names
 
 def main():
     mt5.initialize()
-    print("\n获取实时点差...")
+    print("\n獲取即時點差...")
     costs = {}
     for old, new in SYMBOL_MAP.items():
         tick = mt5.symbol_info_tick(new)
@@ -87,13 +87,13 @@ def main():
             costs[old] = 0.0001
         print(f"  {old}({new}): cost={costs[old]:.6f}")
 
-    # 拉数据
-    print("\n拉取 K 线数据...")
+    # 拉數據
+    print("\n拉取 K 線數據...")
     raw_data = {}
     for old, new in SYMBOL_MAP.items():
         df = fetch(new)
         if df is None:
-            print(f"  {new}: 无数据，跳过")
+            print(f"  {new}: 無數據，跳過")
             continue
         raw_data[old] = df_to_raw(df)
         print(f"  {new}: {len(df)} bars")
@@ -104,13 +104,13 @@ def main():
     all_results = []
 
     print(f"\n{'='*65}")
-    print("  多因子回测（新账号数据，真实点差）")
+    print("  多因子回測（新帳號數據，真實點差）")
     print(f"{'='*65}")
-    header = f"{'品种':12s}{'策略':18s}{'PnL':>8}{'Sharpe':>8}{'Sortino':>8}{'MaxDD':>8}{'Trades':>7}{'WinRate':>8}"
+    header = f"{'品種':12s}{'策略':18s}{'PnL':>8}{'Sharpe':>8}{'Sortino':>8}{'MaxDD':>8}{'Trades':>7}{'WinRate':>8}"
     print(f"  {header}")
     print(f"  {'─'*75}")
 
-    # 按策略组织：同一策略的品种合并算组合
+    # 按策略組織：同一策略的品種合併算組合
     for strat_id, strat in STRATEGIES.items():
         formula   = strat["formula"]
         sym_list  = strat["symbols"]
@@ -132,7 +132,7 @@ def main():
             pnl_list.append(r.pnl)
             all_results.append(r)
 
-            # 单品种指标
+            # 單品種指標
             cum = r.cum_pnl
             print(f"  {old_sym:12s}{strat['name'][:17]:18s}"
                   f"{r.total_return:+8.3f}"
@@ -142,7 +142,7 @@ def main():
                   f"{r.n_trades:7d}"
                   f"{r.win_rate:8.1%}")
 
-    # 等权组合（v1全品种）
+    # 等權組合（v1全品種）
     v1_syms   = [s for s in STRATEGIES["v1_all"]["symbols"] if s in raw_data]
     if v1_syms:
         pnls = []
@@ -155,7 +155,7 @@ def main():
         port = np.stack(pnls).mean(0)
         cum_p = np.cumsum(port)
         print(f"  {'─'*75}")
-        print(f"  {'Portfolio(v1)':12s}{'均等权重':18s}"
+        print(f"  {'Portfolio(v1)':12s}{'均等權重':18s}"
               f"{cum_p[-1]:+8.3f}"
               f"{sharpe(port):+8.3f}"
               f"{sortino(port):+8.3f}"
@@ -166,12 +166,12 @@ def main():
                                              raw_data[s],
                                              MT5FeatureEngineer.compute_features(raw_data[s]),[s])[0]]
                     if r.total_return > 0)
-        print(f"  正收益品种: {n_pos}/{len(v1_syms)}")
+        print(f"  正收益品種: {n_pos}/{len(v1_syms)}")
 
     print(f"\n{'='*65}")
 
-    # 生成图表
-    print("\n生成图表...")
+    # 生成圖表
+    print("\n生成圖表...")
     OUTPUT = "backtest_output_new_account"
     Path(OUTPUT).mkdir(exist_ok=True)
     chart = BacktestChart(max_bars=120)
@@ -180,7 +180,7 @@ def main():
         chart.plot_all_trade_zooms(r, output_dir=OUTPUT, max_trades=8)
         print(f"  {r.symbol}: done")
 
-    print(f"\n图表已保存 → {OUTPUT}/\n")
+    print(f"\n圖表已保存 → {OUTPUT}/\n")
 
 
 if __name__ == "__main__":

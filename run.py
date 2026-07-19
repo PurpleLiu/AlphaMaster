@@ -1,21 +1,21 @@
 """
-run.py — 实盘入口
+run.py — 實盤入口
 
-启动 MT5 实盘策略主循环。
+啟動 MT5 實盤策略主循環。
 
 使用方式：
     python run.py
 
-前置条件：
-    1. 已运行 main.py 完成训练，生成 best_mt5_strategy.json
+前置條件：
+    1. 已運行 main.py 完成訓練，生成 best_mt5_strategy.json
     2. 已配置 .env 文件，包含 MT5_LOGIN、MT5_PASSWORD、MT5_SERVER
-    3. MetaTrader5 终端已启动并登录
+    3. MetaTrader5 終端已啟動並登錄
 
 流程：
-    - 初始化 MT5StrategyRunner（加载策略公式，失败时自动 sys.exit(1)）
-    - 启动同步主循环（runner.run()）
-    - Ctrl+C（KeyboardInterrupt）可优雅中断
-    - try/finally 确保无论何种退出方式都调用 runner.shutdown()，释放 MT5 连接
+    - 初始化 MT5StrategyRunner（載入策略公式，失敗時自動 sys.exit(1)）
+    - 啟動同步主循環（runner.run()）
+    - Ctrl+C（KeyboardInterrupt）可優雅中斷
+    - try/finally 確保無論何種退出方式都調用 runner.shutdown()，釋放 MT5 連接
 
 Requirements: 10.1–10.7
 """

@@ -1,6 +1,6 @@
-"""飞书自定义机器人通知（信号方向转折时推送文本）。
+"""飛書自訂機器人通知（信號方向轉折時推送文本）。
 
-参考 PA_Agent 的 webhook + 可选签名校验写法。
+參考 PA_Agent 的 webhook + 可選簽名校驗寫法。
 """
 from __future__ import annotations
 
@@ -16,9 +16,9 @@ from typing import Any
 from web.settings import load_settings
 
 _DIR_CN = {
-    "LONG": "看涨",
+    "LONG": "看漲",
     "SHORT": "看跌",
-    "FLAT": "不确定",
+    "FLAT": "不確定",
 }
 
 
@@ -30,16 +30,16 @@ def direction_cn(direction: str | None) -> str:
 
 def strength_cn(strength: float | None, direction: str | None) -> str:
     if direction == "FLAT" or direction is None:
-        return "没把握"
+        return "沒把握"
     s = max(0.0, min(1.0, float(strength or 0.0)))
     if s < 0.2:
-        return "一点把握"
+        return "一點把握"
     if s < 0.4:
         return "把握不大"
     if s < 0.6:
         return "一半把握"
     if s < 0.8:
-        return "比较有把握"
+        return "比較有把握"
     return "很有把握"
 
 
@@ -56,7 +56,7 @@ def send_text(
     secret: str | None = None,
     timeout_s: float = 10.0,
 ) -> tuple[bool, str]:
-    """向飞书群发送纯文本。返回 (ok, message)。"""
+    """向飛書群發送純文本。返回 (ok, message)。"""
     settings = load_settings()
     url = (webhook_url if webhook_url is not None else settings.get("feishu_webhook_url") or "").strip()
     if not url:
@@ -99,12 +99,12 @@ def send_text(
     msg = data.get("msg", data.get("StatusMessage", ""))
     hint = ""
     if code == 19021:
-        hint = "（签名校验失败，请检查密钥或留空禁用签名）"
+        hint = "（簽名校驗失敗，請檢查金鑰或留空禁用簽名）"
     elif code == 19024:
-        hint = "（关键词校验失败，请检查机器人自定义关键词）"
+        hint = "（關鍵字校驗失敗，請檢查機器人自訂關鍵字）"
     elif code == 19022:
-        hint = "（IP 不在白名单）"
-    return False, f"飞书返回 code={code} msg={msg}{hint}"
+        hint = "（IP 不在白名單）"
+    return False, f"飛書返回 code={code} msg={msg}{hint}"
 
 
 def notify_direction_flip(
@@ -117,10 +117,10 @@ def notify_direction_flip(
     strength: float | None = None,
     factor_value: float | None = None,
 ) -> tuple[bool, str]:
-    """信号方向发生转折时推送提醒。"""
+    """信號方向發生轉折時推送提醒。"""
     settings = load_settings()
     if not settings.get("feishu_enabled"):
-        return False, "飞书通知未启用"
+        return False, "飛書通知未啟用"
     if not (settings.get("feishu_webhook_url") or "").strip():
         return False, "未配置 Webhook URL"
 
@@ -130,10 +130,10 @@ def notify_direction_flip(
     factor_s = f"{factor_value:+.4f}" if factor_value is not None else "—"
 
     text = (
-        f"【AlphaMaster 信号转折】\n"
+        f"【AlphaMaster 信號轉折】\n"
         f"{symbol} · {timeframe}\n"
-        f"上次判断：{prev_cn}\n"
-        f"本次判断：{new_cn}（{grasp}）\n"
+        f"上次判斷：{prev_cn}\n"
+        f"本次判斷：{new_cn}（{grasp}）\n"
         f"策略：{strategy_name}\n"
         f"因子：{factor_s}"
     )

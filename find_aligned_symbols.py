@@ -1,10 +1,10 @@
 """
-find_aligned_symbols.py — 找出与核心品种时间对齐良好的截面特征品种
+find_aligned_symbols.py — 找出與核心品種時間對齊良好的截面特徵品種
 
 流程：
-1. 先用 KlineCache 把所有候选品种的数据下载/更新到本地 D:/K线数据/
-2. 然后直接读本地文件做时间戳对比（不再实时查 MT5，快很多）
-3. 结果写到 strategies/aligned_symbols.json
+1. 先用 KlineCache 把所有候選品種的數據下載/更新到本地 D:/K線數據/
+2. 然後直接讀本地文件做時間戳對比（不再即時查 MT5，快很多）
+3. 結果寫到 strategies/aligned_symbols.json
 """
 import sys, json
 sys.path.insert(0, '.')
@@ -33,7 +33,7 @@ NEED = ['USD', 'EUR', 'GBP', 'AUD', 'NZD', 'CAD', 'CHF', 'JPY', 'NOK',
 def main():
     cache = KlineCache()
 
-    # Step 1: 连 MT5 获取候选品种列表
+    # Step 1: 連 MT5 獲取候選品種列表
     mt5.initialize()
     all_syms = [s.name for s in mt5.symbols_get() if s.trade_mode == 4]
     candidates = []
@@ -48,7 +48,7 @@ def main():
     print(msg, end='')
     LOG.write_text(msg)
 
-    # Step 2: 下载/更新所有候选品种到本地（顺序，避免 MT5 并发问题）
+    # Step 2: 下載/更新所有候選品種到本地（順序，避免 MT5 並發問題）
     print("Step 2: Downloading/updating local cache (this may take a while)...\n")
     done = 0
     for s in candidates:
@@ -60,7 +60,7 @@ def main():
             with open(LOG, 'a') as f:
                 f.write(p)
 
-    # 获取核心时间集
+    # 獲取核心時間集
     core_times = None
     for s in CORE:
         df = cache.read_local(s)
@@ -74,7 +74,7 @@ def main():
     with open(LOG, 'a') as f:
         f.write(p2)
 
-    # Step 3: 读本地文件做时间对比（快，不需要 MT5）
+    # Step 3: 讀本地文件做時間對比（快，不需要 MT5）
     print("Step 3: Checking time alignment from local cache...\n")
 
     def check(sym):
@@ -118,7 +118,7 @@ def main():
         f.write(summary)
 
     print(f"Results -> {OUT}")
-    print(f"Cache   -> D:/K线数据/ ({len(list(Path('D:/K线数据').glob('*.parquet')))} files)")
+    print(f"Cache   -> D:/K線數據/ ({len(list(Path('D:/K線數據').glob('*.parquet')))} files)")
 
 
 if __name__ == '__main__':

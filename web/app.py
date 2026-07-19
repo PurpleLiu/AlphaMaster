@@ -83,6 +83,8 @@ class SettingsRequest(BaseModel):
     debug_mode: bool | None = None
     ai_provider: str | None = None
     ai_api_key: str | None = None
+    ai_base_url: str | None = None
+    ai_model: str | None = None
     bt_commission_pct: float | None = None
     bt_slippage_pct: float | None = None
 
@@ -91,6 +93,8 @@ class AnalyzeTrainingRequest(BaseModel):
     provider: str | None = None
     api_key: str | None = None
     symbol: str | None = None
+    base_url: str | None = None
+    model: str | None = None
 
 
 class StartBacktestRequest(BaseModel):
@@ -114,6 +118,12 @@ class FeishuSettingsRequest(BaseModel):
     enabled: bool | None = None
     webhook_url: str | None = None
     secret: str | None = None
+
+
+class TelegramSettingsRequest(BaseModel):
+    enabled: bool | None = None
+    bot_token: str | None = None
+    chat_id: str | None = None
 
 
 class FeishuTestRequest(BaseModel):
@@ -177,7 +187,7 @@ def _browse_data_file() -> dict[str, Any]:
         path = pick_parquet_file()
     except Exception as exc:
         log_error("File picker failed", exc)
-        raise HTTPException(500, f"文件选择失败: {exc}") from exc
+        raise HTTPException(500, f"文件選擇失敗: {exc}") from exc
 
     if not path:
         if is_debug_mode():
@@ -232,7 +242,7 @@ def _browse_strategy_file() -> dict[str, Any]:
         path = pick_strategy_file()
     except Exception as exc:
         log_error("Strategy file picker failed", exc)
-        raise HTTPException(500, f"文件选择失败: {exc}") from exc
+        raise HTTPException(500, f"文件選擇失敗: {exc}") from exc
 
     if not path:
         if is_debug_mode():
@@ -349,6 +359,10 @@ def api_put_settings(req: SettingsRequest) -> dict[str, Any]:
         payload["ai_provider"] = req.ai_provider
     if req.ai_api_key is not None:
         payload["ai_api_key"] = req.ai_api_key
+    if req.ai_base_url is not None:
+        payload["ai_base_url"] = req.ai_base_url
+    if req.ai_model is not None:
+        payload["ai_model"] = req.ai_model
     if req.bt_commission_pct is not None:
         payload["bt_commission_pct"] = req.bt_commission_pct
     if req.bt_slippage_pct is not None:
@@ -388,6 +402,8 @@ def api_config() -> dict[str, Any]:
         "debug_mode": load_settings().get("debug_mode", False),
         "ai_provider": load_settings().get("ai_provider", "deepseek"),
         "ai_api_key": load_settings().get("ai_api_key", ""),
+        "ai_base_url": load_settings().get("ai_base_url", ""),
+        "ai_model": load_settings().get("ai_model", ""),
         "bt_commission_pct": settings.get("bt_commission_pct", 0.02),
         "bt_slippage_pct": settings.get("bt_slippage_pct", 0.01),
         "server_log": snap["server_log"],
@@ -403,6 +419,8 @@ def api_ai_providers() -> dict[str, Any]:
     settings = load_settings()
     status["selected"] = settings.get("ai_provider", "deepseek")
     status["has_api_key"] = bool(settings.get("ai_api_key"))
+    status["base_url"] = settings.get("ai_base_url") or ""
+    status["model"] = settings.get("ai_model") or ""
     return status
 
 
@@ -416,17 +434,27 @@ def api_ai_analyze_training(req: AnalyzeTrainingRequest):
     raw_key = req.api_key if req.api_key is not None else settings.get("ai_api_key") or ""
     key_lower = str(raw_key).strip().lower()
 
-    # openclaw_wb 必须先于 openclaw 判断
+    raw_base_url = (req.base_url if req.base_url is not None
+                    else settings.get("ai_base_url") or "").strip()
+    raw_model = (req.model if req.model is not None
+                 else settings.get("ai_model") or "").strip()
+
+    # openclaw_wb 必須先於 openclaw 判斷
     if key_lower in ("openclaw_wb",) or key_lower.startswith("openclaw_wb/"):
         provider = "openclaw_wb"
     elif key_lower in ("openclaw",) or key_lower.startswith("openclaw/"):
         provider = "openclaw"
+    elif raw_base_url:
+        # 有填 Base URL 時走自訂 OpenAI 相容通道（如 Azure OpenAI）
+        provider = "custom"
     else:
         provider = (req.provider or settings.get("ai_provider") or "deepseek").strip()
 
     save_settings({
         "ai_provider": provider,
         "ai_api_key": str(raw_key).strip(),
+        "ai_base_url": raw_base_url,
+        "ai_model": raw_model,
     })
 
     def event_gen():
@@ -435,6 +463,8 @@ def api_ai_analyze_training(req: AnalyzeTrainingRequest):
                 provider=provider,
                 api_key=str(raw_key).strip() or None,
                 symbol=req.symbol,
+                base_url=raw_base_url or None,
+                model=raw_model or None,
             ):
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
         except Exception as exc:
@@ -468,7 +498,7 @@ def api_browse_strategy_file() -> dict[str, Any]:
 def api_sync_best_strategy(symbol: str | None = None) -> dict[str, Any]:
     sym = _resolve_train_symbol(symbol)
     if not sym:
-        raise HTTPException(400, "请先选择训练数据文件或指定品种")
+        raise HTTPException(400, "請先選擇訓練數據文件或指定品種")
     info = _sync_and_persist_best_strategy(sym)
     if not info:
         raise HTTPException(404, f"未找到 {sym} 的可用策略")
@@ -653,14 +683,14 @@ def api_export_training(symbol: str):
 @app.post("/api/training/import")
 async def api_import_training(
     file: UploadFile = File(...),
-    symbol: str | None = Query(None, description="当前选择的品种，用于校验导入包是否一致"),
+    symbol: str | None = Query(None, description="當前選擇的品種，用於校驗導入包是否一致"),
 ) -> dict[str, Any]:
     if training_manager.status().get("active"):
-        raise HTTPException(409, "训练进行中，请先停止再导入")
+        raise HTTPException(409, "訓練進行中，請先停止再導入")
 
     raw = await file.read()
     if not raw:
-        raise HTTPException(400, "上传文件为空")
+        raise HTTPException(400, "上傳文件為空")
 
     try:
         return import_training_package(
@@ -724,7 +754,7 @@ def api_training_stop() -> dict[str, Any]:
 
 
 # ─────────────────────────────────────────────────────────────────────
-# 回测 API
+# 回測 API
 # ─────────────────────────────────────────────────────────────────────
 
 _METRIC_KEYS = (
@@ -788,7 +818,7 @@ def _filter_report_for_symbol(report: dict[str, Any], symbol: str) -> dict[str, 
 
 
 def _list_backtest_charts(symbol: str | None = None) -> list[dict[str, str]]:
-    """列出回测输出目录下的图表；单品种模式只返回该品种相关文件。"""
+    """列出回測輸出目錄下的圖表；單品種模式只返回該品種相關文件。"""
     if not BACKTEST_OUTPUT_DIR.exists():
         return []
 
@@ -797,17 +827,17 @@ def _list_backtest_charts(symbol: str | None = None) -> list[dict[str, str]]:
         equity = BACKTEST_OUTPUT_DIR / "portfolio_equity.png"
         if equity.exists():
             charts.append(
-                {"name": equity.name, "label": f"{symbol} 资金曲线", "kind": "equity"}
+                {"name": equity.name, "label": f"{symbol} 資金曲線", "kind": "equity"}
             )
         return charts
 
     charts = []
     portfolio = BACKTEST_OUTPUT_DIR / "portfolio_equity.png"
     if portfolio.exists():
-        charts.append({"name": "portfolio_equity.png", "label": "组合资金曲线", "kind": "portfolio"})
+        charts.append({"name": "portfolio_equity.png", "label": "組合資金曲線", "kind": "portfolio"})
     for path in sorted(BACKTEST_OUTPUT_DIR.glob("equity_*.png")):
         sym = path.stem.replace("equity_", "", 1)
-        charts.append({"name": path.name, "label": f"{sym} 资金曲线", "kind": "symbol"})
+        charts.append({"name": path.name, "label": f"{sym} 資金曲線", "kind": "symbol"})
     return charts
 
 
@@ -833,7 +863,7 @@ def api_backtest_start(req: StartBacktestRequest) -> dict[str, Any]:
         else float(settings.get("bt_slippage_pct", 0.01))
     )
     if commission < 0 or slippage < 0:
-        raise HTTPException(400, "手续费和滑点不能为负数")
+        raise HTTPException(400, "手續費和滑點不能為負數")
 
     save_settings({
         "last_strategy_file": info["strategy_file"],
@@ -842,7 +872,7 @@ def api_backtest_start(req: StartBacktestRequest) -> dict[str, Any]:
     })
 
     data_file: str | None = None
-    # 1) 优先用策略 JSON 里记录的训练数据路径
+    # 1) 優先用策略 JSON 裡記錄的訓練數據路徑
     strat_data = (info.get("data_file") or "").strip()
     if strat_data:
         try:
@@ -850,7 +880,7 @@ def api_backtest_start(req: StartBacktestRequest) -> dict[str, Any]:
             if pf.get("valid") is False:
                 raise HTTPException(
                     400,
-                    f"策略记录的数据文件无效: {pf.get('message') or strat_data}",
+                    f"策略記錄的數據文件無效: {pf.get('message') or strat_data}",
                 )
             data_file = pf["data_file"]
         except HTTPException:
@@ -858,10 +888,10 @@ def api_backtest_start(req: StartBacktestRequest) -> dict[str, Any]:
         except Exception as e:
             raise HTTPException(
                 400,
-                f"策略记录的数据文件无法加载: {strat_data}\n{e}",
+                f"策略記錄的數據文件無法載入: {strat_data}\n{e}",
             ) from e
     else:
-        # 2) 回退：训练页最近选择的、同品种 Parquet
+        # 2) 回退：訓練頁最近選擇的、同品種 Parquet
         last_data = settings.get("last_data_file") or ""
         if last_data:
             try:
@@ -874,9 +904,9 @@ def api_backtest_start(req: StartBacktestRequest) -> dict[str, Any]:
     if not data_file:
         raise HTTPException(
             400,
-            "该策略未记录数据文件路径（data_file），且当前也没有同品种的 Parquet。"
-            "请先在「模型训练」页选择对应品种的 Parquet 再回测；"
-            "或使用本软件训练/导出、且包含 data_file 字段的策略文件。",
+            "該策略未記錄數據文件路徑（data_file），且當前也沒有同品種的 Parquet。"
+            "請先在「模型訓練」頁選擇對應品種的 Parquet 再回測；"
+            "或使用本軟體訓練/導出、且包含 data_file 欄位的策略文件。",
         )
 
     save_settings({"last_data_file": data_file})
@@ -915,7 +945,7 @@ def api_backtest_report(symbol: str | None = None) -> dict[str, Any]:
 
 @app.get("/api/backtest/equity")
 def api_backtest_equity(symbol: str | None = None) -> dict[str, Any]:
-    """资金曲线原始数据（供前端渲染交互式 HTML 图表）。"""
+    """資金曲線原始數據（供前端渲染互動式 HTML 圖表）。"""
     import json
 
     path = BACKTEST_OUTPUT_DIR / "equity_curve.json"
@@ -927,7 +957,7 @@ def api_backtest_equity(symbol: str | None = None) -> dict[str, Any]:
     except (json.JSONDecodeError, OSError):
         return {"available": False, "focus_symbol": focus, "data": None}
 
-    # 单品种模式：只保留聚焦品种，去掉无关序列
+    # 單品種模式：只保留聚焦品種，去掉無關序列
     if focus and isinstance(data.get("symbols"), dict) and focus in data["symbols"]:
         data = {
             **data,
@@ -940,21 +970,21 @@ def api_backtest_equity(symbol: str | None = None) -> dict[str, Any]:
 
 @app.get("/api/backtest/chart/{name}")
 def api_backtest_chart(name: str):
-    # 防止路径穿越：仅允许输出目录内的 png 文件
+    # 防止路徑穿越：僅允許輸出目錄內的 png 文件
     if "/" in name or "\\" in name or ".." in name or not name.lower().endswith(".png"):
-        raise HTTPException(400, "非法文件名")
+        raise HTTPException(400, "非法檔案名")
     path = (BACKTEST_OUTPUT_DIR / name).resolve()
     try:
         path.relative_to(BACKTEST_OUTPUT_DIR.resolve())
     except ValueError:
-        raise HTTPException(400, "非法路径") from None
+        raise HTTPException(400, "非法路徑") from None
     if not path.exists():
-        raise HTTPException(404, "图表不存在")
+        raise HTTPException(404, "圖表不存在")
     return FileResponse(path, media_type="image/png")
 
 
 # ─────────────────────────────────────────────────────────────────────
-# 实时行情分析 API
+# 即時行情分析 API
 # ─────────────────────────────────────────────────────────────────────
 
 
@@ -987,7 +1017,7 @@ def api_realtime_tradingview_probe() -> dict[str, Any]:
         "ok": ok,
         "detail": detail,
         "blocked": not ok,
-        "title": "无法使用 TradingView",
+        "title": "無法使用 TradingView",
         "message": None if ok else TV_CONNECTIVITY_MESSAGE,
         "wiki_url": TV_CLOUD_SERVER_WIKI_URL,
     }
@@ -995,7 +1025,7 @@ def api_realtime_tradingview_probe() -> dict[str, Any]:
 
 @app.get("/api/realtime/strategies")
 def api_realtime_strategies() -> dict[str, Any]:
-    """已保存的 best_*.json 策略，供因子来源下拉。"""
+    """已保存的 best_*.json 策略，供因子來源下拉。"""
     rows = []
     for s in list_strategies():
         sym = s.get("symbol")
@@ -1078,6 +1108,54 @@ def api_realtime_feishu_put(req: FeishuSettingsRequest) -> dict[str, Any]:
     }
 
 
+@app.get("/api/realtime/telegram")
+def api_realtime_telegram_get() -> dict[str, Any]:
+    s = load_settings()
+    return {
+        "enabled": bool(s.get("telegram_enabled")),
+        "bot_token": s.get("telegram_bot_token") or "",
+        "chat_id": s.get("telegram_chat_id") or "",
+    }
+
+
+@app.put("/api/realtime/telegram")
+def api_realtime_telegram_put(req: TelegramSettingsRequest) -> dict[str, Any]:
+    payload: dict[str, Any] = {}
+    if req.enabled is not None:
+        payload["telegram_enabled"] = bool(req.enabled)
+    if req.bot_token is not None:
+        payload["telegram_bot_token"] = req.bot_token.strip()
+    if req.chat_id is not None:
+        payload["telegram_chat_id"] = req.chat_id.strip()
+    saved = save_settings(payload)
+    return {
+        "ok": True,
+        "enabled": bool(saved.get("telegram_enabled")),
+        "bot_token": saved.get("telegram_bot_token") or "",
+        "chat_id": saved.get("telegram_chat_id") or "",
+    }
+
+
+@app.post("/api/realtime/telegram/test")
+def api_realtime_telegram_test(req: TelegramSettingsRequest) -> dict[str, Any]:
+    from web.telegram_notify import send_text as send_telegram_text
+
+    token = (req.bot_token or "").strip() or (load_settings().get("telegram_bot_token") or "").strip()
+    chat_id = (req.chat_id or "").strip() or str(load_settings().get("telegram_chat_id") or "").strip()
+    if not token:
+        raise HTTPException(400, "請先填寫 Bot Token")
+    if not chat_id:
+        raise HTTPException(400, "請先填寫 Chat ID")
+    ok, msg = send_telegram_text(
+        "✅ AlphaMaster Telegram 通知測試：配置正常。信號方向轉折時會推送提醒。",
+        bot_token=token,
+        chat_id=chat_id,
+    )
+    if not ok:
+        raise HTTPException(400, msg)
+    return {"ok": True, "message": msg}
+
+
 @app.post("/api/realtime/feishu/test")
 def api_realtime_feishu_test(req: FeishuTestRequest) -> dict[str, Any]:
     from web.feishu_notify import send_text
@@ -1086,12 +1164,12 @@ def api_realtime_feishu_test(req: FeishuTestRequest) -> dict[str, Any]:
     if not url:
         url = (load_settings().get("feishu_webhook_url") or "").strip()
     if not url:
-        raise HTTPException(400, "请先填写 Webhook URL")
+        raise HTTPException(400, "請先填寫 Webhook URL")
     secret = req.secret
     if secret is None:
         secret = load_settings().get("feishu_secret") or ""
     ok, msg = send_text(
-        "✅ AlphaMaster 飞书通知测试：配置正常。信号方向转折时会推送提醒。",
+        "✅ AlphaMaster 飛書通知測試：配置正常。信號方向轉折時會推送提醒。",
         webhook_url=url,
         secret=secret or "",
     )

@@ -1,24 +1,24 @@
 """
-download_okx_klines.py — 从 OKX 下载主流 USDT 永续合约 K 线
+download_okx_klines.py — 從 OKX 下載主流 USDT 永續合約 K 線
 
-输出格式与 D:\\OKX_K线数据 一致：
-    {品种}_{周期}.parquet
+輸出格式與 D:\\OKX_K線數據 一致：
+    {品種}_{週期}.parquet
     列: time, open, high, low, close, tick_volume
-    time 为 Unix 秒（int64）
+    time 為 Unix 秒（int64）
 
-周期映射:
+週期映射:
     5m -> M5, 15m -> M15, 1H -> H1, 1D -> D1
 
-主流币名单（20 只，按市值/流动性常见排序，不含稳定币）:
+主流幣名單（20 隻，按市值/流動性常見排序，不含穩定幣）:
     BTC ETH XRP BNB SOL DOGE ADA LINK BCH XLM
     LTC HBAR AVAX UNI DOT POL SHIB NEAR ATOM TRX
 
 用法:
     python download_okx_klines.py
-    python download_okx_klines.py --out D:\\OKX_K线数据
+    python download_okx_klines.py --out D:\\OKX_K線數據
     python download_okx_klines.py --resume
 
-每个合约/周期会拉取 OKX 能提供的全部历史 K 线（不设条数上限）。
+每個合約/週期會拉取 OKX 能提供的全部歷史 K 線（不設條數上限）。
 """
 from __future__ import annotations
 
@@ -40,11 +40,11 @@ sys.path.insert(0, str(Path(__file__).parent))
 from config import Config
 
 OKX_BASE = "https://www.okx.com"
-DEFAULT_OUT = Path(r"D:\OKX_K线数据")
+DEFAULT_OUT = Path(r"D:\OKX_K線數據")
 REQUEST_SLEEP = 0.21
 LOG_EVERY_PAGES = 50
 
-# 固定主流 20 币（参考 CoinMarketCap 市值前列，剔除 USDT/USDC 等稳定币）
+# 固定主流 20 幣（參考 CoinMarketCap 市值前列，剔除 USDT/USDC 等穩定幣）
 MAINSTREAM_BASES: tuple[str, ...] = (
     "BTC", "ETH", "XRP", "BNB", "SOL",
     "DOGE", "ADA", "LINK", "BCH", "XLM",
@@ -77,15 +77,15 @@ def okx_get(path: str, params: dict[str, str], retries: int = 5) -> list:
         except Exception as exc:
             last_err = exc
             wait = min(60, 2 ** attempt)
-            logger.warning(f"请求失败 ({attempt + 1}/{retries}): {exc}，{wait}s 后重试")
+            logger.warning(f"請求失敗 ({attempt + 1}/{retries}): {exc}，{wait}s 後重試")
             time.sleep(wait)
-    raise RuntimeError(f"OKX 请求失败: {last_err}")
+    raise RuntimeError(f"OKX 請求失敗: {last_err}")
 
 
 def inst_to_symbol(inst_id: str) -> str:
     """BTC-USDT-SWAP -> BTCUSDT"""
     if not inst_id.endswith("-USDT-SWAP"):
-        raise ValueError(f"非 USDT 永续: {inst_id}")
+        raise ValueError(f"非 USDT 永續: {inst_id}")
     base = inst_id[: -len("-USDT-SWAP")]
     return f"{base}USDT"
 
@@ -112,11 +112,11 @@ def fetch_mainstream_swap_inst_ids() -> list[str]:
             missing.append(base)
 
     if missing:
-        logger.warning(f"以下主流币在 OKX 无 USDT 永续，已跳过: {', '.join(missing)}")
+        logger.warning(f"以下主流幣在 OKX 無 USDT 永續，已跳過: {', '.join(missing)}")
     if not inst_ids:
-        raise RuntimeError("未找到任何可用的主流 USDT 永续合约")
+        raise RuntimeError("未找到任何可用的主流 USDT 永續合約")
 
-    logger.info(f"已选取固定主流币 {len(inst_ids)} 只 USDT 永续")
+    logger.info(f"已選取固定主流幣 {len(inst_ids)} 只 USDT 永續")
     for i, inst in enumerate(inst_ids, 1):
         logger.info(f"  #{i:02d} {inst}")
     return inst_ids
@@ -211,7 +211,7 @@ def manifest_key(symbol: str, tf_tag: str) -> str:
 
 def fmt_range(df: pd.DataFrame) -> str:
     if df.empty:
-        return "无数据"
+        return "無數據"
     t0 = datetime.fromtimestamp(int(df["time"].iloc[0]), tz=timezone.utc).strftime("%Y-%m-%d")
     t1 = datetime.fromtimestamp(int(df["time"].iloc[-1]), tz=timezone.utc).strftime("%Y-%m-%d")
     return f"{t0} ~ {t1}"
@@ -233,11 +233,11 @@ def run(
     skipped = 0
     failed = 0
 
-    logger.info(f"输出目录: {out_dir}")
+    logger.info(f"輸出目錄: {out_dir}")
     logger.info(
-        f"历史范围: {'全量（OKX 能提供的全部 K 线）' if max_bars is None else f'最多 {max_bars:,} 根'}"
+        f"歷史範圍: {'全量（OKX 能提供的全部 K 線）' if max_bars is None else f'最多 {max_bars:,} 根'}"
     )
-    logger.info(f"任务总数: {total_tasks}（{len(inst_ids)} 品种 × {len(TIMEFRAMES)} 周期）")
+    logger.info(f"任務總數: {total_tasks}（{len(inst_ids)} 品種 × {len(TIMEFRAMES)} 週期）")
 
     for inst_id in inst_ids:
         symbol = inst_to_symbol(inst_id)
@@ -248,15 +248,15 @@ def run(
 
             if resume and key in done and out_path.exists():
                 skipped += 1
-                logger.info(f"[{finished}/{total_tasks}] 跳过已完成 {out_path.name}")
+                logger.info(f"[{finished}/{total_tasks}] 跳過已完成 {out_path.name}")
                 continue
 
-            logger.info(f"[{finished}/{total_tasks}] 下载 {inst_id} {bar} -> {out_path.name}")
+            logger.info(f"[{finished}/{total_tasks}] 下載 {inst_id} {bar} -> {out_path.name}")
             t0 = time.time()
             try:
                 df = download_history(inst_id, bar, max_bars)
                 if df.empty:
-                    logger.warning(f"  {out_path.name}: 无数据")
+                    logger.warning(f"  {out_path.name}: 無數據")
                     failed += 1
                     continue
                 save_parquet(df, out_path)
@@ -270,28 +270,28 @@ def run(
                 )
                 if len(df) < Config.MIN_BARS:
                     logger.warning(
-                        f"  {out_path.name}: 仅 {len(df)} 根，低于训练最低要求 {Config.MIN_BARS}"
+                        f"  {out_path.name}: 僅 {len(df)} 根，低於訓練最低要求 {Config.MIN_BARS}"
                     )
             except Exception as exc:
                 failed += 1
-                logger.error(f"  {out_path.name}: 失败 — {exc}")
+                logger.error(f"  {out_path.name}: 失敗 — {exc}")
 
     logger.info(
-        f"完成。成功 {ok}，跳过 {skipped}，失败 {failed}，总计 {total_tasks}。"
-        f"清单: {manifest_path}"
+        f"完成。成功 {ok}，跳過 {skipped}，失敗 {failed}，總計 {total_tasks}。"
+        f"清單: {manifest_path}"
     )
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="下载 OKX 主流合约 K 线到 Parquet")
-    parser.add_argument("--out", type=str, default=str(DEFAULT_OUT), help="输出目录")
+    parser = argparse.ArgumentParser(description="下載 OKX 主流合約 K 線到 Parquet")
+    parser.add_argument("--out", type=str, default=str(DEFAULT_OUT), help="輸出目錄")
     parser.add_argument(
         "--max-bars",
         type=int,
         default=None,
-        help="可选：限制每个文件最多保留 K 线根数（默认不限制，拉全历史）",
+        help="可選：限制每個文件最多保留 K 線根數（默認不限制，拉全歷史）",
     )
-    parser.add_argument("--resume", action="store_true", help="跳过 manifest 中已完成的文件")
+    parser.add_argument("--resume", action="store_true", help="跳過 manifest 中已完成的文件")
     args = parser.parse_args()
 
     log_dir = Path(__file__).parent / "logs"
@@ -299,10 +299,10 @@ def main() -> None:
     logger.add(log_dir / "okx_download.log", rotation="20 MB", encoding="utf-8")
 
     print(f"{'=' * 62}")
-    print("  OKX 主流币 K 线下载")
+    print("  OKX 主流幣 K 線下載")
     print(f"  固定 {len(MAINSTREAM_BASES)} 只: {' '.join(MAINSTREAM_BASES)}")
-    print(f"  周期 {', '.join(TIMEFRAMES.values())}")
-    print(f"  历史: {'全量' if args.max_bars is None else f'最多 {args.max_bars:,} 根'}")
+    print(f"  週期 {', '.join(TIMEFRAMES.values())}")
+    print(f"  歷史: {'全量' if args.max_bars is None else f'最多 {args.max_bars:,} 根'}")
     print(f"  保存至: {args.out}")
     print(f"{'=' * 62}\n")
 

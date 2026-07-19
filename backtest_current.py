@@ -1,11 +1,11 @@
 """
-backtest_current.py — 对已训练的 forex 组因子做完整回测分析
+backtest_current.py — 對已訓練的 forex 組因子做完整回測分析
 
 用法：
     python backtest_current.py --offline
 
-加载 strategies/best_forex*.json 中的因子，在 EURUSD + USDJPY 全量历史数据上回测，
-输出：对比表、品种级详情、过拟合诊断、资金曲线图。
+載入 strategies/best_forex*.json 中的因子，在 EURUSD + USDJPY 全量歷史數據上回測，
+輸出：對比表、品種級詳情、過擬合診斷、資金曲線圖。
 """
 import sys, json, math
 from pathlib import Path
@@ -32,18 +32,18 @@ FOREX_SYMS = ["EURUSD", "USDJPY"]
 
 
 def load_formula(path: Path) -> tuple[list[int], str, float] | None:
-    """从 JSON 加载因子，返回 (formula, readable, score)。"""
+    """從 JSON 載入因子，返回 (formula, readable, score)。"""
     if not path.exists():
         return None
     data = json.load(open(path))
     if data.get("vocab_version", "unknown") != VOCAB_VERSION:
-        print(f"  [跳过] {path.name}: vocab 版本不符")
+        print(f"  [跳過] {path.name}: vocab 版本不符")
         return None
     return data["formula"], decode(data["formula"]), data.get("best_score", 0.0)
 
 
 def plot_equity_curves(results: list[dict], times_arr: np.ndarray, output_dir: str):
-    """绘制各因子的组合资金曲线对比 + 回撤。"""
+    """繪製各因子的組合資金曲線對比 + 回撤。"""
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     n = len(results)
     fig = plt.figure(figsize=(16, 9), dpi=110)
@@ -69,13 +69,13 @@ def plot_equity_curves(results: list[dict], times_arr: np.ndarray, output_dir: s
     ax_eq.set_ylabel("Cumulative Log Return", fontsize=10)
     ax_eq.legend(loc="upper left", fontsize=9, framealpha=0.85)
     ax_eq.grid(alpha=0.25)
-    ax_eq.set_title("Forex 组因子回测对比  |  EURUSD + USDJPY 等权组合", fontsize=12, pad=8)
+    ax_eq.set_title("Forex 組因子回測對比  |  EURUSD + USDJPY 等權組合", fontsize=12, pad=8)
 
     ax_dd.axhline(0, color="gray", linewidth=0.5)
     ax_dd.set_ylabel("Drawdown", fontsize=9)
     ax_dd.grid(alpha=0.2)
 
-    # X 轴时间刻度
+    # X 軸時間刻度
     if times_arr is not None and len(times_arr) == T:
         from datetime import datetime, timezone
         step = max(1, T // 10)
@@ -89,12 +89,12 @@ def plot_equity_curves(results: list[dict], times_arr: np.ndarray, output_dir: s
     path = str(Path(output_dir) / "forex_factors_equity.png")
     fig.savefig(path, bbox_inches="tight")
     plt.close(fig)
-    print(f"  资金曲线图已保存 → {path}")
+    print(f"  資金曲線圖已保存 → {path}")
     return path
 
 
 def plot_per_symbol(results: list[dict], output_dir: str):
-    """各因子分品种的资金曲线（子图）。"""
+    """各因子分品種的資金曲線（子圖）。"""
     n = len(results)
     fig, axes = plt.subplots(n, 1, figsize=(14, 3.2 * n), dpi=110, sharex=True)
     if n == 1:
@@ -116,22 +116,22 @@ def plot_per_symbol(results: list[dict], output_dir: str):
     path = str(Path(output_dir) / "forex_factors_per_symbol.png")
     fig.savefig(path, bbox_inches="tight")
     plt.close(fig)
-    print(f"  分品种图已保存 → {path}")
+    print(f"  分品種圖已保存 → {path}")
 
 
 def main():
     offline = "--offline" in sys.argv
 
-    # ── 1. 加载因子 ─────────────────────────────────────────────────
+    # ── 1. 載入因子 ─────────────────────────────────────────────────
     print(f"\n{'='*72}")
-    print(f"  Forex 组已训练因子回测分析  |  offline={offline}")
+    print(f"  Forex 組已訓練因子回測分析  |  offline={offline}")
     print(f"{'='*72}\n")
 
     candidates = []
     for name, label in [
-        ("best_forex.json",         "当前训练(score=0.485)"),
-        ("best_forex_rank2.json",   "rank2(历史)"),
-        ("best_forex_rank3.json",   "rank3(历史)"),
+        ("best_forex.json",         "當前訓練(score=0.485)"),
+        ("best_forex_rank2.json",   "rank2(歷史)"),
+        ("best_forex_rank3.json",   "rank3(歷史)"),
     ]:
         path = Path("strategies") / name
         loaded = load_formula(path)
@@ -144,12 +144,12 @@ def main():
         print(f"  {label}: {readable}")
 
     if not candidates:
-        print("[ERROR] 没有找到任何因子文件"); sys.exit(1)
+        print("[ERROR] 沒有找到任何因子文件"); sys.exit(1)
     print()
 
-    # ── 2. 加载数据（forex 组独立加载，全量历史）────────────────────
-    print("加载数据（forex 组，全量历史）...")
-    # 临时只加载 forex 组品种
+    # ── 2. 載入數據（forex 組獨立載入，全量歷史）────────────────────
+    print("載入數據（forex 組，全量歷史）...")
+    # 臨時只載入 forex 組品種
     original_symbols = Config.SYMBOLS[:]
     Config.SYMBOLS = FOREX_SYMS
     try:
@@ -160,21 +160,21 @@ def main():
             syms = mgr.symbols
             T = raw_dict["open"].shape[1]
             times_all = raw_dict.get("time", None)
-            print(f"  品种: {syms}  T={T} bars")
-            print(f"  时间范围: {int(times_all[0].min())} .. {int(times_all[0].max())}\n")
+            print(f"  品種: {syms}  T={T} bars")
+            print(f"  時間範圍: {int(times_all[0].min())} .. {int(times_all[0].max())}\n")
 
             feat = MT5FeatureEngineer.compute_features(raw_dict)  # [N, F, T]
             target_ret = mgr.target_ret
 
-            # ── 3. 逐因子回测 ───────────────────────────────────────
+            # ── 3. 逐因子回測 ───────────────────────────────────────
             results = []
             for c in candidates:
-                # backtest_one 内部硬编码了 sym_names = ["EURUSD", "USDJPY"][:N]
+                # backtest_one 內部寫死了 sym_names = ["EURUSD", "USDJPY"][:N]
                 res = backtest_one(c["formula"], feat, raw_dict, target_ret, cost_rate=0.0001)
                 if res is None:
-                    print(f"  [失败] {c['label']}: 公式执行错误")
+                    print(f"  [失敗] {c['label']}: 公式執行錯誤")
                     continue
-                # 补充组合资金序列
+                # 補充組合資金序列
                 port_pnl = np.mean([d["pnl"] for d in res["per_sym"].values()], axis=0)
                 port_cum = np.cumsum(port_pnl)
                 res["port_pnl"] = port_pnl
@@ -187,11 +187,11 @@ def main():
         Config.SYMBOLS = original_symbols
 
     if not results:
-        print("[ERROR] 所有因子回测失败"); sys.exit(1)
+        print("[ERROR] 所有因子回測失敗"); sys.exit(1)
 
-    # ── 4. 对比汇总表 ───────────────────────────────────────────────
+    # ── 4. 對比匯總表 ───────────────────────────────────────────────
     print(f"{'='*72}")
-    print(f"  回测对比汇总（{T} bars H1，EURUSD+USDJPY 等权组合）")
+    print(f"  回測對比匯總（{T} bars H1，EURUSD+USDJPY 等權組合）")
     print(f"{'='*72}")
     hdr = f"  {'因子':22s} {'Score':>7} {'TotRet':>8} {'Sharpe':>7} {'Sortino':>8} {'MDD':>7} {'IC':>7} {'H1':>5} {'H2':>5} {'AvgHold':>8}"
     print(hdr)
@@ -210,9 +210,9 @@ def main():
               f"{r['avg_hold_h']:>7.1f}h {consistency}")
     print()
 
-    # ── 5. 品种级详情 ───────────────────────────────────────────────
+    # ── 5. 品種級詳情 ───────────────────────────────────────────────
     print(f"{'─'*72}")
-    print(f"  品种级详情")
+    print(f"  品種級詳情")
     print(f"{'─'*72}")
     for r in results:
         print(f"\n  [{r['label']}]  {r['readable']}")
@@ -223,48 +223,48 @@ def main():
                   f"MDD={d['mdd']:.3f}  Trades={d['n_trades']}  "
                   f"AvgHold={d['avg_hold']:.0f}h  {sig}")
 
-    # ── 6. 过拟合诊断 ───────────────────────────────────────────────
+    # ── 6. 過擬合診斷 ───────────────────────────────────────────────
     print(f"\n{'='*72}")
-    print(f"  过拟合与稳健性诊断")
+    print(f"  過擬合與穩健性診斷")
     print(f"{'='*72}")
     for r in results:
         issues = []
         h1, h2 = r["half1_sharpe"], r["half2_sharpe"]
         if h1 > 0 and h2 < 0:
-            issues.append(f"前半 Sharpe={h1:.2f} > 0，后半={h2:.2f} < 0 → 过拟合嫌疑")
+            issues.append(f"前半 Sharpe={h1:.2f} > 0，後半={h2:.2f} < 0 → 過擬合嫌疑")
         if h1 < 0 and h2 > 0:
-            issues.append(f"前半={h1:.2f} < 0，后半={h2:.2f} > 0 → 近期才生效，需警惕")
+            issues.append(f"前半={h1:.2f} < 0，後半={h2:.2f} > 0 → 近期才生效，需警惕")
         if r["port_mdd"] > 0.5:
-            issues.append(f"最大回撤过大: {r['port_mdd']:.3f}")
+            issues.append(f"最大回撤過大: {r['port_mdd']:.3f}")
         if r["avg_hold_h"] < 2:
-            issues.append(f"持仓太短({r['avg_hold_h']:.1f}h)，点差侵蚀严重")
+            issues.append(f"持倉太短({r['avg_hold_h']:.1f}h)，點差侵蝕嚴重")
         if r["avg_hold_h"] > 500:
-            issues.append(f"持仓极长({r['avg_hold_h']:.0f}h)，交易数极少，统计不可靠")
+            issues.append(f"持倉極長({r['avg_hold_h']:.0f}h)，交易數極少，統計不可靠")
         if r["n_pos_syms"] < r["n_syms"]:
-            issues.append(f"仅 {r['n_pos_syms']}/{r['n_syms']} 品种盈利，跨品种一致性差")
+            issues.append(f"僅 {r['n_pos_syms']}/{r['n_syms']} 品種盈利，跨品種一致性差")
         if abs(r["ic"]) < 0.005:
-            issues.append(f"IC≈0 ({r['ic']:.4f})，预测力存疑")
-        # 前后半段 Sortino 一致性
+            issues.append(f"IC≈0 ({r['ic']:.4f})，預測力存疑")
+        # 前後半段 Sortino 一致性
         s1, s2 = r["half1_sortino"], r["half2_sortino"]
         if s1 > 0 and s2 > 0 and abs(s1 - s2) > max(s1, s2) * 0.7:
-            issues.append(f"前后半 Sortino 差异大: {s1:.2f} vs {s2:.2f}，稳定性一般")
+            issues.append(f"前後半 Sortino 差異大: {s1:.2f} vs {s2:.2f}，穩定性一般")
 
         if issues:
             print(f"\n  [{r['label']}]")
             for iss in issues:
                 print(f"    ⚠ {iss}")
         else:
-            print(f"\n  [{r['label']}]  ✓ 无明显问题")
+            print(f"\n  [{r['label']}]  ✓ 無明顯問題")
 
-    # ── 7. 资金曲线图 ───────────────────────────────────────────────
+    # ── 7. 資金曲線圖 ───────────────────────────────────────────────
     print(f"\n{'='*72}")
-    print(f"  生成图表")
+    print(f"  生成圖表")
     print(f"{'='*72}")
     times_np = times_all[0].numpy() if times_all is not None else None
     plot_equity_curves(results, times_np, OUTPUT_DIR)
     plot_per_symbol(results, OUTPUT_DIR)
 
-    # ── 8. JSON 报告 ────────────────────────────────────────────────
+    # ── 8. JSON 報告 ────────────────────────────────────────────────
     report = {
         "symbols": FOREX_SYMS,
         "T_bars": T,
@@ -296,7 +296,7 @@ def main():
     Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
     with open(rp, "w") as f:
         json.dump(report, f, indent=2, ensure_ascii=False)
-    print(f"\n  JSON 报告已保存 → {rp}")
+    print(f"\n  JSON 報告已保存 → {rp}")
     print("完成。\n")
 
 

@@ -1,10 +1,10 @@
 /* =========================================================================
-   AlphaMaster · 背景动效引擎
-   三层画布：
-     1. 神经网络层  — 神经元节点 + 突触连线 + 沿突触流动的数据脉冲
-     2. 数学符号层  — 深空中缓慢漂移 / 旋转的数学符号与希腊字母
-     3. 光晕层      — 随鼠标缓动的极光辉光
-   纯 Canvas 实现，尊重 prefers-reduced-motion，页面隐藏时自动暂停。
+   AlphaMaster · 背景動效引擎
+   三層畫布：
+     1. 神經網路層  — 神經元節點 + 突觸連線 + 沿突觸流動的數據脈衝
+     2. 數學符號層  — 深空中緩慢飄移 / 旋轉的數學符號與希臘字母
+     3. 光暈層      — 隨滑鼠緩動的極光輝光
+   純 Canvas 實現，尊重 prefers-reduced-motion，頁面隱藏時自動暫停。
    ========================================================================= */
 (() => {
   "use strict";
@@ -20,10 +20,10 @@
 
   let W = 0, H = 0, DPR = Math.min(window.devicePixelRatio || 1, 2);
 
-  // 鼠标缓动（视差 + 辉光跟随）
+  // 滑鼠緩動（視差 + 輝光跟隨）
   const mouse = { x: 0.5, y: 0.35, tx: 0.5, ty: 0.35 };
 
-  /* ----------------------------- 数据结构 ----------------------------- */
+  /* ----------------------------- 數據結構 ----------------------------- */
   let nodes = [];
   let pulses = [];
   let glyphs = [];
@@ -55,7 +55,7 @@
         vy: rand(-0.12, 0.12) * depth,
         depth,
         r: rand(1.1, 2.6) * depth,
-        // 呼吸脉动
+        // 呼吸脈動
         phase: rand(0, Math.PI * 2),
         pspeed: rand(0.6, 1.6),
       };
@@ -92,8 +92,8 @@
     buildScene();
   }
 
-  /* ----------------------- 连线 & 脉冲发射 ----------------------- */
-  const LINK_DIST = 168;      // 建立突触的最大距离
+  /* ----------------------- 連線 & 脈衝發射 ----------------------- */
+  const LINK_DIST = 168;      // 建立突觸的最大距離
   const LINK_DIST_SQ = LINK_DIST * LINK_DIST;
 
   function spawnPulse(a, b) {
@@ -107,11 +107,11 @@
 
   function maybeSpawnPulses() {
     if (reduceMotion) return;
-    // 控制脉冲总量
+    // 控制脈衝總量
     if (pulses.length > 46) return;
     if (Math.random() > 0.28) return;
     const a = nodes[(Math.random() * nodes.length) | 0];
-    // 找一个近邻
+    // 找一個近鄰
     let best = null, bestD = LINK_DIST_SQ;
     for (const b of nodes) {
       if (b === a) continue;
@@ -122,7 +122,7 @@
     if (best) spawnPulse(a, best);
   }
 
-  /* ------------------------------ 绘制 ------------------------------ */
+  /* ------------------------------ 繪製 ------------------------------ */
   let last = performance.now();
   let running = true;
 
@@ -131,7 +131,7 @@
     const dt = Math.min(48, now - last);
     last = now;
 
-    // 鼠标缓动
+    // 滑鼠緩動
     mouse.x += (mouse.tx - mouse.x) * 0.05;
     mouse.y += (mouse.ty - mouse.y) * 0.05;
     const parX = (mouse.x - 0.5);
@@ -154,7 +154,7 @@
         g.rot += g.vrot * (dt / 16);
         g.pulse += 0.01 * (dt / 16);
       }
-      // 环绕
+      // 環繞
       if (g.x < -100) g.x = W + 100;
       if (g.x > W + 100) g.x = -100;
       if (g.y < -100) g.y = H + 100;
@@ -179,7 +179,7 @@
   function drawNeural(dt, now, parX, parY) {
     nctx.clearRect(0, 0, W, H);
 
-    // 更新节点位置
+    // 更新節點位置
     for (const n of nodes) {
       if (!reduceMotion) {
         n.x += n.vx * (dt / 16);
@@ -191,7 +191,7 @@
       n.y = Math.max(0, Math.min(H, n.y));
     }
 
-    // 突触连线
+    // 突觸連線
     for (let i = 0; i < nodes.length; i++) {
       const a = nodes[i];
       const ax = a.x + parX * 18 * a.depth;
@@ -214,7 +214,7 @@
       }
     }
 
-    // 节点（神经元）
+    // 節點（神經元）
     for (const n of nodes) {
       const px = n.x + parX * 18 * n.depth;
       const py = n.y + parY * 18 * n.depth;
@@ -236,7 +236,7 @@
       nctx.fill();
     }
 
-    // 数据脉冲
+    // 數據脈衝
     maybeSpawnPulses();
     for (let i = pulses.length - 1; i >= 0; i--) {
       const p = pulses[i];
@@ -245,7 +245,7 @@
       const ease = p.t;
       const x = p.ax + (p.bx - p.ax) * ease + parX * 18;
       const y = p.ay + (p.by - p.ay) * ease + parY * 18;
-      const fade = Math.sin(p.t * Math.PI); // 两端淡入淡出
+      const fade = Math.sin(p.t * Math.PI); // 兩端淡入淡出
       const col = p.hue === "teal" ? "94, 234, 212" : "129, 140, 248";
 
       const grd = nctx.createRadialGradient(x, y, 0, x, y, 7);
@@ -284,10 +284,10 @@
     }
   });
 
-  /* ------------------------------ 启动 ------------------------------ */
+  /* ------------------------------ 啟動 ------------------------------ */
   resize();
   if (reduceMotion) {
-    // 静态渲染一帧
+    // 靜態渲染一幀
     drawGlyphs(16, 0, 0);
     drawNeural(16, performance.now(), 0, 0);
   } else {

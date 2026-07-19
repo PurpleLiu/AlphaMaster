@@ -1,15 +1,15 @@
 """
-download_full_history.py — 从 MT5 下载所有品种的全量历史 H1 数据
+download_full_history.py — 從 MT5 下載所有品種的全量歷史 H1 數據
 
 原理：
-    MT5 copy_rates_from_pos 单次最多 50000 根。
-    本脚本用 50000 根拉取（对 H1 约覆盖 2018~至今，共 8 年）。
+    MT5 copy_rates_from_pos 單次最多 50000 根。
+    本腳本用 50000 根拉取（對 H1 約覆蓋 2018~至今，共 8 年）。
 
 用法：
-    python download_full_history.py              # 下载 Config.SYMBOLS 里的所有品种
-    python download_full_history.py EURUSD XAUUSD   # 只下载指定品种
+    python download_full_history.py              # 下載 Config.SYMBOLS 裡的所有品種
+    python download_full_history.py EURUSD XAUUSD   # 只下載指定品種
 
-输出：D:/K线数据/{symbol}_H1.parquet
+輸出：D:/K線數據/{symbol}_H1.parquet
 """
 import sys
 import time
@@ -34,29 +34,29 @@ CACHE_DIR  = Path(Config.KLINE_CACHE_DIR)
 TIMEFRAME  = mt5.TIMEFRAME_H1
 _COLUMNS   = ["time", "open", "high", "low", "close", "tick_volume"]
 
-# MT5 单次请求上限（实测 50000 是安全上限）
+# MT5 單次請求上限（實測 50000 是安全上限）
 MAX_BARS_PER_REQUEST = 50000
 
 
 def download_symbol(symbol: str) -> int:
-    """下载单个品种的全量 H1 历史数据，返回总 bar 数。0 表示失败。"""
+    """下載單個品種的全量 H1 歷史數據，返回總 bar 數。0 表示失敗。"""
     path = CACHE_DIR / f"{symbol}_H1.parquet"
 
-    # 检查 MT5 是否知道这个品种
+    # 檢查 MT5 是否知道這個品種
     info = mt5.symbol_info(symbol)
     if info is None:
-        logger.warning(f"[{symbol}] MT5 不认识此品种，跳过")
+        logger.warning(f"[{symbol}] MT5 不認識此品種，跳過")
         return 0
 
-    # 先确保品种在 MarketWatch 中可见
+    # 先確保品種在 MarketWatch 中可見
     if not info.visible:
         mt5.symbol_select(symbol, True)
         time.sleep(0.2)
 
-    logger.info(f"[{symbol}] 开始下载（最多 {MAX_BARS_PER_REQUEST} 根 H1）...")
+    logger.info(f"[{symbol}] 開始下載（最多 {MAX_BARS_PER_REQUEST} 根 H1）...")
     t0 = time.time()
 
-    # MT5 大请求后有限速，加重试机制
+    # MT5 大請求後有限速，加重試機制
     rates = None
     for attempt in range(5):
         rates = mt5.copy_rates_from_pos(symbol, TIMEFRAME, 0, MAX_BARS_PER_REQUEST)
@@ -65,11 +65,11 @@ def download_symbol(symbol: str) -> int:
         err = mt5.last_error()
         if attempt < 4:
             wait = 35 * (attempt + 1)  # 35s, 70s, 105s...
-            logger.warning(f"[{symbol}] 第{attempt+1}次失败 error={err}，等待 {wait}s 重试...")
+            logger.warning(f"[{symbol}] 第{attempt+1}次失敗 error={err}，等待 {wait}s 重試...")
             time.sleep(wait)
 
     if rates is None or len(rates) == 0:
-        logger.warning(f"[{symbol}] 5次重试后仍无数据（error={mt5.last_error()}）")
+        logger.warning(f"[{symbol}] 5次重試後仍無數據（error={mt5.last_error()}）")
         return 0
 
     df = pd.DataFrame(rates)[_COLUMNS].astype({
@@ -97,26 +97,26 @@ def download_symbol(symbol: str) -> int:
 
 
 def main():
-    # 确定要下载的品种列表
+    # 確定要下載的品種列表
     if len(sys.argv) > 1:
         symbols = [s for s in sys.argv[1:] if not s.startswith("--")]
     else:
-        # 默认：Config.SYMBOLS + FEATURE_SYMBOLS（去重）
+        # 默認：Config.SYMBOLS + FEATURE_SYMBOLS（去重）
         symbols = list(dict.fromkeys(
             Config.SYMBOLS + getattr(Config, "FEATURE_SYMBOLS", [])
         ))
 
     print(f"{'='*62}")
-    print(f"  MT5 全量历史数据下载")
-    print(f"  品种数: {len(symbols)}")
+    print(f"  MT5 全量歷史數據下載")
+    print(f"  品種數: {len(symbols)}")
     print(f"  保存至: {CACHE_DIR}")
     print(f"{'='*62}\n")
 
-    # 连接 MT5
+    # 連接 MT5
     if not mt5.initialize():
-        print(f"ERROR: MT5 连接失败: {mt5.last_error()}")
+        print(f"ERROR: MT5 連接失敗: {mt5.last_error()}")
         sys.exit(1)
-    print(f"MT5 已连接\n")
+    print(f"MT5 已連接\n")
 
     CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -131,34 +131,34 @@ def main():
             if n == 0:
                 failed.append(sym)
         except Exception as e:
-            logger.error(f"[{sym}] 异常: {e}")
+            logger.error(f"[{sym}] 異常: {e}")
             results[sym] = -1
             failed.append(sym)
-        # 大请求限速：每个品种后等待 5 秒
+        # 大請求限速：每個品種後等待 5 秒
         time.sleep(5)
 
     mt5.shutdown()
 
-    # 汇总报告
+    # 匯總報告
     print(f"\n{'='*62}")
-    print(f"  下载完成")
+    print(f"  下載完成")
     print(f"{'='*62}")
     success = {s: n for s, n in results.items() if n > 0}
-    print(f"  成功: {len(success)}/{len(symbols)} 个品种")
+    print(f"  成功: {len(success)}/{len(symbols)} 個品種")
     if success:
         max_bars = max(success.values())
         min_bars = min(success.values())
         avg_bars = sum(success.values()) // len(success)
-        print(f"  数据量: 最多 {max_bars:,} bars，最少 {min_bars:,} bars，平均 {avg_bars:,} bars")
+        print(f"  數據量: 最多 {max_bars:,} bars，最少 {min_bars:,} bars，平均 {avg_bars:,} bars")
     if failed:
-        print(f"  失败品种 ({len(failed)}): {', '.join(failed)}")
+        print(f"  失敗品種 ({len(failed)}): {', '.join(failed)}")
 
-    # 输出详细表格
-    print(f"\n  {'品种':20s} {'bars':>8}")
+    # 輸出詳細表格
+    print(f"\n  {'品種':20s} {'bars':>8}")
     print(f"  {'-'*30}")
     for sym in symbols:
         n = results.get(sym, 0)
-        status = f"{n:>8,}" if n > 0 else "  失败/无数据"
+        status = f"{n:>8,}" if n > 0 else "  失敗/無數據"
         print(f"  {sym:20s} {status}")
     print()
 

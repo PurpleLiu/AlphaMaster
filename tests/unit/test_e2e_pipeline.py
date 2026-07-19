@@ -1,15 +1,15 @@
 """
-tests/unit/test_e2e_pipeline.py -- 端到端流水线集成测试（Task 14.1）
+tests/unit/test_e2e_pipeline.py -- 端到端流水線集成測試（Task 14.1）
 
-验证整条流水线可以端到端运行（requirements 3.1, 4.1, 5.2, 6.1, 7.3, 7.4, 7.8）：
-  features → vm → evaluator（score/prune/report/select）→ vocab/version 校验
+驗證整條流水線可以端到端運行（requirements 3.1, 4.1, 5.2, 6.1, 7.3, 7.4, 7.8）：
+  features → vm → evaluator（score/prune/report/select）→ vocab/version 校驗
 
-关键数字（当前扩展后）：
-  - 特征数  F = 65（8 大类）
-  - 算子数  O = 66
+關鍵數位（當前擴展後）：
+  - 特徵數  F = 65（8 大類）
+  - 運算元數  O = 66
   - vocab size  = F + O = 131
   - feat_offset = 65
-  - VOCAB_VERSION 为确定性哈希（"v" + sha256[:12]）
+  - VOCAB_VERSION 為確定性哈希（"v" + sha256[:12]）
 """
 import os
 import tempfile
@@ -17,7 +17,7 @@ import tempfile
 import pytest
 import torch
 
-# ── 被测模块 ─────────────────────────────────────────────────────────────
+# ── 被測模組 ─────────────────────────────────────────────────────────────
 from model_core.features import MT5FeatureEngineer, FEATURE_NAMES
 from model_core.vm import StackVM
 from model_core.evaluator import EffectivenessEvaluator
@@ -25,10 +25,10 @@ from model_core.vocab import FORMULA_VOCAB, VOCAB_VERSION, VocabVersionMismatchE
 from model_core.ops import OPS_CONFIG
 
 
-# ── 辅助：生成随机 OHLCV ─────────────────────────────────────────────────
+# ── 輔助：生成隨機 OHLCV ─────────────────────────────────────────────────
 
 def _make_ohlcv(N: int = 3, T: int = 200, seed: int = 42) -> dict:
-    """构造随机 OHLCV dict，close > 0，满足 H >= C >= L > 0 的弱约束。"""
+    """構造隨機 OHLCV dict，close > 0，滿足 H >= C >= L > 0 的弱約束。"""
     torch.manual_seed(seed)
     close  = torch.rand(N, T) * 100 + 10.0          # [10, 110]
     noise  = torch.rand(N, T) * 2.0
@@ -41,26 +41,26 @@ def _make_ohlcv(N: int = 3, T: int = 200, seed: int = 42) -> dict:
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# 步骤 1-2：关键数字确认
+# 步驟 1-2：關鍵數字確認
 # ─────────────────────────────────────────────────────────────────────────
 
 class TestKeyNumbers:
     def test_feature_count(self):
-        """特征数应 == 65（8 大类全覆盖，R1.1）。"""
+        """特徵數應 == 65（8 大類全覆蓋，R1.1）。"""
         assert len(FEATURE_NAMES) == 65, (
-            f"期望 65 个特征，实际 {len(FEATURE_NAMES)}"
+            f"期望 65 個特徵，實際 {len(FEATURE_NAMES)}"
         )
 
     def test_operator_count(self):
-        """算子数应 == 66（含 CS_RANK/CS_SCALE/CS_NEUTRALIZE 等新增）。"""
+        """運算元數應 == 66（含 CS_RANK/CS_SCALE/CS_NEUTRALIZE 等新增）。"""
         assert len(OPS_CONFIG) == 66, (
-            f"期望 66 个算子，实际 {len(OPS_CONFIG)}"
+            f"期望 66 個運算元，實際 {len(OPS_CONFIG)}"
         )
 
     def test_vocab_size(self):
-        """词表总大小 == 65 + 66 == 131。"""
+        """詞表總大小 == 65 + 66 == 131。"""
         assert FORMULA_VOCAB.size == 131, (
-            f"期望 vocab size=131，实际 {FORMULA_VOCAB.size}"
+            f"期望 vocab size=131，實際 {FORMULA_VOCAB.size}"
         )
 
     def test_feat_offset(self):
@@ -68,12 +68,12 @@ class TestKeyNumbers:
         assert FORMULA_VOCAB.operator_offset == 65
 
     def test_vocab_version_format(self):
-        """VOCAB_VERSION 以 'v' 开头，后跟 12 位十六进制。"""
+        """VOCAB_VERSION 以 'v' 開頭，後跟 12 位十六進制。"""
         assert VOCAB_VERSION.startswith("v")
-        assert len(VOCAB_VERSION) == 1 + 12, f"版本长度错误: {VOCAB_VERSION!r}"
+        assert len(VOCAB_VERSION) == 1 + 12, f"版本長度錯誤: {VOCAB_VERSION!r}"
 
     def test_vocab_version_deterministic(self):
-        """相同 token 列表两次派生出相同版本（确定性）。"""
+        """相同 token 列表兩次派生出相同版本（確定性）。"""
         from model_core.vocab import compute_vocab_version
         v1 = compute_vocab_version(FORMULA_VOCAB.token_names)
         v2 = compute_vocab_version(FORMULA_VOCAB.token_names)
@@ -81,7 +81,7 @@ class TestKeyNumbers:
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# 步骤 2：compute_features → [3, 65, 200]
+# 步驟 2：compute_features → [3, 65, 200]
 # ─────────────────────────────────────────────────────────────────────────
 
 class TestComputeFeatures:
@@ -89,7 +89,7 @@ class TestComputeFeatures:
         raw = _make_ohlcv(N=3, T=200)
         feats = MT5FeatureEngineer.compute_features(raw)
         assert feats.shape == (3, 65, 200), (
-            f"features 形状期望 [3,65,200]，实际 {tuple(feats.shape)}"
+            f"features 形狀期望 [3,65,200]，實際 {tuple(feats.shape)}"
         )
 
     def test_nan_safe(self):
@@ -100,7 +100,7 @@ class TestComputeFeatures:
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# 步骤 3：StackVM 执行公式 [0, 1, 2]（feat0, feat1, ADD）→ [3, 200]
+# 步驟 3：StackVM 執行公式 [0, 1, 2]（feat0, feat1, ADD）→ [3, 200]
 # ─────────────────────────────────────────────────────────────────────────
 
 class TestStackVM:
@@ -113,7 +113,7 @@ class TestStackVM:
         result = vm.execute(formula, feats)
         assert result is not None, "vm.execute 返回 None"
         assert result.shape == (3, 200), (
-            f"vm 输出形状期望 [3,200]，实际 {tuple(result.shape) if result is not None else None}"
+            f"vm 輸出形狀期望 [3,200]，實際 {tuple(result.shape) if result is not None else None}"
         )
         assert not torch.isnan(result).any()
         assert not torch.isinf(result).any()
@@ -128,11 +128,11 @@ class TestStackVM:
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# 步骤 4-8：Effectiveness_Evaluator 完整流水线
+# 步驟 4-8：Effectiveness_Evaluator 完整流水線
 # ─────────────────────────────────────────────────────────────────────────
 
 class TestEvaluatorPipeline:
-    """端到端测试：score_all → prune → build_report → save/load → select_active_subset。"""
+    """端到端測試：score_all → prune → build_report → save/load → select_active_subset。"""
 
     @pytest.fixture(autouse=True)
     def setup(self):
@@ -142,43 +142,43 @@ class TestEvaluatorPipeline:
         feats = MT5FeatureEngineer.compute_features(raw)   # [3, 65, 200]
         vm = StackVM()
 
-        # 候选因子：用 [feat0, feat1, ADD] 公式
+        # 候選因子：用 [feat0, feat1, ADD] 公式
         formula = [0, 1, vm.feat_offset + 0]   # ADD
         factor = vm.execute(formula, feats)
         assert factor is not None
 
-        # 随机 target_ret [3, 200]
+        # 隨機 target_ret [3, 200]
         self.target_ret = torch.randn(self.N, self.T) * 0.01
 
-        # 候选字典（单因子）
+        # 候選字典（單因子）
         self.candidates = {"test_factor": factor}
         self.factor = factor
 
     def test_score_all(self):
-        """步骤 5：score_all 返回非空结果，importance_score 有限或 unscorable。"""
+        """步驟 5：score_all 返回非空結果，importance_score 有限或 unscorable。"""
         ev = EffectivenessEvaluator()
         scores = ev.score_all(self.candidates, self.target_ret)
         assert len(scores) == 1
         sr = scores[0]
         assert sr.candidate == "test_factor"
-        # 分数要么有限，要么 unscorable（但不得是 NaN）
+        # 分數要嘛有限，要嘛 unscorable（但不得是 NaN）
         import math
         assert not math.isnan(sr.importance_score), "importance_score 不能是 NaN"
 
     def test_prune(self):
-        """步骤 6：prune 返回 ReportRow 列表，单因子保留（无法自相关剪除）。"""
+        """步驟 6：prune 返回 ReportRow 列表，單因子保留（無法自相關剪除）。"""
         ev = EffectivenessEvaluator()
         scores = ev.score_all(self.candidates, self.target_ret)
         rows = ev.prune(scores, self.candidates)
         assert len(rows) == 1
         row = rows[0]
         assert row.candidate == "test_factor"
-        # 单候选不会被剪枝（无其他候选与之比较）
+        # 單候選不會被剪枝（無其他候選與之比較）
         assert row.retention_status == "retained"
         assert row.pruned_in_favor_of is None
 
     def test_build_report_and_round_trip(self, tmp_path):
-        """步骤 7：build_report + save_report + load_report round-trip。"""
+        """步驟 7：build_report + save_report + load_report round-trip。"""
         ev = EffectivenessEvaluator()
         scores = ev.score_all(self.candidates, self.target_ret)
         rows = ev.prune(scores, self.candidates)
@@ -186,11 +186,11 @@ class TestEvaluatorPipeline:
         # 先 build
         report = ev.build_report(rows, ["test_factor"])
         assert report.vocab_version == VOCAB_VERSION, (
-            f"报告 vocab_version {report.vocab_version!r} != 当前 {VOCAB_VERSION!r}"
+            f"報告 vocab_version {report.vocab_version!r} != 當前 {VOCAB_VERSION!r}"
         )
         assert len(report.rows) == 1
 
-        # save + load（步骤 7）
+        # save + load（步驟 7）
         report_path = str(tmp_path / "test_report.json")
         ev.save_report(report, report_path)
         assert os.path.exists(report_path)
@@ -199,31 +199,31 @@ class TestEvaluatorPipeline:
         assert loaded.vocab_version == VOCAB_VERSION
         assert len(loaded.rows) == len(report.rows)
         assert loaded.rows[0].candidate == report.rows[0].candidate
-        # 分数 round-trip 容差 1e-6
+        # 分數 round-trip 容差 1e-6
         import math
         orig_s = report.rows[0].importance_score
         load_s = loaded.rows[0].importance_score
         if math.isfinite(orig_s) and math.isfinite(load_s):
             assert abs(orig_s - load_s) < 1e-6, (
-                f"importance_score round-trip 误差 {abs(orig_s - load_s)}"
+                f"importance_score round-trip 誤差 {abs(orig_s - load_s)}"
             )
 
     def test_select_active_subset(self):
-        """步骤 8：默认配置下 select_active_subset 返回全部 retained 候选。"""
+        """步驟 8：默認配置下 select_active_subset 返回全部 retained 候選。"""
         ev = EffectivenessEvaluator()
         scores = ev.score_all(self.candidates, self.target_ret)
         rows = ev.prune(scores, self.candidates)
         report = ev.build_report(rows, [])
         active = ev.select_active_subset(report)
-        # 单候选且为 retained，默认全保留
-        assert "test_factor" in active or len(active) >= 0   # 至少不崩溃
-        # 验证：所有 active 候选都在 retained rows 里
+        # 單候選且為 retained，默認全保留
+        assert "test_factor" in active or len(active) >= 0   # 至少不崩潰
+        # 驗證：所有 active 候選都在 retained rows 裡
         retained_names = {r.candidate for r in report.rows if r.retention_status == "retained"}
         for name in active:
             assert name in retained_names
 
     def test_report_contains_vocab_version(self, tmp_path):
-        """步骤 9：报告文件包含正确的 vocab_version。"""
+        """步驟 9：報告文件包含正確的 vocab_version。"""
         import json
         ev = EffectivenessEvaluator()
         scores = ev.score_all(self.candidates, self.target_ret)
@@ -233,57 +233,57 @@ class TestEvaluatorPipeline:
         ev.save_report(report, path)
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
-        assert "vocab_version" in data, "报告 JSON 缺少 vocab_version 字段"
+        assert "vocab_version" in data, "報告 JSON 缺少 vocab_version 欄位"
         assert data["vocab_version"] == VOCAB_VERSION
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# 步骤 10：版本不匹配校验
+# 步驟 10：版本不匹配校驗
 # ─────────────────────────────────────────────────────────────────────────
 
 class TestVocabVersionMismatch:
     def test_verify_mismatch_raises(self):
-        """步骤 10：FORMULA_VOCAB.verify('3.0') 应抛 VocabVersionMismatchError。"""
+        """步驟 10：FORMULA_VOCAB.verify('3.0') 應拋 VocabVersionMismatchError。"""
         with pytest.raises(VocabVersionMismatchError):
             FORMULA_VOCAB.verify("3.0")
 
     def test_verify_current_passes(self):
-        """verify(当前版本) 静默通过，不抛错。"""
-        FORMULA_VOCAB.verify(VOCAB_VERSION)   # 不应抛错
+        """verify(當前版本) 靜默通過，不拋錯。"""
+        FORMULA_VOCAB.verify(VOCAB_VERSION)   # 不應拋錯
 
     def test_verify_old_hash_raises(self):
-        """任意不匹配的哈希都抛错。"""
+        """任意不匹配的哈希都拋錯。"""
         with pytest.raises(VocabVersionMismatchError):
             FORMULA_VOCAB.verify("vdeadbeef0000")
 
 
 # ─────────────────────────────────────────────────────────────────────────
-# 完整链路 smoke test
+# 完整鏈路 smoke test
 # ─────────────────────────────────────────────────────────────────────────
 
 def test_full_pipeline_smoke(tmp_path):
-    """完整流水线 smoke：OHLCV → features → VM → evaluator → report → active_subset。
+    """完整流水線 smoke：OHLCV → features → VM → evaluator → report → active_subset。
 
     Requirements: 3.1, 4.1, 5.2, 6.1, 7.3, 7.4, 7.8
     """
     import math
 
-    # 1. 构造随机 OHLCV（N=3, T=200）
+    # 1. 構造隨機 OHLCV（N=3, T=200）
     raw = _make_ohlcv(N=3, T=200, seed=99)
 
     # 2. compute_features → [3, 65, 200]
     feats = MT5FeatureEngineer.compute_features(raw)
-    assert feats.shape == (3, 65, 200), f"特征形状错误: {tuple(feats.shape)}"
+    assert feats.shape == (3, 65, 200), f"特徵形狀錯誤: {tuple(feats.shape)}"
     assert not torch.isnan(feats).any()
 
-    # 3. VM 执行简单公式 → [3, 200]
+    # 3. VM 執行簡單公式 → [3, 200]
     vm = StackVM()
     formula = [0, 1, vm.feat_offset + 0]   # feat0(RET) + feat1(RET5) via ADD
     factor = vm.execute(formula, feats)
-    assert factor is not None, "vm.execute 失败"
+    assert factor is not None, "vm.execute 失敗"
     assert factor.shape == (3, 200)
 
-    # 4. 随机 target_ret [3, 200]
+    # 4. 隨機 target_ret [3, 200]
     torch.manual_seed(1)
     target_ret = torch.randn(3, 200) * 0.01
 
@@ -300,7 +300,7 @@ def test_full_pipeline_smoke(tmp_path):
     assert len(rows) == 1
     assert rows[0].retention_status in {"retained", "pruned"}
 
-    # 7a. build_report + save_report → 临时路径
+    # 7a. build_report + save_report → 臨時路徑
     report = ev.build_report(rows, [r.candidate for r in rows if r.retention_status == "retained"])
     assert report.vocab_version == VOCAB_VERSION
 
@@ -308,34 +308,34 @@ def test_full_pipeline_smoke(tmp_path):
     ev.save_report(report, report_path)
     assert os.path.exists(report_path)
 
-    # 7b. load_report → 验证 round-trip
+    # 7b. load_report → 驗證 round-trip
     loaded = ev.load_report(report_path)
     assert loaded.vocab_version == VOCAB_VERSION
     assert len(loaded.rows) == len(report.rows)
     assert loaded.rows[0].candidate == report.rows[0].candidate
 
-    # 8. select_active_subset → ["test_factor"] （默认全保留）
+    # 8. select_active_subset → ["test_factor"] （默認全保留）
     active = ev.select_active_subset(report)
     retained_names = {r.candidate for r in report.rows if r.retention_status == "retained"}
     for name in active:
         assert name in retained_names
 
-    # 9. 报告文件包含正确的 vocab_version
+    # 9. 報告文件包含正確的 vocab_version
     import json
     with open(report_path, encoding="utf-8") as f:
         data = json.load(f)
     assert data["vocab_version"] == VOCAB_VERSION
 
-    # 10. FORMULA_VOCAB.verify("3.0") 抛 VocabVersionMismatchError
+    # 10. FORMULA_VOCAB.verify("3.0") 拋 VocabVersionMismatchError
     with pytest.raises(VocabVersionMismatchError):
         FORMULA_VOCAB.verify("3.0")
 
-    # 最终 summary
-    print(f"\n✓ 端到端流水线通过")
-    print(f"  特征数 F      = {len(FEATURE_NAMES)}")
-    print(f"  算子数 O      = {len(OPS_CONFIG)}")
+    # 最終 summary
+    print(f"\n✓ 端到端流水線通過")
+    print(f"  特徵數 F      = {len(FEATURE_NAMES)}")
+    print(f"  運算元數 O      = {len(OPS_CONFIG)}")
     print(f"  vocab size    = {FORMULA_VOCAB.size}")
     print(f"  feat_offset   = {FORMULA_VOCAB.operator_offset}")
     print(f"  VOCAB_VERSION = {VOCAB_VERSION}")
-    print(f"  因子形状      = {tuple(factor.shape)}")
+    print(f"  因子形狀      = {tuple(factor.shape)}")
     print(f"  importance_score = {sr.importance_score:.4f} (unscorable={sr.unscorable})")

@@ -38,8 +38,8 @@ def _validate_checkpoint_file(path: Path) -> dict[str, Any]:
     artifact_version = ckpt.get("vocab_version")
     if artifact_version is None:
         raise ValueError(
-            f"检查点 {path.name} 过旧（无 vocab_version），"
-            f"当前词表 {FORMULA_VOCAB.version!r}，请重新训练"
+            f"檢查點 {path.name} 過舊（無 vocab_version），"
+            f"當前詞表 {FORMULA_VOCAB.version!r}，請重新訓練"
         )
     FORMULA_VOCAB.verify(artifact_version)
     step = int(ckpt.get("step", 0))
@@ -50,7 +50,7 @@ def _validate_checkpoint_file(path: Path) -> dict[str, Any]:
 def build_training_export_zip(symbol: str) -> tuple[bytes, str]:
     ckpts = checkpoint_glob(symbol)
     if not ckpts:
-        raise FileNotFoundError(f"未找到 {symbol} 的训练检查点，请先训练并保存 checkpoint")
+        raise FileNotFoundError(f"未找到 {symbol} 的訓練檢查點，請先訓練並保存 checkpoint")
 
     latest = ckpts[-1]
     _validate_checkpoint_file(latest)
@@ -122,7 +122,7 @@ def import_training_package(
         step = result["step"]
         installed = result["installed"]
     else:
-        raise ValueError("仅支持 .zip 训练包或 .pt 检查点文件")
+        raise ValueError("僅支持 .zip 訓練包或 .pt 檢查點文件")
 
     invalidate_checkpoint_cache()
     return {
@@ -130,7 +130,7 @@ def import_training_package(
         "symbol": symbol,
         "step": step,
         "installed": installed,
-        "message": f"已导入 {symbol} 的训练文件（step {step}），下次训练将从断点续训",
+        "message": f"已導入 {symbol} 的訓練文件（step {step}），下次訓練將從斷點續訓",
     }
 
 
@@ -138,20 +138,20 @@ def _import_zip(content: bytes, expected_symbol: str | None) -> dict[str, Any]:
     with zipfile.ZipFile(io.BytesIO(content)) as zf:
         names = [n for n in zf.namelist() if not n.endswith("/")]
         if "manifest.json" not in names:
-            raise ValueError("训练包缺少 manifest.json")
+            raise ValueError("訓練包缺少 manifest.json")
 
         manifest = json.loads(zf.read("manifest.json").decode("utf-8"))
         if manifest.get("format") != "alphamaster_training_v1":
-            raise ValueError("不支持的训练包格式")
+            raise ValueError("不支持的訓練包格式")
 
         symbol = manifest.get("symbol") or ""
         ckpt_rel = manifest.get("checkpoint", "")
         if not symbol or not ckpt_rel:
-            raise ValueError("训练包 manifest 不完整")
+            raise ValueError("訓練包 manifest 不完整")
 
         if expected_symbol and symbol != expected_symbol:
             raise ValueError(
-                f"训练包品种为 {symbol}，与当前选择的 {expected_symbol} 不一致"
+                f"訓練包品種為 {symbol}，與當前選擇的 {expected_symbol} 不一致"
             )
 
         _remove_symbol_checkpoints(symbol)
@@ -171,8 +171,8 @@ def _import_zip(content: bytes, expected_symbol: str | None) -> dict[str, Any]:
             if member == f"training_history_{symbol}.json":
                 imported_history = True
 
-        # 若 zip 不包含训练曲线，项目中可能残留更“新”的 history，导致 UI 显示步数不变。
-        # 这类 zip 通常只有 checkpoint + strategy（例如只想迁移断点），因此应清掉旧曲线以与 checkpoint 对齐。
+        # 若 zip 不包含訓練曲線，項目中可能殘留更“新”的 history，導致 UI 顯示步數不變。
+        # 這類 zip 通常只有 checkpoint + strategy（例如只想遷移斷點），因此應清掉舊曲線以與 checkpoint 對齊。
         if not imported_history:
             try:
                 _history_path(symbol).unlink(missing_ok=True)
@@ -187,19 +187,19 @@ def _import_pt(content: bytes, filename: str, expected_symbol: str | None) -> di
     ckpt_name = Path(filename).name
     symbol = _symbol_from_ckpt_name(ckpt_name)
     if not symbol:
-        raise ValueError(f"无法从文件名识别品种: {ckpt_name}（须为 ckpt_品种_step_XXXX.pt）")
+        raise ValueError(f"無法從檔案名識別品種: {ckpt_name}（須為 ckpt_品種_step_XXXX.pt）")
 
     if expected_symbol and symbol != expected_symbol:
         raise ValueError(
-            f"检查点品种为 {symbol}，与当前选择的 {expected_symbol} 不一致"
+            f"檢查點品種為 {symbol}，與當前選擇的 {expected_symbol} 不一致"
         )
 
     CHECKPOINT_DIR.mkdir(parents=True, exist_ok=True)
     dest = CHECKPOINT_DIR / ckpt_name
 
-    # 只导入 .pt 时，项目里可能还残留更“新”的 training_history_{symbol}.json。
-    # Web 进度会优先使用该曲线文件的最后一步，导致显示步数大于 checkpoint。
-    # 因此这里主动清掉旧曲线，避免「导入 60 步却显示 84」。
+    # 只導入 .pt 時，項目裡可能還殘留更“新”的 training_history_{symbol}.json。
+    # Web 進度會優先使用該曲線文件的最後一步，導致顯示步數大於 checkpoint。
+    # 因此這裡主動清掉舊曲線，避免「導入 60 步卻顯示 84」。
     try:
         _history_path(symbol).unlink(missing_ok=True)
     except OSError:

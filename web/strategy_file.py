@@ -106,7 +106,7 @@ def inspect_strategy_file(
     try:
         data = json.loads(p.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, OSError) as exc:
-        raise ValueError(f"无法解析策略 JSON: {exc}") from exc
+        raise ValueError(f"無法解析策略 JSON: {exc}") from exc
 
     if isinstance(data, list):
         formula = data
@@ -119,10 +119,10 @@ def inspect_strategy_file(
         best_score = data.get("best_score")
         vocab_version = data.get("vocab_version")
     else:
-        raise ValueError("策略文件格式无效")
+        raise ValueError("策略檔案格式無效")
 
     if not formula:
-        raise ValueError("策略文件缺少 formula 字段")
+        raise ValueError("策略文件缺少 formula 欄位")
 
     formula_decoded = None
     timeframe = None
@@ -164,7 +164,7 @@ def resolve_strategy_file(
     saved_path: str,
     train_symbol: str | None = None,
 ) -> str:
-    """优先使用已保存路径；否则回退到训练品种对应的 best_{symbol}.json。"""
+    """優先使用已保存路徑；否則回退到訓練品種對應的 best_{symbol}.json。"""
     if saved_path:
         p = Path(saved_path)
         if p.exists():
@@ -193,7 +193,7 @@ def sync_best_strategy_for_symbol(
     *,
     data_file_hint: str | None = None,
 ) -> dict[str, Any] | None:
-    """在策略文件与检查点中选出最高分策略，写入 strategies/best_{symbol}.json。"""
+    """在策略文件與檢查點中選出最高分策略，寫入 strategies/best_{symbol}.json。"""
     candidates: list[tuple[float, list[int], int]] = []
 
     strat = _load_strategy(symbol)

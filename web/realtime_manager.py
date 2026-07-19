@@ -1,9 +1,9 @@
-"""实时信号引擎：多品种 / 多周期并发调度。
+"""即時信號引擎：多品種 / 多週期並發調度。
 
-- 每个「监控项」= (数据源, 品种, 周期, 策略因子)。
-- 后台线程按周期自适应节奏轮询，出现新 bar 才重算，信号取最后已收盘 bar。
-- 共享 (源,品种,周期) 的 K 线抓取结果做短 TTL 缓存，避免重复请求。
-- 监控清单持久化到 web_settings，重启恢复。
+- 每個「監控項」= (數據源, 品種, 週期, 策略因子)。
+- 後台執行緒按週期自適應節奏輪詢，出現新 bar 才重算，信號取最後已收盤 bar。
+- 共享 (源,品種,週期) 的 K 線抓取結果做短 TTL 快取，避免重複請求。
+- 監控清單持久化到 web_settings，重啟恢復。
 """
 from __future__ import annotations
 
@@ -24,12 +24,12 @@ from web.settings import load_settings, save_settings
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
-# 每个周期的轮询节奏（秒）
+# 每個週期的輪詢節奏（秒）
 _CADENCE = {
     "1m": 15, "5m": 30, "15m": 45, "30m": 60,
     "1h": 60, "4h": 120, "1d": 300, "1w": 600, "1M": 600,
 }
-# K 线周期长度（秒）；用于推算「下一根已收盘 bar」时间
+# K 線週期長度（秒）；用於推算「下一根已收盤 bar」時間
 _TF_SECONDS = {
     "1m": 60,
     "5m": 300,
@@ -42,8 +42,8 @@ _TF_SECONDS = {
     "1M": 2592000,  # 近似 30 天
 }
 _DEFAULT_CADENCE = 60
-_N_BARS = 500                 # 每次拉取的历史 bar 数（喂给特征引擎）
-_HISTORY_LEN = 60             # 保留的信号强度历史点数（供 sparkline）
+_N_BARS = 500                 # 每次拉取的歷史 bar 數（餵給特徵引擎）
+_HISTORY_LEN = 60             # 保留的信號強度歷史點數（供 sparkline）
 _VALID_KINDS = {k for k, _ in SOURCE_KINDS}
 
 
@@ -52,10 +52,10 @@ def _cadence_for(tf: str) -> int:
 
 
 def _next_bar_close_at(last_bar_open: int | None, timeframe: str, now: float | None = None) -> int | None:
-    """根据最后已收盘 bar 的开盘时间，推算下次收盘（即下次信号更新）的 Unix 秒。
+    """根據最後已收盤 bar 的開盤時間，推算下次收盤（即下次信號更新）的 Unix 秒。
 
-    若最后一根已收盘 bar 已过时太久（超过约 2 个周期仍无新 bar），视为休市/断档，
-    返回 None，避免在周末等时段虚构「几分钟后更新」的倒计时。
+    若最後一根已收盤 bar 已過時太久（超過約 2 個週期仍無新 bar），視為休市/斷檔，
+    返回 None，避免在週末等時段虛構「幾分鐘後更新」的倒數計時。
     """
     if last_bar_open is None:
         return None
@@ -65,13 +65,13 @@ def _next_bar_close_at(last_bar_open: int | None, timeframe: str, now: float | N
     now_i = int(now if now is not None else time.time())
     last_open = int(last_bar_open)
     last_close = last_open + period
-    # 仍未到收盘（常见于 MT5 终端时钟快于本机、或未剔除形成中 bar）
+    # 仍未到收盤（常見於 MT5 終端時鐘快於本機、或未剔除形成中 bar）
     if last_close > now_i:
         return last_close
-    # 正常交易中：上一根收盘距今至多约 1 个周期；再放宽到 2 个周期容错拉取延迟
+    # 正常交易中：上一根收盤距今至多約 1 個週期；再放寬到 2 個週期容錯拉取延遲
     if now_i - last_close > period * 2:
         return None
-    # last_open 开盘 → last_close 收盘；当前形成中的 bar 在 +2*period 收盘
+    # last_open 開盤 → last_close 收盤；當前形成中的 bar 在 +2*period 收盤
     nxt = last_open + 2 * period
     while nxt <= now_i:
         nxt += period
@@ -81,15 +81,15 @@ def _next_bar_close_at(last_bar_open: int | None, timeframe: str, now: float | N
 
 
 def _ensure_closed_bars(bars: list, timeframe: str, now: float | None = None) -> list:
-    """按本机时钟剔掉时间戳仍在未来的 K 线（双保险，防数据源时钟偏快）。
+    """按本機時鐘剔掉時間戳仍在未來的 K 線（雙保險，防數據源時鐘偏快）。
 
-    各数据源的 fetch_bars(drop_forming=True) 已负责剔除「正在形成」的 bar；
-    这里只删 ts > now 的明显异常 bar（数据源时钟偏快导致返回了未来 bar）。
+    各數據源的 fetch_bars(drop_forming=True) 已負責剔除「正在形成」的 bar；
+    這裡只刪 ts > now 的明顯異常 bar（數據源時鐘偏快導致返回了未來 bar）。
 
-    不再用 `ts + period > now` 判断：该式假设 ts=开盘时刻，对 A 股日线（15:00
-    收盘但 period 按 86400 秒算）会在收盘当晚误删当天已收盘 bar——因为
-    ts+86400 落到次日，恒大于当晚的 now。改用 ts>now 后，已收盘 bar 的 ts
-    必然 <= now，不会被误删；而真正未收盘/未来的 bar 由各源 drop_forming 处理。
+    不再用 `ts + period > now` 判斷：該式假設 ts=開盤時刻，對 A 股日線（15:00
+    收盤但 period 按 86400 秒算）會在收盤當晚誤刪當天已收盤 bar——因為
+    ts+86400 落到次日，恆大於當晚的 now。改用 ts>now 後，已收盤 bar 的 ts
+    必然 <= now，不會被誤刪；而真正未收盤/未來的 bar 由各源 drop_forming 處理。
     """
     if not bars:
         return bars
@@ -127,7 +127,7 @@ class WatchTask:
     strategy_timeframe: str | None
     best_score: float | None
     cadence_s: int
-    # 运行时状态
+    # 運行時狀態
     state: str = "pending"          # pending|ok|insufficient|error
     direction: str | None = None
     strength: float | None = None
@@ -193,7 +193,7 @@ class RealtimeManager:
         self._executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="rt")
         self._inflight: set[str] = set()
         self._inflight_lock = threading.Lock()
-        # K线缓存：(kind,symbol,tf) -> (monotonic_ts, bars)
+        # K線快取：(kind,symbol,tf) -> (monotonic_ts, bars)
         self._bar_cache: dict[tuple[str, str, str], tuple[float, list]] = {}
         self._loaded = False
         self._tv_blocked_until = 0.0
@@ -218,7 +218,7 @@ class RealtimeManager:
     def _persist(self) -> None:
         save_settings({"realtime_watches": [t.persist_dict() for t in self._tasks.values()]})
 
-    # ── 增删 ────────────────────────────────────────────────────────────
+    # ── 增刪 ────────────────────────────────────────────────────────────
     def add_watch(self, source: str, symbol: str, timeframe: str, strategy_file: str) -> dict[str, Any]:
         task = self._add_task_internal(source, symbol, timeframe, strategy_file, persist=True)
         self._ensure_thread()
@@ -231,12 +231,12 @@ class RealtimeManager:
         symbol = (symbol or "").strip()
         timeframe = (timeframe or "").strip()
         if source not in _VALID_KINDS:
-            raise ValueError(f"未知数据源: {source}")
+            raise ValueError(f"未知數據源: {source}")
         if not symbol:
-            raise ValueError("请填写品种")
+            raise ValueError("請填寫品種")
         src = get_source(source)
         if timeframe not in src.supported_timeframes():
-            raise ValueError(f"{src.label} 不支持周期 {timeframe}")
+            raise ValueError(f"{src.label} 不支持週期 {timeframe}")
 
         path = strategy_file
         if not Path(path).is_absolute():
@@ -252,9 +252,9 @@ class RealtimeManager:
 
         warn = ""
         if meta.get("vocab_version") and meta["vocab_version"] not in (VOCAB_VERSION, "legacy"):
-            warn = f"词表版本不符（{meta['vocab_version']} vs {VOCAB_VERSION}），信号可能失真"
+            warn = f"詞表版本不符（{meta['vocab_version']} vs {VOCAB_VERSION}），信號可能失真"
         elif meta.get("symbol") and meta["symbol"] != symbol:
-            warn = f"该因子为 {meta['symbol']} 训练，跨品种运行仅供参考"
+            warn = f"該因子為 {meta['symbol']} 訓練，跨品種運行僅供參考"
 
         task = WatchTask(
             id=task_id,
@@ -290,7 +290,7 @@ class RealtimeManager:
             self._tasks.clear()
             self._persist()
 
-    # ── 状态 ────────────────────────────────────────────────────────────
+    # ── 狀態 ────────────────────────────────────────────────────────────
     def status(self) -> dict[str, Any]:
         with self._lock:
             watches = [t.to_public() for t in self._tasks.values()]
@@ -309,7 +309,7 @@ class RealtimeManager:
             "nearest_seconds_to_next": nearest,
         }
 
-    # ── 调度线程 ────────────────────────────────────────────────────────
+    # ── 調度執行緒 ────────────────────────────────────────────────────────
     def start(self) -> None:
         self._ensure_thread()
 
@@ -341,12 +341,12 @@ class RealtimeManager:
                 if task.id in self._inflight:
                     continue
                 self._inflight.add(task.id)
-            # 预置下次到期，避免重复提交
+            # 預置下次到期，避免重複提交
             task.next_due = now + task.cadence_s
             self._executor.submit(self._evaluate_task, task)
 
     def _get_bars(self, source: str, symbol: str, timeframe: str):
-        """带短 TTL 缓存的 K 线抓取（同一 源/品种/周期 的多因子复用）。"""
+        """帶短 TTL 快取的 K 線抓取（同一 源/品種/週期 的多因子復用）。"""
         key = (source, symbol, timeframe)
         ttl = max(10.0, _cadence_for(timeframe) * 0.8)
         now = time.monotonic()
@@ -363,7 +363,7 @@ class RealtimeManager:
         try:
             bars = self._get_bars(task.source, task.symbol, task.timeframe)
             if not bars:
-                self._set_error(task, "未获取到 K 线")
+                self._set_error(task, "未獲取到 K 線")
                 return
             last_ts = bars[-1].ts
             raw = bars_to_raw_dict(bars)
@@ -382,12 +382,28 @@ class RealtimeManager:
                 task.position = result["position"]
                 task.factor_value = result["factor_value"]
                 task.history.append(round(result["strength"], 4))
-                # 已有上次方向且发生转折时推飞书（首次算出方向不打扰）
+                # 已有上次方向且發生轉折時推飛書（首次算出方向不打擾）
                 if prev_dir and new_dir and prev_dir != new_dir:
                     try:
                         from web.feishu_notify import notify_direction_flip
 
                         notify_direction_flip(
+                            symbol=task.symbol,
+                            timeframe=task.timeframe,
+                            strategy_name=task.strategy_name,
+                            prev_direction=prev_dir,
+                            new_direction=new_dir,
+                            strength=task.strength,
+                            factor_value=task.factor_value,
+                        )
+                    except Exception:
+                        pass
+                    try:
+                        from web.telegram_notify import (
+                            notify_direction_flip as notify_telegram_flip,
+                        )
+
+                        notify_telegram_flip(
                             symbol=task.symbol,
                             timeframe=task.timeframe,
                             strategy_name=task.strategy_name,

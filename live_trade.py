@@ -1,11 +1,11 @@
 """
-live_trade.py — 自动交易启动脚本
+live_trade.py — 自動交易啟動腳本
 
-默认品种（2026-07-08）：
-  XAUUSD（precious_metals_v1，固定 0.01 手）+ 4 个指数有效因子
+默認品種（2026-07-08）：
+  XAUUSD（precious_metals_v1，固定 0.01 手）+ 4 個指數有效因子
 
-已停用、永不自动交易：
-  XAGUSD — 白银合约乘数过大，实盘盈亏波动远超指数，2026-07-08 起排除。
+已停用、永不自動交易：
+  XAGUSD — 白銀合約乘數過大，實盤盈虧波動遠超指數，2026-07-08 起排除。
 """
 import sys
 import os
@@ -19,7 +19,7 @@ from config import Config
 from strategy_manager.runner import MT5StrategyRunner
 from loguru import logger
 
-# 显式默认（不依赖 scan 自动纳入 XAGUSD）
+# 顯式默認（不依賴 scan 自動納入 XAGUSD）
 _DEFAULT_SYMBOLS = [
     "XAUUSD",
     "US100.cash",
@@ -30,10 +30,10 @@ _DEFAULT_SYMBOLS = [
 
 
 def _apply_trade_filters(symbols: list[str]) -> list[str]:
-    """去掉禁用品种，确保 XAUUSD 在列表中（若有策略）。"""
+    """去掉禁用品種，確保 XAUUSD 在列表中（若有策略）。"""
     excluded = set(getattr(Config, "EXCLUDED_TRADE_SYMBOLS", []) or [])
     out = [s for s in symbols if s not in excluded]
-    # 黄金：始终启用（有 best_XAUUSD.json）
+    # 黃金：始終啟用（有 best_XAUUSD.json）
     if "XAUUSD" not in out and "XAUUSD" not in excluded:
         out.insert(0, "XAUUSD")
     return out
@@ -65,27 +65,27 @@ def main():
         scanned = _load_valid_from_scan()
         Config.SYMBOLS = scanned or _DEFAULT_SYMBOLS
 
-    logger.info(f"[live_trade] 交易品种: {Config.SYMBOLS}")
+    logger.info(f"[live_trade] 交易品種: {Config.SYMBOLS}")
     excluded = getattr(Config, "EXCLUDED_TRADE_SYMBOLS", [])
     if excluded:
-        logger.info(f"[live_trade] 已禁用（永不自动交易）: {excluded}")
+        logger.info(f"[live_trade] 已禁用（永不自動交易）: {excluded}")
 
     if dry_run:
-        logger.info("[live_trade] DRY RUN 模式：只打印信号，不下单")
+        logger.info("[live_trade] DRY RUN 模式：只列印信號，不下單")
     if single:
-        logger.info("[live_trade] 单公式模式：所有品种共用 best_mt5_strategy.json")
+        logger.info("[live_trade] 單公式模式：所有品種共用 best_mt5_strategy.json")
 
     logger.info("=" * 60)
-    logger.info("  AlphaGPT 自动交易 [XAUUSD + 指数有效因子]")
-    logger.info(f"  品种:     {Config.SYMBOLS}")
-    logger.info(f"  周期:     H1")
+    logger.info("  AlphaGPT 自動交易 [XAUUSD + 指數有效因子]")
+    logger.info(f"  品種:     {Config.SYMBOLS}")
+    logger.info(f"  週期:     H1")
     logger.info(f"  XAUUSD:   best_XAUUSD.json (precious_metals_v1) 固定 0.01 手")
-    logger.info(f"  XAGUSD:   已停用，不自动交易")
+    logger.info(f"  XAGUSD:   已停用，不自動交易")
     logger.info(
-        f"  仓位:     以 {Config.VOL_TARGET_REFERENCE_SYMBOL} "
-        f"{Config.VOL_TARGET_REFERENCE_LOT} 手的一根 ATR 美元波动为基准"
+        f"  倉位:     以 {Config.VOL_TARGET_REFERENCE_SYMBOL} "
+        f"{Config.VOL_TARGET_REFERENCE_LOT} 手的一根 ATR 美元波動為基準"
     )
-    logger.info(f"  信号模式: {Config.SIGNAL_MODE}")
+    logger.info(f"  信號模式: {Config.SIGNAL_MODE}")
     logger.info("=" * 60)
 
     runner = MT5StrategyRunner()

@@ -118,7 +118,7 @@ def _pick_training_history(
     file_history: dict[str, Any] | None,
     ckpt_history: dict[str, Any] | None,
 ) -> dict[str, Any] | None:
-    """取步数更多的那份历史，避免旧 checkpoint 覆盖较新的 json 曲线。"""
+    """取步數更多的那份歷史，避免舊 checkpoint 覆蓋較新的 json 曲線。"""
     if not file_history and not ckpt_history:
         return None
     if not file_history:
@@ -149,7 +149,7 @@ def get_symbol_progress(symbol: str) -> SymbolProgress:
             file_history = json.loads(hist_file.read_text(encoding="utf-8"))
             steps = file_history.get("step") or []
             if steps:
-                # history 存的是 0 起算的训练步索引，展示与日志 [N/5000] 对齐用 N
+                # history 存的是 0 起算的訓練步索引，展示與日誌 [N/5000] 對齊用 N
                 current_step = max(current_step, int(steps[-1]) + 1)
             bests = file_history.get("best_score") or []
             if bests:
@@ -196,7 +196,7 @@ def get_symbol_progress(symbol: str) -> SymbolProgress:
 def get_strategy_for_export(symbol: str) -> dict[str, Any]:
     data = _load_strategy(symbol)
     if not data:
-        raise FileNotFoundError(f"未找到 {symbol} 的策略，请先完成训练")
+        raise FileNotFoundError(f"未找到 {symbol} 的策略，請先完成訓練")
     out = dict(data)
     formula = out.get("formula")
     if formula and not out.get("formula_decoded"):

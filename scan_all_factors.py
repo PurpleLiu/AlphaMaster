@@ -1,8 +1,8 @@
 """
-scan_all_factors.py — 扫描 strategies/best_{symbol}.json，单品种 solo 回测（只看收益）
+scan_all_factors.py — 掃描 strategies/best_{symbol}.json，單品種 solo 回測（只看收益）
 
 判定有效：年化收益 > 0（忽略 MDD / Sharpe / WF）
-数据：D:\\K线数据 离线 H1
+數據：D:\\K線數據 離線 H1
 """
 from __future__ import annotations
 
@@ -100,7 +100,7 @@ def main():
     files = sorted(strategies_dir.glob("best_*.json"))
     rows = []
     print(f"\nFactor Scan (returns-only) | vocab={VOCAB_VERSION} | offline\n")
-    print(f"{'品种':<16} {'年化%':>8} {'Sharpe':>8} {'MDD%':>8} {'年数':>6} {'有效':>6}  文件")
+    print(f"{'品種':<16} {'年化%':>8} {'Sharpe':>8} {'MDD%':>8} {'年數':>6} {'有效':>6}  文件")
     print("-" * 80)
 
     for path in files:

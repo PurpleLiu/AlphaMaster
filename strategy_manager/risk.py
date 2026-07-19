@@ -1,13 +1,13 @@
 """
-strategy_manager/risk.py — MT5 风控引擎
+strategy_manager/risk.py — MT5 風控引擎
 
-实现 MT5RiskEngine.calculate_lot()：
-  - 基于账户净值和 RISK_PER_TRADE 计算手数
-  - 通过 mt5.symbol_info() 获取 pip_value（trade_tick_value）、
+實現 MT5RiskEngine.calculate_lot()：
+  - 基於帳戶淨值和 RISK_PER_TRADE 計算手數
+  - 通過 mt5.symbol_info() 獲取 pip_value（trade_tick_value）、
     volume_step、volume_min、volume_max
   - lot = (equity * RISK_PER_TRADE) / (stop_pips * pip_value)
-  - 舍入到 volume_step，clamp 到 [volume_min, volume_max]
-  - 保证金不足时返回 0.0 并记录 WARNING
+  - 捨入到 volume_step，clamp 到 [volume_min, volume_max]
+  - 保證金不足時返回 0.0 並記錄 WARNING
 """
 
 try:
@@ -23,29 +23,29 @@ from loguru import logger
 try:
     from config import Config
 except ImportError:
-    # 测试环境回退
+    # 測試環境回退
     class Config:  # type: ignore
         RISK_PER_TRADE = 0.01
 
 
 class MT5RiskEngine:
-    """MT5 手数计算引擎（Requirements 9.1–9.6）。
+    """MT5 手數計算引擎（Requirements 9.1–9.6）。
 
-    所有方法均为同步接口，无 asyncio。
+    所有方法均為同步介面，無 asyncio。
     """
 
     def __init__(self, risk_per_trade: float | None = None):
-        """初始化风控引擎。
+        """初始化風控引擎。
 
         Args:
-            risk_per_trade: 每笔风险比例，默认使用 Config.RISK_PER_TRADE (0.01)。
+            risk_per_trade: 每筆風險比例，預設使用 Config.RISK_PER_TRADE (0.01)。
         """
         self.risk_per_trade: float = (
             risk_per_trade if risk_per_trade is not None else Config.RISK_PER_TRADE
         )
 
     # ------------------------------------------------------------------
-    # 公共接口
+    # 公共介面
     # ------------------------------------------------------------------
 
     def calculate_lot(
@@ -54,32 +54,32 @@ class MT5RiskEngine:
         equity: float,
         stop_pips: float,
     ) -> float:
-        """根据账户净值和止损 pips 计算手数。
+        """根據帳戶淨值和止損 pips 計算手數。
 
         公式：
             desired_lot = (equity * RISK_PER_TRADE) / (stop_pips * pip_value)
             lot = round(desired_lot / volume_step) * volume_step
             lot = clamp(lot, volume_min, volume_max)
 
-        若保证金不足，返回 0.0 并记录 WARNING。
+        若保證金不足，返回 0.0 並記錄 WARNING。
 
         Args:
-            symbol:     MT5 品种，例如 "XAUUSD"
-            equity:     账户净值（账户货币）
-            stop_pips:  止损 pips 数（> 0）
+            symbol:     MT5 品種，例如 "XAUUSD"
+            equity:     帳戶淨值（帳戶貨幣）
+            stop_pips:  止損 pips 數（> 0）
 
         Returns:
-            有效手数，或 0.0（保证金不足 / 参数无效）。
+            有效手數，或 0.0（保證金不足 / 參數無效）。
 
         Requirements:
-            9.1 基于 equity 和 RISK_PER_TRADE 计算手数
-            9.2 使用 mt5.symbol_info() 的 trade_tick_value 作为 pip_value
-            9.3 舍入到 volume_step
+            9.1 基於 equity 和 RISK_PER_TRADE 計算手數
+            9.2 使用 mt5.symbol_info() 的 trade_tick_value 作為 pip_value
+            9.3 捨入到 volume_step
             9.4 clamp 到 [volume_min, volume_max]
-            9.5 不包含任何 Honeypot / DEX 流动性检查
-            9.6 保证金不足返回 0.0 并记录 WARNING；保证金检查在手数计算之后
+            9.5 不包含任何 Honeypot / DEX 流動性檢查
+            9.6 保證金不足返回 0.0 並記錄 WARNING；保證金檢查在手數計算之後
         """
-        # ── 参数防御 ──────────────────────────────────────────────────
+        # ── 參數防禦 ──────────────────────────────────────────────────
         if stop_pips <= 0:
             logger.warning(f"[RiskEngine] Invalid stop_pips={stop_pips} for {symbol}")
             return 0.0
@@ -87,7 +87,7 @@ class MT5RiskEngine:
             logger.warning(f"[RiskEngine] Invalid equity={equity} for {symbol}")
             return 0.0
 
-        # ── 9.2 从 MT5 获取品种规格 ───────────────────────────────────
+        # ── 9.2 從 MT5 獲取品種規格 ───────────────────────────────────
         symbol_info = self._get_symbol_info(symbol)
         if symbol_info is None:
             logger.warning(f"[RiskEngine] Cannot get symbol_info for {symbol}")
@@ -105,23 +105,23 @@ class MT5RiskEngine:
             )
             return 0.0
 
-        # ── 9.1 计算目标手数 ──────────────────────────────────────────
+        # ── 9.1 計算目標手數 ──────────────────────────────────────────
         desired_lot: float = (equity * self.risk_per_trade) / (stop_pips * pip_value)
 
-        # ── 9.3 舍入到 volume_step ────────────────────────────────────
+        # ── 9.3 捨入到 volume_step ────────────────────────────────────
         lot: float = round(desired_lot / volume_step) * volume_step
 
         # ── 9.4 clamp 到 [volume_min, volume_max] ────────────────────
         lot = max(volume_min, min(lot, volume_max))
 
-        # ── 9.6 保证金检查（在手数计算之后）─────────────────────────
+        # ── 9.6 保證金檢查（在手數計算之後）─────────────────────────
         if not self._has_sufficient_margin(symbol, lot, pip_value, stop_pips):
             return 0.0
 
         return lot
 
     # ------------------------------------------------------------------
-    # ATR 波动率目标仓位（推荐方法）
+    # ATR 波動率目標倉位（推薦方法）
     # ------------------------------------------------------------------
 
     def calculate_lot_by_atr(
@@ -132,23 +132,23 @@ class MT5RiskEngine:
         target_risk_pct: float | None = None,
         max_lot:        float         = 0.1,
     ) -> float:
-        """基于 ATR 的波动率目标仓位计算。
+        """基於 ATR 的波動率目標倉位計算。
 
-        每笔交易的预期盈亏金额 = target_risk_pct × equity，
-        手数 = 目标风险金额 / (ATR × 合约价值/手)
+        每筆交易的預期盈虧金額 = target_risk_pct × equity，
+        手數 = 目標風險金額 / (ATR × 合約價值/手)
 
-        这样不同品种（黄金/美日/纳指/标普）下单后，
-        每 1 个 ATR 波动对应的盈亏金额是相同的，资金暴露均衡。
+        這樣不同品種（黃金/美日/納指/標普）下單後，
+        每 1 個 ATR 波動對應的盈虧金額是相同的，資金暴露均衡。
 
         Args:
-            symbol:          MT5 品种名
-            equity:          账户净值（账户货币）
-            atr_price:       品种价格单位的 ATR 值（已乘以合约乘数前）
-            target_risk_pct: 目标风险比例，None 时用 Config.RISK_PER_TRADE
-            max_lot:         手数硬性上限
+            symbol:          MT5 品種名
+            equity:          帳戶淨值（帳戶貨幣）
+            atr_price:       品種價格單位的 ATR 值（已乘以合約乘數前）
+            target_risk_pct: 目標風險比例，None 時用 Config.RISK_PER_TRADE
+            max_lot:         手數硬性上限
 
         Returns:
-            有效手数（已舍入，已 clamp），或 0.01（最小手数回退）
+            有效手數（已捨入，已 clamp），或 0.01（最小手數回退）
         """
         if target_risk_pct is None:
             target_risk_pct = self.risk_per_trade
@@ -162,24 +162,24 @@ class MT5RiskEngine:
             logger.warning(f"[RiskEngine.atr] No symbol_info for {symbol}")
             return 0.01
 
-        # 合约价值（每手）= contract_size × tick_value / tick_size × 当前价格
-        # 简化：使用 trade_tick_value / trade_tick_size 得到每价格单位每手的盈亏
-        tick_val  = symbol_info.trade_tick_value   # 每 tick 每手的盈亏（账户货币）
-        tick_size = symbol_info.trade_tick_size    # 每 tick 的价格变化
+        # 合約價值（每手）= contract_size × tick_value / tick_size × 當前價格
+        # 簡化：使用 trade_tick_value / trade_tick_size 得到每價格單位每手的盈虧
+        tick_val  = symbol_info.trade_tick_value   # 每 tick 每手的盈虧（帳戶貨幣）
+        tick_size = symbol_info.trade_tick_size    # 每 tick 的價格變化
         if tick_val <= 0 or tick_size <= 0:
             logger.warning(f"[RiskEngine.atr] Invalid tick data for {symbol}")
             return symbol_info.volume_min
 
-        # 每价格单位每手的盈亏 = tick_val / tick_size
+        # 每價格單位每手的盈虧 = tick_val / tick_size
         value_per_unit = tick_val / tick_size       # $/price_unit/lot
 
-        # 目标风险金额 = equity × target_risk_pct
+        # 目標風險金額 = equity × target_risk_pct
         target_risk_usd = equity * target_risk_pct
 
-        # 手数 = 目标风险 / (ATR × 每单位价值/手)
+        # 手數 = 目標風險 / (ATR × 每單位價值/手)
         desired_lot = target_risk_usd / (atr_price * value_per_unit)
 
-        # 固定手数品种（贵金属等），跳过 ATR 计算
+        # 固定手數品種（貴金屬等），跳過 ATR 計算
         fixed_map = getattr(Config, "FIXED_LOT_BY_SYMBOL", {}) or {}
         sym_key = symbol.upper().split(".")[0] if "." not in symbol else symbol
         if symbol in fixed_map:
@@ -193,7 +193,7 @@ class MT5RiskEngine:
                 other_mult = 1.0
             desired_lot = desired_lot * other_mult
 
-        # 舍入到 volume_step，clamp
+        # 捨入到 volume_step，clamp
         step = symbol_info.volume_step
         lot  = round(desired_lot / step) * step
         lot  = max(symbol_info.volume_min, min(lot, symbol_info.volume_max, max_lot))
@@ -288,17 +288,17 @@ class MT5RiskEngine:
         return lot
 
     # ------------------------------------------------------------------
-    # 内部辅助
+    # 內部輔助
     # ------------------------------------------------------------------
 
     def _get_symbol_info(self, symbol: str):
-        """封装 mt5.symbol_info() 调用，便于测试时 mock。"""
+        """封裝 mt5.symbol_info() 調用，便於測試時 mock。"""
         if not _MT5_AVAILABLE or mt5 is None:
             return None
         return mt5.symbol_info(symbol)
 
     def _get_account_info(self):
-        """封装 mt5.account_info() 调用，便于测试时 mock。"""
+        """封裝 mt5.account_info() 調用，便於測試時 mock。"""
         if not _MT5_AVAILABLE or mt5 is None:
             return None
         return mt5.account_info()
@@ -310,23 +310,23 @@ class MT5RiskEngine:
         pip_value: float,
         stop_pips: float,
     ) -> bool:
-        """检查账户可用保证金是否足够开仓。
+        """檢查帳戶可用保證金是否足夠開倉。
 
-        估算所需保证金 ≈ lot * pip_value * stop_pips。
-        若 free_margin < estimated_margin，记录 WARNING 并返回 False。
+        估算所需保證金 ≈ lot * pip_value * stop_pips。
+        若 free_margin < estimated_margin，記錄 WARNING 並返回 False。
 
         Args:
-            symbol:     品种名（用于日志）
-            lot:        已计算手数
-            pip_value:  每 pip 价值
-            stop_pips:  止损 pips 数
+            symbol:     品種名（用於日誌）
+            lot:        已計算手數
+            pip_value:  每 pip 價值
+            stop_pips:  止損 pips 數
 
         Returns:
-            True 表示保证金充足，False 表示不足。
+            True 表示保證金充足，False 表示不足。
         """
         acct = self._get_account_info()
         if acct is None:
-            # 无法获取账户信息时保守通过（避免阻塞无 MT5 环境）
+            # 無法獲取帳戶資訊時保守通過（避免阻塞無 MT5 環境）
             return True
 
         estimated_margin: float = lot * pip_value * stop_pips

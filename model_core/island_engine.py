@@ -1,12 +1,12 @@
 """
-model_core/island_engine.py — 多起点并行训练（Island Model）
+model_core/island_engine.py — 多起點並行訓練（Island Model）
 
-同时维护 N 个独立的 AlphaEngine（island），每个 island 独立探索不同的
-公式空间区域。每隔 migration_interval 步，把所有 island 的 elite 公式
-汇总，取 Top-K 注入到其他 island 的 elite pool 中，实现"精英迁移"。
+同時維護 N 個獨立的 AlphaEngine（island），每個 island 獨立探索不同的
+公式空間區域。每隔 migration_interval 步，把所有 island 的 elite 公式
+匯總，取 Top-K 注入到其他 island 的 elite pool 中，實現"精英遷移"。
 
-注意：这里的"并行"是算法层面的多群体演化，不是 Python multiprocessing。
-CPU 训练下串行轮流训练每个 island 一个小阶段效率更高，且输出不混乱。
+注意：這裡的"並行"是算法層面的多群體演化，不是 Python multiprocessing。
+CPU 訓練下串列輪流訓練每個 island 一個小階段效率更高，且輸出不混亂。
 """
 import copy
 import heapq
@@ -20,7 +20,7 @@ from .engine import AlphaEngine
 
 
 class IslandAlphaEngine:
-    """管理多个 AlphaEngine 组成 island population。"""
+    """管理多個 AlphaEngine 組成 island population。"""
 
     def __init__(self, data_manager, n_islands: int | None = None,
                  migration_interval: int | None = None,
@@ -33,7 +33,7 @@ class IslandAlphaEngine:
         self.islands: list[AlphaEngine] = []
         for i in range(self.n_islands):
             isl = AlphaEngine(data_manager=data_manager)
-            # 给每个 island 不同的随机初始化，增加多样性
+            # 給每個 island 不同的隨機初始化，增加多樣性
             torch.manual_seed(2026 + i * 17)
             isl.model = isl.model.__class__().to(ModelConfig.DEVICE)
             isl.opt = torch.optim.AdamW(isl.model.parameters(), lr=1e-3)
@@ -45,7 +45,7 @@ class IslandAlphaEngine:
         self._step = 0
 
     def _migrate_elites(self, step: int):
-        """在所有 islands 之间交换 Top-K elite 公式。"""
+        """在所有 islands 之間交換 Top-K elite 公式。"""
         # 收集所有 island 的 elite
         all_elites = []
         for isl in self.islands:
@@ -67,11 +67,11 @@ class IslandAlphaEngine:
         )
         top_elites = sorted_elites[:self.migration_top_k]
 
-        # 注入到每个 island（替换低分 elite）
+        # 注入到每個 island（替換低分 elite）
         injected = 0
         for isl in self.islands:
             for sc, cnt, toks, birth in top_elites:
-                # 避免注入 island 已存在的公式（_update_elite_pool 会处理去重）
+                # 避免注入 island 已存在的公式（_update_elite_pool 會處理去重）
                 isl._update_elite_pool(sc, list(toks), step)
                 injected += 1
 
@@ -81,7 +81,7 @@ class IslandAlphaEngine:
               f"injected {injected} top elites across {self.n_islands} islands\n")
 
     def _update_global_best(self):
-        """从所有 island 中更新全局最优。"""
+        """從所有 island 中更新全局最優。"""
         for i, isl in enumerate(self.islands):
             if isl.best_score > self.global_best_score:
                 self.global_best_score = isl.best_score
@@ -89,7 +89,7 @@ class IslandAlphaEngine:
                 self.global_best_island = i
 
     def train(self):
-        """主训练循环：每个 island 轮流训练一个阶段，然后迁移 elite。"""
+        """主訓練循環：每個 island 輪流訓練一個階段，然後遷移 elite。"""
         total_steps = ModelConfig.TRAIN_STEPS
         n_phases = total_steps // self.migration_interval
         if n_phases == 0:
@@ -108,22 +108,22 @@ class IslandAlphaEngine:
             for i, isl in enumerate(self.islands):
                 print(f"\n>>> Phase {phase+1}/{n_phases} — Island {i+1}/{self.n_islands} "
                       f"steps [{start}:{end}]")
-                # 每个 island 独立训练一个阶段
+                # 每個 island 獨立訓練一個階段
                 isl.train(start_step=start, end_step=end,
                           migration_hook=None, verbose_header=False)
                 self._update_global_best()
 
-            # 阶段结束：迁移 elite
+            # 階段結束：遷移 elite
             self._migrate_elites(end)
 
-            # 同步全局最优到每个 island 的 best_snapshot
-            # 这样下次 restart 时可以从全局最优恢复，而非局部最优
+            # 同步全局最優到每個 island 的 best_snapshot
+            # 這樣下次 restart 時可以從全局最優恢復，而非局部最優
             for isl in self.islands:
                 if self.global_best_score > isl.best_score:
                     isl.best_score = self.global_best_score
                     isl.best_formula = copy.deepcopy(self.global_best_formula)
 
-        # 最终保存全局最优
+        # 最終保存全局最優
         self._update_global_best()
         if self.global_best_formula is not None:
             from .vocab import VOCAB_VERSION

@@ -20,15 +20,15 @@ TV_CONNECTIVITY_BLOCKED = "TV_CONNECTIVITY_BLOCKED"
 TV_CLOUD_SERVER_WIKI_URL = "https://my.feishu.cn/wiki/FuqnwkPwdiCLhQkPloKc7r1lntg"
 
 TV_CONNECTIVITY_MESSAGE = (
-    "当前设备无法连接 TradingView 数据服务，将无法获取以下 K 线数据：\n"
-    "  · A 股（上证 SSE、深证 SZSE）\n"
+    "當前設備無法連接 TradingView 數據服務，將無法獲取以下 K 線數據：\n"
+    "  · A 股（上證 SSE、深證 SZSE）\n"
     "  · 港股（HKEX）\n"
-    "  · 美股及指数（NYSE、NASDAQ、SP）\n"
-    "  · 外汇、贵金属、商品期货\n\n"
-    "解决方案：\n"
-    "  · 把你的VPN工具设成全局，并开启TUN(虚拟网卡)模式，如果还不行：\n"
-    "  · 使用云服务器部署本程序（推荐）—— 云服务器可正常连接 TradingView\n"
-    "  · 或切换回 MT5 数据源，仅使用 MT5 提供的品种数据"
+    "  · 美股及指數（NYSE、NASDAQ、SP）\n"
+    "  · 外匯、貴金屬、商品期貨\n\n"
+    "解決方案：\n"
+    "  · 把你的VPN工具設成全局，並開啟TUN(虛擬網卡)模式，如果還不行：\n"
+    "  · 使用雲端伺服器部署本程式（推薦）—— 雲端伺服器可正常連接 TradingView\n"
+    "  · 或切換回 MT5 數據源，僅使用 MT5 提供的品種數據"
 )
 
 
@@ -50,7 +50,7 @@ def _probe_once(*, timeout_s: float) -> tuple[bool, str | None, bool]:
             n_bars=2,
         )
         if df is None or getattr(df, "empty", True):
-            raise RuntimeError("TradingView 返回空数据")
+            raise RuntimeError("TradingView 返回空數據")
 
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
@@ -61,7 +61,7 @@ def _probe_once(*, timeout_s: float) -> tuple[bool, str | None, bool]:
         logger.warning(
             "TradingView connectivity probe timed out after %.0fs", timeout_s
         )
-        return False, "连接超时", True
+        return False, "連接超時", True
     except ImportError as exc:
         logger.warning(
             "TradingView connectivity probe: tvDatafeed not installed: %s", exc

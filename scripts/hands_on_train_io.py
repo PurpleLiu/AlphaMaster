@@ -85,9 +85,9 @@ def ui_export_enabled() -> bool:
     sym = prog.get("symbol") or df.get("symbol")
     enabled = bool(df.get("valid")) and bool(prog.get("has_checkpoint")) and not tr.get("active")
     print(
-        f"   UI条件: 品种={sym} valid={df.get('valid')} "
+        f"   UI條件: 品種={sym} valid={df.get('valid')} "
         f"has_checkpoint={prog.get('has_checkpoint')} active={tr.get('active')} "
-        f"=> 导出按钮={'可点' if enabled else '禁用'}"
+        f"=> 導出按鈕={'可點' if enabled else '禁用'}"
     )
     return enabled
 
@@ -136,68 +136,68 @@ def list_symbol_files() -> dict:
 
 
 def main() -> None:
-    print("=== 导出/导入训练 实操 ===")
-    print(f"工作目录: {WORKDIR}")
+    print("=== 導出/導入訓練 實操 ===")
+    print(f"工作目錄: {WORKDIR}")
 
-    step("1. 检查服务与 UI 按钮条件")
+    step("1. 檢查服務與 UI 按鈕條件")
     h = get_json("/api/health")
     ok(f"health {h}")
     if not ui_export_enabled():
-        fail("按 UI 规则导出按钮应为可点，但实际不满足")
+        fail("按 UI 規則導出按鈕應為可點，但實際不滿足")
 
     bak = backup_symbol_files()
-    ok(f"已备份到 {bak}")
+    ok(f"已備份到 {bak}")
 
-    step("2. 导出训练 zip")
+    step("2. 導出訓練 zip")
     status, raw, headers = get_bytes(f"/api/training/{SYMBOL}/export")
     if status != 200:
-        fail(f"导出 HTTP {status}")
+        fail(f"導出 HTTP {status}")
     zip_path = WORKDIR / f"training_{SYMBOL}.zip"
     zip_path.write_bytes(raw)
-    ok(f"下载 {zip_path.name} ({len(raw)} bytes)")
+    ok(f"下載 {zip_path.name} ({len(raw)} bytes)")
 
     with zipfile.ZipFile(zip_path) as zf:
         names = zf.namelist()
-    ok(f"zip 内容: {names}")
+    ok(f"zip 內容: {names}")
     for must in ["manifest.json", f"checkpoints/ckpt_{SYMBOL}_step_0060.pt"]:
         if must not in names:
             fail(f"zip 缺少 {must}")
 
-    step("3. 清空本地训练文件后导入 zip")
+    step("3. 清空本地訓練文件後導入 zip")
     clear_symbol_files()
     before = list_symbol_files()
-    ok(f"清空后: {before}")
+    ok(f"清空後: {before}")
 
     status, payload = post_file("/api/training/import", zip_path, f"?symbol={SYMBOL}")
     if status != 200 or not payload.get("ok"):
-        fail(f"导入失败: {payload}")
+        fail(f"導入失敗: {payload}")
     ok(payload.get("message", "imported"))
 
     after = list_symbol_files()
-    ok(f"导入后: {after}")
+    ok(f"導入後: {after}")
     if not after["ckpts"]:
-        fail("checkpoint 未恢复")
+        fail("checkpoint 未恢復")
     if not after["history"]:
-        fail("training_history 未恢复")
+        fail("training_history 未恢復")
 
-    step("4. 验证 overview 反映 has_checkpoint")
+    step("4. 驗證 overview 反映 has_checkpoint")
     ov = get_json("/api/overview")
     prog = ov.get("progress") or {}
     if not prog.get("has_checkpoint"):
-        fail(f"导入后 has_checkpoint 仍为 false: {prog}")
+        fail(f"導入後 has_checkpoint 仍為 false: {prog}")
     ok(f"step={prog.get('current_step')} has_checkpoint=True")
 
-    step("5. 单独导入 .pt 文件")
+    step("5. 單獨導入 .pt 文件")
     pt_src = ROOT / "checkpoints" / after["ckpts"][-1]
     pt_copy = WORKDIR / pt_src.name
     shutil.copy2(pt_src, pt_copy)
     clear_symbol_files()
     status, payload = post_file("/api/training/import", pt_copy, f"?symbol={SYMBOL}")
     if status != 200:
-        fail(f".pt 导入失败: {payload}")
-    ok(f".pt 导入 step={payload.get('step')}")
+        fail(f".pt 導入失敗: {payload}")
+    ok(f".pt 導入 step={payload.get('step')}")
 
-    step("6. 续训验证（启动后应出现「续训」日志）")
+    step("6. 續訓驗證（啟動後應出現「續訓」日誌）")
     post_json("/api/training/stop")
     data_file = json.loads((ROOT / "web_settings.json").read_text(encoding="utf-8"))["last_data_file"]
     post_json("/api/training/start", {"data_file": data_file})
@@ -206,19 +206,19 @@ def main() -> None:
         time.sleep(4)
         st = get_json("/api/training/status")
         log = "\n".join(st.get("log_tail") or [])
-        if "续训" in log and "恢复" in log:
+        if "續訓" in log and "恢復" in log:
             resume = True
-            ok("日志确认断点续训")
+            ok("日誌確認斷點續訓")
             break
     post_json("/api/training/stop")
     if not resume:
-        fail("启动训练未出现续训日志")
+        fail("啟動訓練未出現續訓日誌")
 
-    step("7. 恢复测试前备份")
+    step("7. 恢復測試前備份")
     restore_backup(bak)
-    ok("已还原原始训练文件")
+    ok("已還原原始訓練文件")
 
-    print("\n=== 全部实操通过：导出训练 / 导入训练 / 续训 均正常 ===")
+    print("\n=== 全部實操通過：導出訓練 / 導入訓練 / 續訓 均正常 ===")
 
 
 if __name__ == "__main__":

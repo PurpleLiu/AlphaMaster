@@ -1,11 +1,11 @@
-"""数据源工厂 + 单例注册（复用连接）。"""
+"""數據源工廠 + 單例註冊（復用連接）。"""
 from __future__ import annotations
 
 import threading
 
 from web.data_sources.base import DataSource
 
-# 前端下拉可见的数据源（okx / tongdaxin 实现保留，暂不展示）
+# 前端下拉可見的數據源（okx / tongdaxin 實現保留，暫不展示）
 SOURCE_KINDS: tuple[tuple[str, str], ...] = (
     ("mt5", "MT5"),
     ("tradingview", "TradingView"),
@@ -28,11 +28,11 @@ def _build(kind: str) -> DataSource:
     if kind == "tongdaxin":
         from web.data_sources.tongdaxin_source import TongdaxinSource
         return TongdaxinSource()
-    raise ValueError(f"未知数据源: {kind}")
+    raise ValueError(f"未知數據源: {kind}")
 
 
 def get_source(kind: str) -> DataSource:
-    """返回该 kind 的单例数据源（懒创建，复用连接）。"""
+    """返回該 kind 的單例數據源（懶創建，復用連接）。"""
     with _LOCK:
         inst = _INSTANCES.get(kind)
         if inst is None:
@@ -42,7 +42,7 @@ def get_source(kind: str) -> DataSource:
 
 
 def list_sources() -> list[dict]:
-    """列出所有数据源及其可用状态（供前端灰显/引导）。"""
+    """列出所有數據源及其可用狀態（供前端灰顯/引導）。"""
     out = []
     for kind, label in SOURCE_KINDS:
         try:

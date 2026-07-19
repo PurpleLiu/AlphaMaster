@@ -1,11 +1,11 @@
 """
-backtest_all_groups.py — 对所有组的当前最优因子做完整回测验证
+backtest_all_groups.py — 對所有組的當前最優因子做完整回測驗證
 
 用法：
     python backtest_all_groups.py --offline
 
-分别加载 forex / metals_comm / index 三组的最优因子，
-在全量历史数据上回测，输出：回测摘要、品种级详情、前后半段一致性、资金曲线图。
+分別載入 forex / metals_comm / index 三組的最優因子，
+在全量歷史數據上回測，輸出：回測摘要、品種級詳情、前後半段一致性、資金曲線圖。
 """
 import sys, json, math
 from pathlib import Path

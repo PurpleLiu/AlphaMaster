@@ -1,8 +1,8 @@
 """
-backtest_viz/engine.py — 逐 bar 可视化回测引擎
+backtest_viz/engine.py — 逐 bar 可視化回測引擎
 
-与训练用 backtest.py 共享相同的信号逻辑（tanh 连续仓位），
-但额外记录每笔交易的开平仓细节，供图表标注使用。
+與訓練用 backtest.py 共享相同的信號邏輯（tanh 連續倉位），
+但額外記錄每筆交易的開平倉細節，供圖表標註使用。
 """
 from __future__ import annotations
 
@@ -21,22 +21,22 @@ _H1_PERIODS_PER_YEAR = 6240
 
 @dataclass
 class Trade:
-    """一笔完整交易记录（开仓 → 平仓/反手）"""
+    """一筆完整交易記錄（開倉 → 平倉/反手）"""
     symbol:      str
     direction:   int          # +1 多 / -1 空
-    entry_bar:   int          # 开仓 bar 索引（相对于整个序列）
+    entry_bar:   int          # 開倉 bar 索引（相對於整個序列）
     entry_time:  int          # Unix 秒
-    entry_price: float        # 开仓价（用 open 价格）
+    entry_price: float        # 開倉價（用 open 價格）
     exit_bar:    Optional[int]   = None
     exit_time:   Optional[int]   = None
     exit_price:  Optional[float] = None
-    pnl:         float           = 0.0   # 本笔税后 PnL（log return - cost）
-    cum_pnl:     float           = 0.0   # 截至本笔结束的累计 PnL
+    pnl:         float           = 0.0   # 本筆稅後 PnL（log return - cost）
+    cum_pnl:     float           = 0.0   # 截至本筆結束的累計 PnL
 
 
 @dataclass
 class SymbolResult:
-    """单个品种的完整回测结果"""
+    """單個品種的完整回測結果"""
     symbol:       str
     times:        np.ndarray     # Unix 秒，shape [T]
     open:         np.ndarray     # [T]
@@ -44,11 +44,11 @@ class SymbolResult:
     low:          np.ndarray     # [T]
     close:        np.ndarray     # [T]
     volume:       np.ndarray     # [T]
-    factor:       np.ndarray     # StackVM 输出，[T]
+    factor:       np.ndarray     # StackVM 輸出，[T]
     signal:       np.ndarray     # tanh(factor)，[T]
-    position:     np.ndarray     # 连续仓位 ∈ [-1,+1]，[T]
+    position:     np.ndarray     # 連續倉位 ∈ [-1,+1]，[T]
     pnl:          np.ndarray     # 逐 bar PnL，[T]
-    cum_pnl:      np.ndarray     # 累计 PnL，[T]
+    cum_pnl:      np.ndarray     # 累計 PnL，[T]
     trades:       list[Trade]    = field(default_factory=list)
     sortino:      float          = 0.0
     total_return: float          = 0.0
@@ -56,11 +56,11 @@ class SymbolResult:
     win_rate:     float          = 0.0
     max_drawdown: float          = 0.0
     avg_hold_bars:float          = 0.0
-    profit_loss_ratio: float | None = None  # 盈亏比 = 平均盈利 / 平均亏损
+    profit_loss_ratio: float | None = None  # 盈虧比 = 平均盈利 / 平均虧損
 
 
 class BacktestEngine:
-    """逐 bar 可视化回测引擎。
+    """逐 bar 可視化回測引擎。
 
     用法：
         engine = BacktestEngine(formula=[6,15,8,...])
@@ -88,13 +88,13 @@ class BacktestEngine:
         feat_tensor: torch.Tensor,  # [N, F, T]
         symbols: list[str],
     ) -> list[SymbolResult]:
-        """执行所有品种的回测，返回每个品种的 SymbolResult。"""
+        """執行所有品種的回測，返回每個品種的 SymbolResult。"""
 
         factors_all = self.vm.execute(self.formula, feat_tensor)  # [N, T]
         if factors_all is None:
             raise RuntimeError(
-                f"StackVM 无法执行公式 {self.formula}。"
-                "请检查公式 token 是否合法。"
+                f"StackVM 無法執行公式 {self.formula}。"
+                "請檢查公式 token 是否合法。"
             )
 
         results = []
@@ -103,7 +103,7 @@ class BacktestEngine:
             sym = symbols[n]
             sym_result = self._backtest_symbol(
                 symbol     = sym,
-                raw_dict   = {k: v[n] for k, v in raw_dict.items()},   # [T] 各字段
+                raw_dict   = {k: v[n] for k, v in raw_dict.items()},   # [T] 各欄位
                 factor_1d  = factors_all[n],                            # [T]
             )
             results.append(sym_result)
@@ -111,21 +111,21 @@ class BacktestEngine:
         return results
 
     # ─────────────────────────────────────────────────────────────────────
-    # 单品种回测
+    # 單品種回測
     # ─────────────────────────────────────────────────────────────────────
 
     def _backtest_symbol(
         self,
         symbol:   str,
-        raw_dict: dict,         # 每个值是 [T] 的 Tensor
+        raw_dict: dict,         # 每個值是 [T] 的 Tensor
         factor_1d: torch.Tensor,  # [T]
     ) -> SymbolResult:
 
         T = factor_1d.shape[0]
 
-        # numpy 转换（便于后续图表处理）
+        # numpy 轉換（便於後續圖表處理）
         factor_np   = factor_1d.detach().float().numpy()
-        # 连续仓位模式：tanh 直接作为仓位比例，与训练 backtest.py 完全一致
+        # 連續倉位模式：tanh 直接作為倉位比例，與訓練 backtest.py 完全一致
         signal_np   = np.tanh(factor_np)
         position_np = signal_np
 
@@ -140,7 +140,7 @@ class BacktestEngine:
         else:
             times_np = np.arange(T, dtype=np.int64)
 
-        # ── 计算 PnL 序列（与 backtest.py 完全一致）─────────────────
+        # ── 計算 PnL 序列（與 backtest.py 完全一致）─────────────────
         # target_ret[t] = log(open[t+2] / open[t+1])
         target_ret = np.zeros(T, dtype=np.float32)
         if T >= 3:
@@ -155,12 +155,12 @@ class BacktestEngine:
         pnl_np    = position_np * target_ret - turnover * self.cost_rate
         cum_pnl   = np.cumsum(pnl_np)
 
-        # ── 提取交易记录 ──────────────────────────────────────────────
+        # ── 提取交易記錄 ──────────────────────────────────────────────
         trades = self._extract_trades(
             symbol, position_np, open_np, times_np, pnl_np
         )
 
-        # ── 统计指标 ─────────────────────────────────────────────────
+        # ── 統計指標 ─────────────────────────────────────────────────
         sortino       = self._calc_sortino(pnl_np)
         total_return  = float(cum_pnl[-1]) if len(cum_pnl) else 0.0
         n_trades      = len(trades)
@@ -201,26 +201,26 @@ class BacktestEngine:
         )
 
     # ─────────────────────────────────────────────────────────────────────
-    # 交易记录提取
+    # 交易記錄提取
     # ─────────────────────────────────────────────────────────────────────
 
     def _extract_trades(
         self,
         symbol:      str,
-        position:    np.ndarray,   # [T] 连续仓位
+        position:    np.ndarray,   # [T] 連續倉位
         open_prices: np.ndarray,   # [T]
         times:       np.ndarray,   # [T]
         pnl:         np.ndarray,   # [T]
     ) -> list[Trade]:
-        """从仓位序列中提取完整交易列表（含开平仓 bar、价格、PnL）。
+        """從倉位序列中提取完整交易列表（含開平倉 bar、價格、PnL）。
 
-        执行价对齐逻辑（与 target_ret 计算保持一致）：
+        執行價對齊邏輯（與 target_ret 計算保持一致）：
           target_ret[t] = log(open[t+2] / open[t+1])
-          position[t] 产生的收益对应 open[t+1] → open[t+2]
-          因此：信号在 entry_bar 产生 → 实际成交价 = open[entry_bar + 1]
-                信号在 exit_bar 翻转 → 实际成交价 = open[exit_bar + 1]
+          position[t] 產生的收益對應 open[t+1] → open[t+2]
+          因此：信號在 entry_bar 產生 → 實際成交價 = open[entry_bar + 1]
+                信號在 exit_bar 翻轉 → 實際成交價 = open[exit_bar + 1]
 
-        PnL 计算：把持仓期间的逐 bar pnl 累加作为本笔盈亏。
+        PnL 計算：把持倉期間的逐 bar pnl 累加作為本筆盈虧。
         """
         T = len(position)
         trades:       list[Trade] = []
@@ -230,7 +230,7 @@ class BacktestEngine:
         entry_bar:   int = 0
 
         def _exec_price(bar: int) -> float:
-            """信号在 bar 产生，执行价为下一根 open（若越界则取最后一根）。"""
+            """信號在 bar 產生，執行價為下一根 open（若越界則取最後一根）。"""
             idx = min(bar + 1, T - 1)
             return float(open_prices[idx])
 
@@ -242,7 +242,7 @@ class BacktestEngine:
             new_dir = target_to_direction(float(position[t]))
 
             if new_dir != current_dir:
-                # 平掉旧仓
+                # 平掉舊倉
                 if current_dir != 0:
                     trade_pnl = float(pnl[entry_bar:t].sum())
                     cum_pnl_total += trade_pnl
@@ -263,7 +263,7 @@ class BacktestEngine:
                 current_dir = new_dir
                 entry_bar   = t
 
-        # 序列末尾强平
+        # 序列末尾強平
         if current_dir != 0:
             trade_pnl = float(pnl[entry_bar:].sum())
             cum_pnl_total += trade_pnl
@@ -283,7 +283,7 @@ class BacktestEngine:
         return trades
 
     # ─────────────────────────────────────────────────────────────────────
-    # 统计辅助
+    # 統計輔助
     # ─────────────────────────────────────────────────────────────────────
 
     def _calc_sortino(self, pnl: np.ndarray) -> float:
@@ -299,7 +299,7 @@ class BacktestEngine:
 
     @staticmethod
     def _calc_profit_loss_ratio(trades: list[Trade]) -> float | None:
-        """盈亏比 = 平均盈利 / 平均亏损绝对值。无盈利或无亏损时返回 None。"""
+        """盈虧比 = 平均盈利 / 平均虧損絕對值。無盈利或無虧損時返回 None。"""
         wins = [t.pnl for t in trades if t.pnl is not None and t.pnl > 0]
         losses = [abs(t.pnl) for t in trades if t.pnl is not None and t.pnl < 0]
         if not wins or not losses:

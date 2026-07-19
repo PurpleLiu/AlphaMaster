@@ -1,4 +1,4 @@
-"""benchmark_speed.py — 诊断训练速度瓶颈"""
+"""benchmark_speed.py — 診斷訓練速度瓶頸"""
 import sys, time
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))

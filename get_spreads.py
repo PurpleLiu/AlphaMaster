@@ -1,18 +1,18 @@
-"""get_spreads.py — 从 MT5 实时获取各品种点差（用于回测成本）"""
+"""get_spreads.py — 從 MT5 即時獲取各品種點差（用於回測成本）"""
 import sys; sys.path.insert(0,'.')
 import MetaTrader5 as mt5
 from config import Config
 
 mt5.initialize()
 
-print("=== 实时点差 ===")
+print("=== 即時點差 ===")
 spreads = {}
 for sym in Config.SYMBOLS:
     tick = mt5.symbol_info_tick(sym)
     info = mt5.symbol_info(sym)
     if tick and info:
         spread_pts = tick.ask - tick.bid
-        # 转换为对数收益率单位：spread / mid_price
+        # 轉換為對數收益率單位：spread / mid_price
         mid = (tick.ask + tick.bid) / 2
         spread_pct = spread_pts / mid
         point = info.point
@@ -28,13 +28,13 @@ for sym in Config.SYMBOLS:
               f"spread={spread_pts:.5f} ({spread_points}pts) "
               f"log_spread={spread_pct:.6f}")
     else:
-        print(f"  {sym:12s}: 无法获取 tick 数据")
+        print(f"  {sym:12s}: 無法獲取 tick 數據")
 
 mt5.shutdown()
 
-# 各品种点差的对数收益率（单边）用于回测 cost_rate
+# 各品種點差的對數收益率（單邊）用於回測 cost_rate
 print()
-print("=== 回测 cost_rate 建议（log spread / 2，单边）===")
+print("=== 回測 cost_rate 建議（log spread / 2，單邊）===")
 for sym, d in spreads.items():
     cost = d["spread_pct"] / 2
     print(f"  {sym:12s}: cost_rate = {cost:.6f}")

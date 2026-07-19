@@ -6,7 +6,7 @@ import time
 import urllib.request
 
 BASE = "http://127.0.0.1:8765"
-DATA_FILE = r"D:\K线数据\ADAUSD_H1.parquet"
+DATA_FILE = r"D:\K線數據\ADAUSD_H1.parquet"
 
 
 def post(path: str, data: dict) -> dict:

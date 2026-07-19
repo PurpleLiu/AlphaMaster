@@ -1,4 +1,4 @@
-"""backtest_viz — 可视化回测系统"""
+"""backtest_viz — 可視化回測系統"""
 from .engine import BacktestEngine
 from .chart  import BacktestChart
 from .report import BacktestReport

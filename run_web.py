@@ -1,11 +1,11 @@
 """
-run_web.py — 启动训练 Web 控制台
+run_web.py — 啟動訓練 Web 控制台
 
 用法:
     python run_web.py
     python run_web.py --port 8765
 
-浏览器打开 http://127.0.0.1:8765
+瀏覽器打開 http://127.0.0.1:8765
 """
 from __future__ import annotations
 
@@ -29,14 +29,14 @@ def main() -> None:
     try:
         import uvicorn
     except ImportError:
-        print("请先安装依赖: pip install fastapi uvicorn[standard]")
+        print("請先安裝依賴: pip install fastapi uvicorn[standard]")
         sys.exit(1)
 
     debug = bool(load_settings().get("debug_mode", False))
 
     print(f"\n  AlphaMaster 量化因子挖掘中心")
     print(f"  → http://{args.host}:{args.port}")
-    print(f"  调试模式: {'开启' if debug else '关闭（默认）'}\n")
+    print(f"  除錯模式: {'開啟' if debug else '關閉（默認）'}\n")
 
     uvicorn.run(
         "web.app:app",

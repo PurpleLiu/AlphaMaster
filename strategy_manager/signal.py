@@ -1,24 +1,24 @@
 """
-strategy_manager/signal.py — 回测与实盘共享的信号计算模块
+strategy_manager/signal.py — 回測與實盤共享的信號計算模組
 
 提供：
-  compute_target_positions(factors, prev_positions)  →  连续仓位 [-1, +1] 张量
-  reconcile_action(current, target)                  →  动作字符串
+  compute_target_positions(factors, prev_positions)  →  連續倉位 [-1, +1] 張量
+  reconcile_action(current, target)                  →  動作字串
 
-信号逻辑（收益优先模式，2026-07-04 重构）：
-  旧模式（Neutral Band）：tanh → sign → {-1, 0, +1} 三档，天花板锁死在 1 倍仓。
-  新模式（连续仓位）：factor 直接经 tanh 压缩到 (-1, +1) 作为仓位比例。
-    - factor 越强 → 仓位比例越大，允许"加码"
-    - 不设 Neutral Band，让模型自由决定在场时间
-    - 回测与实盘共用同一逻辑，消除两者差异
-  训练时用 tanh(factor) 作为连续仓位，回测也一致，避免训练/回测目标函数不对齐。
+信號邏輯（收益優先模式，2026-07-04 重構）：
+  舊模式（Neutral Band）：tanh → sign → {-1, 0, +1} 三檔，天花板鎖死在 1 倍倉。
+  新模式（連續倉位）：factor 直接經 tanh 壓縮到 (-1, +1) 作為倉位比例。
+    - factor 越強 → 倉位比例越大，允許"加碼"
+    - 不設 Neutral Band，讓模型自由決定在場時間
+    - 回測與實盤共用同一邏輯，消除兩者差異
+  訓練時用 tanh(factor) 作為連續倉位，回測也一致，避免訓練/回測目標函數不對齊。
 """
 from __future__ import annotations
 
 import torch
 from torch import Tensor
 
-# ── 保留实盘用的阈值参数（实盘 Runner 可能还读取这些常量）──────────────────
+# ── 保留實盤用的閾值參數（實盤 Runner 可能還讀取這些常量）──────────────────
 ENTRY_THRESHOLD: float = 0.3
 EXIT_THRESHOLD:  float = 0.1
 MIN_TRADE_EXPOSURE: float = 0.05
@@ -36,14 +36,14 @@ def compute_target_positions(
     factors:        Tensor,
     prev_positions: Tensor | None = None,
 ) -> Tensor:
-    """将因子张量转换为连续仓位 [-1, +1]（收益优先模式）。
+    """將因子張量轉換為連續倉位 [-1, +1]（收益優先模式）。
 
-    新逻辑：position = tanh(factor)，连续仓位，强信号→大仓。
-    prev_positions 参数保留兼容性，连续模式下不影响计算。
+    新邏輯：position = tanh(factor)，連續倉位，強信號→大倉。
+    prev_positions 參數保留相容性，連續模式下不影響計算。
 
     Args:
-        factors:        [N, T] 或 [N] 的因子张量。
-        prev_positions: 保留参数，连续模式下忽略。
+        factors:        [N, T] 或 [N] 的因子張量。
+        prev_positions: 保留參數，連續模式下忽略。
     """
     pos = torch.tanh(factors)
     min_abs = _min_trade_exposure()
@@ -52,12 +52,12 @@ def compute_target_positions(
     return pos
 
 def compute_target_positions_stateless(factors: Tensor) -> Tensor:
-    """无状态版本，供训练回测快速计算（连续仓位模式）。"""
+    """無狀態版本，供訓練回測快速計算（連續倉位模式）。"""
     return compute_target_positions(factors, prev_positions=None)
 
 
 def target_to_direction(target: float, min_abs: float | None = None) -> int:
-    """把连续目标仓位转成 MT5 可执行方向。"""
+    """把連續目標倉位轉成 MT5 可執行方向。"""
     threshold = _min_trade_exposure() if min_abs is None else float(min_abs)
     if target >= threshold:
         return 1
@@ -66,7 +66,7 @@ def target_to_direction(target: float, min_abs: float | None = None) -> int:
     return 0
 
 
-# ── 动作常量 ──────────────────────────────────────────────────────────────────
+# ── 動作常量 ──────────────────────────────────────────────────────────────────
 HOLD             = "HOLD"
 OPEN_LONG        = "OPEN_LONG"
 OPEN_SHORT       = "OPEN_SHORT"
@@ -76,14 +76,14 @@ REVERSE_TO_SHORT = "REVERSE_TO_SHORT"
 
 
 def reconcile_action(current: int, target: int) -> str:
-    """根据当前仓位方向和目标方向，返回应执行的动作。
+    """根據當前倉位方向和目標方向，返回應執行的動作。
 
     Args:
-        current: 当前仓位方向，+1（多）/ -1（空）/ 0（空仓）。
-        target:  目标仓位方向，+1 / -1 / 0。
+        current: 當前倉位方向，+1（多）/ -1（空）/ 0（空倉）。
+        target:  目標倉位方向，+1 / -1 / 0。
 
     Returns:
-        动作字符串，取值为模块级常量之一。
+        動作字串，取值為模組級常量之一。
     """
     if current == target:
         return HOLD

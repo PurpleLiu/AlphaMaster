@@ -1,8 +1,8 @@
 """
-generate_factor_equity_curves.py — 各品种 best_{symbol}.json 因子深度回测 + 资金曲线
+generate_factor_equity_curves.py — 各品種 best_{symbol}.json 因子深度回測 + 資金曲線
 
-数据：D:\\K线数据 离线 H1（可用 --mt5 连 MT5 增量更新）
-输出：backtest_output/equity_{symbol}.png
+數據：D:\\K線數據 離線 H1（可用 --mt5 連 MT5 增量更新）
+輸出：backtest_output/equity_{symbol}.png
       backtest_output/all_factors_equity.png
       backtest_output/factor_equity_summary.json
 """
@@ -259,7 +259,7 @@ def plot_combined(results_map: dict, output_dir: Path) -> str:
     if not syms:
         return ""
 
-    # 对齐到最短序列（各品种历史长度不同）
+    # 對齊到最短序列（各品種歷史長度不同）
     T = min(len(results_map[s]["pnl"]) for s in syms)
 
     fig = plt.figure(figsize=(18, 10), dpi=110)
@@ -332,8 +332,8 @@ def main():
     loaded_list = [x for p in sorted(Path("strategies").glob("best_*.json")) if (x := load_best(p))]
 
     print(f"\nFactor Equity Curves | vocab={VOCAB_VERSION} | "
-          f"{'offline D:/K线数据' if offline else 'MT5+缓存'}\n")
-    print(f"{'品种':<16} {'年化%':>8} {'Sharpe':>8} {'MDD%':>8}")
+          f"{'offline D:/K線數據' if offline else 'MT5+快取'}\n")
+    print(f"{'品種':<16} {'年化%':>8} {'Sharpe':>8} {'MDD%':>8}")
     print("-" * 50)
 
     summary_rows = []
@@ -387,7 +387,7 @@ def main():
 
     if curve_data:
         combined = plot_combined(curve_data, OUTPUT_DIR)
-        print(f"\n组合图 -> {combined}")
+        print(f"\n組合圖 -> {combined}")
 
     summary = {
         "generated_at": datetime.now(tz=timezone.utc).isoformat(),
@@ -400,7 +400,7 @@ def main():
     json_path = OUTPUT_DIR / "factor_equity_summary.json"
     json_path.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"摘要 JSON -> {json_path}")
-    print(f"单品种图 -> {OUTPUT_DIR}/equity_*.png")
+    print(f"單品種圖 -> {OUTPUT_DIR}/equity_*.png")
 
 
 if __name__ == "__main__":

@@ -1,5 +1,5 @@
 """
-tests/unit/test_risk.py — MT5RiskEngine 单元测试
+tests/unit/test_risk.py — MT5RiskEngine 單元測試
 
 Requirements: 9.6
 """
@@ -17,7 +17,7 @@ def _make_symbol_info(
     volume_min: float = 0.01,
     volume_max: float = 100.0,
 ) -> MagicMock:
-    """构造品种规格 mock。"""
+    """構造品種規格 mock。"""
     info = MagicMock()
     info.trade_tick_value = trade_tick_value
     info.volume_step = volume_step
@@ -27,20 +27,20 @@ def _make_symbol_info(
 
 
 def _make_account_info(margin_free: float) -> MagicMock:
-    """构造账户信息 mock。"""
+    """構造帳戶資訊 mock。"""
     acct = MagicMock()
     acct.margin_free = margin_free
     return acct
 
 
 class TestInsufficientMarginReturnsZero:
-    """Requirement 9.6: 保证金不足时返回 0.0 并记录 WARNING。"""
+    """Requirement 9.6: 保證金不足時返回 0.0 並記錄 WARNING。"""
 
     def test_insufficient_free_margin_returns_zero(self):
         """
-        保证金极低（0.001）时 calculate_lot() 必须返回 0.0。
+        保證金極低（0.001）時 calculate_lot() 必須返回 0.0。
 
-        保证金检查在手数计算之后执行（9.6）。
+        保證金檢查在手數計算之後執行（9.6）。
         """
         engine = MT5RiskEngine(risk_per_trade=0.01)
 
@@ -54,12 +54,12 @@ class TestInsufficientMarginReturnsZero:
             result = engine.calculate_lot("XAUUSD", equity=10000.0, stop_pips=20.0)
 
         assert result == 0.0, (
-            f"保证金不足时应返回 0.0，实际返回 {result}"
+            f"保證金不足時應返回 0.0，實際返回 {result}"
         )
 
     def test_sufficient_free_margin_returns_nonzero_lot(self):
         """
-        保证金充裕（999999.0）时 calculate_lot() 应返回正手数。
+        保證金充裕（999999.0）時 calculate_lot() 應返回正手數。
         """
         engine = MT5RiskEngine(risk_per_trade=0.01)
 
@@ -73,12 +73,12 @@ class TestInsufficientMarginReturnsZero:
             result = engine.calculate_lot("XAUUSD", equity=10000.0, stop_pips=20.0)
 
         assert result > 0.0, (
-            f"保证金充裕时应返回正手数，实际返回 {result}"
+            f"保證金充裕時應返回正手數，實際返回 {result}"
         )
 
     def test_symbol_info_unavailable_returns_zero(self):
         """
-        无法获取品种信息（_get_symbol_info 返回 None）时应返回 0.0。
+        無法獲取品種資訊（_get_symbol_info 返回 None）時應返回 0.0。
         """
         engine = MT5RiskEngine(risk_per_trade=0.01)
 
@@ -86,5 +86,5 @@ class TestInsufficientMarginReturnsZero:
             result = engine.calculate_lot("XAUUSD", equity=10000.0, stop_pips=20.0)
 
         assert result == 0.0, (
-            f"品种信息不可用时应返回 0.0，实际返回 {result}"
+            f"品種資訊不可用時應返回 0.0，實際返回 {result}"
         )

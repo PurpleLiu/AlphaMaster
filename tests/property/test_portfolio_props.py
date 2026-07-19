@@ -1,4 +1,4 @@
-# Feature: mt5-alphagpt-refactor, Property 11: 投资组合状态 round-trip 持久化
+# Feature: mt5-alphagpt-refactor, Property 11: 投資組合狀態 round-trip 持久化
 """
 Property-based tests for strategy_manager.portfolio (MT5PortfolioManager).
 
@@ -105,7 +105,7 @@ def portfolio_strategy(draw) -> dict:
 @given(original_positions=portfolio_strategy())
 def test_property11_portfolio_roundtrip_persistence(original_positions: dict):
     """
-    Property 11: save_state() + load_state() 恢复的状态与原状态所有字段完全相等
+    Property 11: save_state() + load_state() 恢復的狀態與原狀態所有欄位完全相等
 
     For any set of Position objects injected into MT5PortfolioManager:
     1. Override the state file path with a temp file.

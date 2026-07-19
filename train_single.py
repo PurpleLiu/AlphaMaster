@@ -1,11 +1,11 @@
 """
-train_single.py — 单品种训练入口
+train_single.py — 單品種訓練入口
 
 用法:
     python train_single.py XAUUSD [--offline]
 
-每个品种独立训练，checkpoint: checkpoints/ckpt_{symbol}_step_{N}.pt
-训练完成后保存策略: strategies/best_{symbol}.json
+每個品種獨立訓練，checkpoint: checkpoints/ckpt_{symbol}_step_{N}.pt
+訓練完成後保存策略: strategies/best_{symbol}.json
 """
 import sys, time, pathlib
 from pathlib import Path
@@ -20,22 +20,22 @@ from model_core.engine import AlphaEngine
 
 
 def train_single(fetcher, symbol: str, offline: bool):
-    """训练单个品种。
+    """訓練單個品種。
 
-    自动检测 checkpoint 续训，完成后保存策略到 strategies/best_{symbol}.json。
+    自動檢測 checkpoint 續訓，完成後保存策略到 strategies/best_{symbol}.json。
     """
     import json, glob as _g
 
     print(f"\n{'='*60}")
-    print(f"  AlphaGPT 单品种训练 — {symbol}")
+    print(f"  AlphaGPT 單品種訓練 — {symbol}")
     print(f"{'='*60}")
-    print(f"  奖励模式: {ModelConfig.REWARD_MODE}")
-    print(f"  训练步数: {ModelConfig.TRAIN_STEPS}")
-    print(f"  K线目录: {Config.KLINE_CACHE_DIR}")
-    print(f"  离线模式: 是（仅读本地缓存）")
+    print(f"  獎勵模式: {ModelConfig.REWARD_MODE}")
+    print(f"  訓練步數: {ModelConfig.TRAIN_STEPS}")
+    print(f"  K線目錄: {Config.KLINE_CACHE_DIR}")
+    print(f"  離線模式: 是（僅讀本地快取）")
     print(f"{'='*60}")
 
-    # 加载全部品种数据，然后切出单品种视图
+    # 載入全部品種數據，然後切出單品種視圖
     original = Config.SYMBOLS[:]
     Config.SYMBOLS = [symbol]
 
@@ -43,9 +43,9 @@ def train_single(fetcher, symbol: str, offline: bool):
         mgr = MT5DataManager(fetcher)
         mgr.load()
         T = mgr.raw_dict["open"].shape[1]
-        print(f"  数据: {symbol}  T={T} bars ({T/6240:.2f}年)")
+        print(f"  數據: {symbol}  T={T} bars ({T/6240:.2f}年)")
     except Exception as e:
-        print(f"  [错误] 数据加载失败: {e}")
+        print(f"  [錯誤] 數據載入失敗: {e}")
         Config.SYMBOLS = original
         return None
     finally:
@@ -53,7 +53,7 @@ def train_single(fetcher, symbol: str, offline: bool):
 
     engine = AlphaEngine(data_manager=mgr, target_symbol=symbol)
 
-    # 自动续训
+    # 自動續訓
     ckpt_pattern = str(pathlib.Path("checkpoints") / f"ckpt_{symbol}_step_*.pt")
     ckpt_files = sorted(_g.glob(ckpt_pattern))
     start_step = 0
@@ -65,17 +65,17 @@ def train_single(fetcher, symbol: str, offline: bool):
             start_step = engine._step if hasattr(engine, '_step') else int(
                 latest.split('_step_')[-1].replace('.pt', '')
             )
-            print(f"  [续训] 从 {latest} 恢复，start_step={start_step}")
+            print(f"  [續訓] 從 {latest} 恢復，start_step={start_step}")
         except Exception as e:
-            print(f"  [警告] checkpoint 加载失败: {e}，将从头开始")
+            print(f"  [警告] checkpoint 載入失敗: {e}，將從頭開始")
 
     if start_step >= ModelConfig.TRAIN_STEPS:
-        print(f"  [完成] {symbol} 已完成全部 {ModelConfig.TRAIN_STEPS} 步，跳过训练")
+        print(f"  [完成] {symbol} 已完成全部 {ModelConfig.TRAIN_STEPS} 步，跳過訓練")
         _save_strategy(engine, symbol)
         return engine
 
     if start_step == 0:
-        print(f"  [新训] 从 step 0 开始")
+        print(f"  [新訓] 從 step 0 開始")
 
     engine.train(start_step=start_step)
     _save_strategy(engine, symbol)
@@ -83,7 +83,7 @@ def train_single(fetcher, symbol: str, offline: bool):
 
 
 def _save_strategy(engine, symbol):
-    """保存单品种策略"""
+    """保存單品種策略"""
     import json
     from model_core.vocab import VOCAB_VERSION
 
@@ -136,12 +136,12 @@ if __name__ == "__main__":
 
     if not syms:
         print("用法: python train_single.py <SYMBOL> [--cache-dir PATH] [--mode ftmo]")
-        print(f"可选品种: {Config.TRAINABLE_SYMBOLS}")
+        print(f"可選品種: {Config.TRAINABLE_SYMBOLS}")
         sys.exit(1)
 
     symbol = syms[0]
     if symbol not in Config.TRAINABLE_SYMBOLS:
-        print(f"警告: {symbol} 不在 TRAINABLE_SYMBOLS 列表中，但仍将尝试训练")
+        print(f"警告: {symbol} 不在 TRAINABLE_SYMBOLS 列表中，但仍將嘗試訓練")
 
     t0 = time.time()
     with MT5DataFetcher(offline=offline) as fetcher:
@@ -149,8 +149,8 @@ if __name__ == "__main__":
 
     elapsed = time.time() - t0
     if eng:
-        print(f"\n<<< [{symbol}] 完成: score={eng.best_score:.4f} 耗时 {elapsed/3600:.2f}h")
+        print(f"\n<<< [{symbol}] 完成: score={eng.best_score:.4f} 耗時 {elapsed/3600:.2f}h")
         if eng.best_formula:
             print(f"    {eng._decode_formula(eng.best_formula)}")
     else:
-        print(f"\n<<< [{symbol}] 失败")
+        print(f"\n<<< [{symbol}] 失敗")

@@ -7,7 +7,7 @@ def pick_parquet_file() -> str | None:
         import tkinter as tk
         from tkinter import filedialog
     except ImportError:
-        raise RuntimeError("当前环境不支持图形文件选择（缺少 tkinter）")
+        raise RuntimeError("當前環境不支持圖形文件選擇（缺少 tkinter）")
 
     root = tk.Tk()
     root.withdraw()
@@ -16,9 +16,9 @@ def pick_parquet_file() -> str | None:
     except Exception:
         pass
     path = filedialog.askopenfilename(
-        title="选择 K 线 Parquet 文件",
+        title="選擇 K 線 Parquet 文件",
         filetypes=[
-            ("Parquet K线", "*.parquet"),
+            ("Parquet K線", "*.parquet"),
             ("所有文件", "*.*"),
         ],
     )
@@ -31,7 +31,7 @@ def pick_strategy_file() -> str | None:
         import tkinter as tk
         from tkinter import filedialog
     except ImportError:
-        raise RuntimeError("当前环境不支持图形文件选择（缺少 tkinter）")
+        raise RuntimeError("當前環境不支持圖形文件選擇（缺少 tkinter）")
 
     root = tk.Tk()
     root.withdraw()
@@ -40,7 +40,7 @@ def pick_strategy_file() -> str | None:
     except Exception:
         pass
     path = filedialog.askopenfilename(
-        title="选择策略 JSON 文件",
+        title="選擇策略 JSON 文件",
         filetypes=[
             ("策略 JSON", "*.json"),
             ("所有文件", "*.*"),

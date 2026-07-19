@@ -17,11 +17,11 @@ from .vm import StackVM
 from .backtest import MT5Backtest, estimate_periods_per_year
 from .vocab import FORMULA_VOCAB, VOCAB_VERSION, VocabVersionMismatchError  # task 12.2
 
-# P3：冠军在场时间稳健性校验所需
+# P3：冠軍在場時間穩健性校驗所需
 try:
     from strategy_manager.signal import compute_target_positions_stateless
 except ImportError:
-    # 兼容无 strategy_manager 的测试环境
+    # 相容無 strategy_manager 的測試環境
     def compute_target_positions_stateless(factors):  # type: ignore
         import torch as _torch
         return _torch.sign(_torch.tanh(factors))
@@ -36,10 +36,10 @@ except ImportError:
 
 
 def _strategy_file_for_symbol(symbol: str | None) -> str:
-    """返回该品种对应的策略文件路径。
+    """返回該品種對應的策略文件路徑。
 
-    单品种训练时使用 strategies/best_{symbol}.json，
-    多品种/未指定品种时回退到默认路径。
+    單品種訓練時使用 strategies/best_{symbol}.json，
+    多品種/未指定品種時回退到默認路徑。
     """
     if symbol:
         return str(pathlib.Path("strategies") / f"best_{symbol}.json")
@@ -73,7 +73,7 @@ def _fallback_data_file_for_symbol(symbol: str) -> tuple[str | None, str | None]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Walk-Forward 折叠构建
+# Walk-Forward 摺疊構建
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _build_walk_forward_folds(T: int, n_folds: int = 5, gap: int = 20) -> list[dict]:
@@ -112,7 +112,7 @@ def _repetition_penalty(formula: list[int]) -> float:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# ConstrainedSampler — 保证 100% 合法公式
+# ConstrainedSampler — 保證 100% 合法公式
 # ─────────────────────────────────────────────────────────────────────────────
 
 class ConstrainedSampler:
@@ -128,9 +128,9 @@ class ConstrainedSampler:
             else:
                 a = arity_map.get(tid, 1)
                 self.delta[tid] = 1 - a
-        # 恒正算子 token id 集合（用于算子链约束）
+        # 恆正運算元 token id 集合（用於運算元鏈約束）
         self.positive_only_ids = positive_only_ids or set()
-        # 构建感染传播/恢复算子 id 集合
+        # 構建感染傳播/恢復運算元 id 集合
         from .vm import INFECTED_PROPAGATING_OPS, SIGN_RESTORE_OPS
         from .ops import OPS_CONFIG as _ops
         self.infected_propagating_ids = set()
@@ -157,13 +157,13 @@ class ConstrainedSampler:
             max_future = new_depth + (remaining - 1) * 1
             if 1 < min_future or 1 > max_future:
                 mask[tid] = False
-            # ── 算子链约束（感染模型）──────────────────────────────
-            # 如果已感染且感染链 >= 2，禁止再使用传播算子
-            # （允许恢复算子和非传播算子如 ADD/SUB/MUL）
+            # ── 運算元鏈約束（感染模型）──────────────────────────────
+            # 如果已感染且感染鏈 >= 2，禁止再使用傳播運算元
+            # （允許恢復運算元和非傳播運算元如 ADD/SUB/MUL）
             if infected_chain_len >= 2 and tid in self.infected_propagating_ids:
                 mask[tid] = False
-            # 如果已感染且感染链 >= 3，禁止所有算子（强制恢复或结束）
-            # 实际上不禁止恢复算子，只禁止传播和恒正算子
+            # 如果已感染且感染鏈 >= 3，禁止所有運算元（強制恢復或結束）
+            # 實際上不禁止恢復運算元，只禁止傳播和恆正運算元
             if infected_chain_len >= 3:
                 if tid in self.infected_propagating_ids or tid in self.positive_only_ids:
                     mask[tid] = False
@@ -188,7 +188,7 @@ class ConstrainedSampler:
         return masked
 
     def update_infection(self, token: int, infected_chain_len: int) -> int:
-        """更新感染链长度，返回新的感染链长度。"""
+        """更新感染鏈長度，返回新的感染鏈長度。"""
         if token in self.positive_only_ids:
             return infected_chain_len + 1
         elif token in self.sign_restore_ids:
@@ -197,11 +197,11 @@ class ConstrainedSampler:
             if infected_chain_len > 0:
                 return infected_chain_len + 1
             return 0
-        return infected_chain_len  # 非传播/非恢复算子，不改变状态
+        return infected_chain_len  # 非傳播/非恢復運算元，不改變狀態
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# AlphaEngine — __init__ 与静态辅助方法
+# AlphaEngine — __init__ 與靜態輔助方法
 # ─────────────────────────────────────────────────────────────────────────────
 
 class AlphaEngine:
@@ -210,7 +210,7 @@ class AlphaEngine:
                  target_symbol: str | None = None):
         self.data_manager  = data_manager
         self.n_folds       = n_folds
-        self.target_symbol = target_symbol   # None = 多品种模式，str = 单品种模式
+        self.target_symbol = target_symbol   # None = 多品種模式，str = 單品種模式
         self.model   = AlphaGPT().to(ModelConfig.DEVICE)
         self.opt     = torch.optim.AdamW(self.model.parameters(), lr=1e-3)
 
@@ -254,7 +254,7 @@ class AlphaEngine:
         self._elite_pool: list[tuple[float, int, list[int], int]] = []
         self._elite_counter = 0
 
-        # 自适应噪声：记录 best 刷新步数
+        # 自適應噪聲：記錄 best 刷新步數
         self._best_update_step = 0
         self._stagnation_steps = 0
 
@@ -267,9 +267,9 @@ class AlphaEngine:
     @staticmethod
     def _compute_ic(factor: torch.Tensor, target_ret: torch.Tensor
                     ) -> tuple[torch.Tensor, torch.Tensor]:
-        """时序 IC（每品种内部 factor[t] vs ret[t+1]）的均值与稳定性。
+        """時序 IC（每品種內部 factor[t] vs ret[t+1]）的均值與穩定性。
 
-        对 5 品种宇宙，时序 IC 比横截面 IC 统计意义更强。
+        對 5 品種宇宙，時序 IC 比橫截面 IC 統計意義更強。
         """
         N, T = factor.shape
         if T < 2:
@@ -304,10 +304,10 @@ class AlphaEngine:
 
     @staticmethod
     def _apply_ic_gate(reward: torch.Tensor, ic_mean) -> torch.Tensor:
-        """IC 门控：用 IC 符号而非量值调整 reward，完全规避量纲问题。
-        IC > thresh  → reward × IC_GATE_MULT  (正向预测，奖励)
-        IC < -thresh → reward × IC_NEG_MULT   (反向预测，惩罚)
-        |IC| ≤ thresh→ 不修改                  (噪声区)
+        """IC 門控：用 IC 符號而非量值調整 reward，完全規避量綱問題。
+        IC > thresh  → reward × IC_GATE_MULT  (正向預測，獎勵)
+        IC < -thresh → reward × IC_NEG_MULT   (反向預測，懲罰)
+        |IC| ≤ thresh→ 不修改                  (噪聲區)
         """
         ic_val = ic_mean.item() if isinstance(ic_mean, torch.Tensor) else float(ic_mean)
         t = ModelConfig.IC_GATE_THRESH
@@ -324,7 +324,7 @@ class AlphaEngine:
     def _dedup_elite_pool(
         pool: list[tuple[float, int, list[int], int]]
     ) -> list[tuple[float, int, list[int], int]]:
-        """对精英池去重：相同 tokens 只保留得分最高的一条，重建最小堆。"""
+        """對精英池去重：相同 tokens 只保留得分最高的一條，重建最小堆。"""
         best: dict[str, tuple[float, int, list[int], int]] = {}
         for sc, cnt, toks, birth in pool:
             key = str(toks)
@@ -335,20 +335,20 @@ class AlphaEngine:
         return deduped
 
     def _update_elite_pool(self, val_score: float, formula: list[int], step: int = 0) -> None:
-        """维护精英公式池（最小堆，Top-ELITE_POOL_SIZE 个历史最优公式，自动去重）。
+        """維護精英公式池（最小堆，Top-ELITE_POOL_SIZE 個歷史最優公式，自動去重）。
 
-        去重逻辑：若 formula 已在池中，只在新得分更高时原地更新，不插入重复副本。
-        这防止了单一公式垄断 elite pool，保持多样性。
-        新增：记录 birth_step 用于 elite decay。
+        去重邏輯：若 formula 已在池中，只在新得分更高時原地更新，不插入重複副本。
+        這防止了單一公式壟斷 elite pool，保持多樣性。
+        新增：記錄 birth_step 用於 elite decay。
         """
         k = ModelConfig.ELITE_POOL_SIZE
 
-        # 检查是否已有相同公式
+        # 檢查是否已有相同公式
         for idx, (sc, cnt, toks, birth) in enumerate(self._elite_pool):
             if toks == formula:
                 if val_score <= sc:
                     return  # 已有更高分的相同公式，不更新
-                # 分数更高：从堆中移除旧条目，插入新条目
+                # 分數更高：從堆中移除舊條目，插入新條目
                 self._elite_pool[idx] = self._elite_pool[-1]
                 self._elite_pool.pop()
                 heapq.heapify(self._elite_pool)  # O(k)，k≤20，可接受
@@ -393,8 +393,8 @@ class AlphaEngine:
         return reward
 
     def _distribution_stats(self, prev_dist=None):
-        """计算模型初始位置（zero prefix）token 分布的细化指标，用于判断 H 不变时
-        分布是否真的在变化。
+        """計算模型初始位置（zero prefix）token 分布的細化指標，用於判斷 H 不變時
+        分布是否真的在變化。
         """
         vocab_size = FORMULA_VOCAB.size
         with torch.no_grad():
@@ -440,17 +440,17 @@ class AlphaEngine:
             end_step = ModelConfig.TRAIN_STEPS
 
         if verbose_header:
-            print("开始 Alpha 因子挖掘训练" +
-                  ("（含 LoRD 正则化）..." if self.use_lord else "..."))
-            print(f"   策略熵: 坍塌阈值={ModelConfig.ENTROPY_COLLAPSE_THRESH}  "
-                  f"系数上限={ModelConfig.ENTROPY_COEFF_MAX}  "
-                  f"连续坍塌步数={ModelConfig.ENTROPY_COLLAPSE_STEPS}")
-            print(f"   精英回放: 比例={ModelConfig.ELITE_REPLAY_FRAC}  "
+            print("開始 Alpha 因子挖掘訓練" +
+                  ("（含 LoRD 正則化）..." if self.use_lord else "..."))
+            print(f"   策略熵: 坍塌閾值={ModelConfig.ENTROPY_COLLAPSE_THRESH}  "
+                  f"係數上限={ModelConfig.ENTROPY_COEFF_MAX}  "
+                  f"連續坍塌步數={ModelConfig.ENTROPY_COLLAPSE_STEPS}")
+            print(f"   精英重播: 比例={ModelConfig.ELITE_REPLAY_FRAC}  "
                   f"池大小={ModelConfig.ELITE_POOL_SIZE}")
-            print(f"   IC门控: 阈值±{ModelConfig.IC_GATE_THRESH}  "
-                  f"正向×{ModelConfig.IC_GATE_MULT}  负向×{ModelConfig.IC_NEG_MULT}")
-            print(f"   最大重启: {ModelConfig.MAX_RESTARTS}  "
-                  f"噪声={ModelConfig.RESTART_NOISE}")
+            print(f"   IC門控: 閾值±{ModelConfig.IC_GATE_THRESH}  "
+                  f"正向×{ModelConfig.IC_GATE_MULT}  負向×{ModelConfig.IC_NEG_MULT}")
+            print(f"   最大重啟: {ModelConfig.MAX_RESTARTS}  "
+                  f"噪聲={ModelConfig.RESTART_NOISE}")
 
         T     = self.data_manager.target_ret.shape[1]
         folds = _build_walk_forward_folds(T, self.n_folds,
@@ -460,21 +460,21 @@ class AlphaEngine:
         )
         if verbose_header:
             if use_wf:
-                print(f"   滚动验证: {len(folds)} 折  共 {T} 根K线")
+                print(f"   滾動驗證: {len(folds)} 折  共 {T} 根K線")
                 for k, f in enumerate(folds):
-                    print(f"  第{k+1}折: 训练[0,{f['train_end']}) "
-                          f"间隔={f['gap']} 验证[{f['val_start']},{f['val_end']})")
+                    print(f"  第{k+1}折: 訓練[0,{f['train_end']}) "
+                          f"間隔={f['gap']} 驗證[{f['val_start']},{f['val_end']})")
             else:
-                print(f"   退化为全量评估（共 {T} 根K线）")
+                print(f"   退化為全量評估（共 {T} 根K線）")
 
-        # 因果安全：features.py 的 _robust_norm 已改为滚动因果实现
-        # 每个 t 的归一化参数只用 [t-w+1..t]，walk-forward 折叠切片无泄露
+        # 因果安全：features.py 的 _robust_norm 已改為滾動因果實現
+        # 每個 t 的歸一化參數只用 [t-w+1..t]，walk-forward 摺疊切片無洩露
         feat  = self.data_manager.feat_tensor.to(ModelConfig.DEVICE)
         t_ret = self.data_manager.target_ret.to(ModelConfig.DEVICE)
 
-        # 数据驱动年化因子：按训练数据的实际时间戳估计每年 bar 数，
-        # 替代 MT5Backtest 默认的 H1=6240。A 股日线/15min、加密日线等
-        # 非 H1 周期不再被按 H1 年化（否则 Sharpe/年化收益被放大数倍）。
+        # 數據驅動年化因子：按訓練數據的實際時間戳估計每年 bar 數，
+        # 替代 MT5Backtest 默認的 H1=6240。A 股日線/15min、加密日線等
+        # 非 H1 週期不再被按 H1 年化（否則 Sharpe/年化收益被放大數倍）。
         _dm_raw = getattr(self.data_manager, "raw_dict", None) or {}
         _dm_time = _dm_raw.get("time", None)
         if _dm_time is not None:
@@ -482,10 +482,10 @@ class AlphaEngine:
                 _ppy = estimate_periods_per_year(_dm_time)
                 if _ppy != self.bt.periods_per_year:
                     if verbose_header:
-                        print(f"   年化因子: {_ppy} bar/年（按数据周期自动估计）")
+                        print(f"   年化因子: {_ppy} bar/年（按數據週期自動估計）")
                     self.bt.periods_per_year = _ppy
             except Exception:
-                pass  # 估计失败则保留默认 6240
+                pass  # 估計失敗則保留默認 6240
 
         bs      = ModelConfig.BATCH_SIZE
         n_elite = max(1, int(bs * ModelConfig.ELITE_REPLAY_FRAC))
@@ -493,11 +493,11 @@ class AlphaEngine:
 
         remaining = end_step - start_step
         if remaining <= 0:
-            print(f"[训练] 起始步 {start_step} 已达目标步 {end_step}，无需继续训练。")
+            print(f"[訓練] 起始步 {start_step} 已達目標步 {end_step}，無需繼續訓練。")
             return
 
-        # 非交互/重定向输出时关闭 tqdm 进度条，避免进度条刷屏把自定义日志淹掉。
-        # tqdm.write 仍然可用，详细 step 日志会继续输出。
+        # 非交互/重定向輸出時關閉 tqdm 進度條，避免進度條洗版把自訂日誌淹掉。
+        # tqdm.write 仍然可用，詳細 step 日誌會繼續輸出。
         pbar               = tqdm(range(start_step, end_step),
                                   total=end_step,
                                   initial=start_step,
@@ -505,7 +505,7 @@ class AlphaEngine:
                                   leave=False,
                                   mininterval=5.0)
         low_entropy_streak = 0
-        prev_init_dist     = None  # 用于计算相邻步分布差异 KL
+        prev_init_dist     = None  # 用於計算相鄰步分布差異 KL
 
         for step in pbar:
             # ── Part A: Sample n_new new formulas ────────────────────
@@ -554,9 +554,9 @@ class AlphaEngine:
                     weights.append(decay)
                 ps_min  = min(ps)
                 ps_max  = max(ps)
-                # 软温度采样：避免最高分公式垄断
-                # 先归一到 [0,1]，再除以温度 T=0.5 后做 softmax
-                # T<1 → 高分公式仍被偏好，但不再独占
+                # 軟溫度採樣：避免最高分公式壟斷
+                # 先歸一到 [0,1]，再除以溫度 T=0.5 後做 softmax
+                # T<1 → 高分公式仍被偏好，但不再獨占
                 if ps_max > ps_min:
                     normalized = [(s - ps_min) / (ps_max - ps_min + 1e-8) for s in ps]
                 else:
@@ -569,15 +569,15 @@ class AlphaEngine:
                                          weights=probs, k=n_elite)
                 elite_formulas = [pt[i] for i in idx_e]
 
-                # 详细日志：Elite Replay 衰减状态（每 100 步打印一次）
+                # 詳細日誌：Elite Replay 衰減狀態（每 100 步列印一次）
                 if step % 100 == 0:
                     avg_decay = sum(weights) / len(weights)
                     max_age = max(max(0, step - birth) for _, _, _, birth in self._elite_pool)
                     age_list = sorted([max(0, step - birth) for _, _, _, birth in self._elite_pool])
                     tqdm.write(
-                        f"[精英回放 @ 第{step}步] 池大小={len(self._elite_pool)} "
-                        f"平均衰减={avg_decay:.3f} 最大龄期={max_age} 龄期列表={age_list} "
-                        f"抽样分数=[{', '.join(f'{ps[i]:.3f}' for i in idx_e[:3])}...]"
+                        f"[精英重播 @ 第{step}步] 池大小={len(self._elite_pool)} "
+                        f"平均衰減={avg_decay:.3f} 最大齡期={max_age} 齡期列表={age_list} "
+                        f"抽樣分數=[{', '.join(f'{ps[i]:.3f}' for i in idx_e[:3])}...]"
                     )
             else:
                 elite_formulas = seqs_new[:n_elite].tolist()
@@ -636,7 +636,7 @@ class AlphaEngine:
                     if use_wf:
                         fold_tr, fold_vl, fold_ic = [], [], []
                         for fold in folds:
-                            # res[:, train_start:train_end] 是在已无泄露的因子上切片，正确
+                            # res[:, train_start:train_end] 是在已無洩露的因子上切片，正確
                             tr_sc, vl_sc = self.bt.evaluate_fold(
                                 res, t_ret,
                                 fold["train_start"], fold["train_end"],
@@ -668,8 +668,8 @@ class AlphaEngine:
                 bic.append(ic_full.item());  bis.append(ic_stab_full.item())
                 bsor.append(val_score.item())
 
-                # 重复惩罚和相关性惩罚同时施加到 rewards 和 val_scores
-                # 保证 best_score / elite_pool 选优时已含所有惩罚
+                # 重複懲罰和相關性懲罰同時施加到 rewards 和 val_scores
+                # 保證 best_score / elite_pool 選優時已含所有懲罰
                 rp = _repetition_penalty(fml)
                 if rp > 0:
                     rewards[i]    -= rp
@@ -677,29 +677,29 @@ class AlphaEngine:
                 rewards[i]    = self._apply_corr_penalty(rewards[i], res)
                 val_scores[i] = self._apply_corr_penalty(val_scores[i], res)
 
-                # 用含惩罚的 val_scores[i] 选全局最优
+                # 用含懲罰的 val_scores[i] 選全局最優
                 final_val = val_scores[i].item()
                 if final_val > step_max_val:
                     step_max_val = final_val;  step_best_f = fml
 
                 if final_val > self.best_score:
-                    # OOS 泛化门控：val_score / train_score < 0.5 说明过拟合
+                    # OOS 泛化門控：val_score / train_score < 0.5 說明過擬合
                     train_val = rewards[i].item()
                     if train_val > 0.5 and final_val < train_val * 0.5:
                         tqdm.write(
-                            f"[过拟合跳过 @ 第{step}步] 验证={final_val:.3f} "
-                            f"训练={train_val:.3f} 比值={final_val/train_val:.2f} | 样本外表现过差"
+                            f"[過擬合跳過 @ 第{step}步] 驗證={final_val:.3f} "
+                            f"訓練={train_val:.3f} 比值={final_val/train_val:.2f} | 樣本外表現過差"
                         )
                         pass
                     else:
-                        # P3：冠军选择稳健性校验——连续仓位均值 < 5% 的极稀疏公式拒绝登顶
+                        # P3：冠軍選擇穩健性校驗——連續倉位均值 < 5% 的極稀疏公式拒絕登頂
                         pos_check = compute_target_positions_stateless(res)
-                        exposure = pos_check.abs().mean().item()  # 连续仓位：均值
+                        exposure = pos_check.abs().mean().item()  # 連續倉位：均值
                         if exposure < 0.05:
-                            # 极稀疏：参与梯度更新但不登顶，但记录日志方便排查
+                            # 極稀疏：參與梯度更新但不登頂，但記錄日誌方便排查
                             tqdm.write(
-                                f"[稀疏跳过 @ 第{step}步] 验证={final_val:.3f} "
-                                f"IC={ic_i:.4f} 暴露度={exposure:.1%} | 仓位过稀疏，不更新最优"
+                                f"[稀疏跳過 @ 第{step}步] 驗證={final_val:.3f} "
+                                f"IC={ic_i:.4f} 暴露度={exposure:.1%} | 倉位過稀疏，不更新最優"
                             )
                             pass
                         else:
@@ -710,10 +710,10 @@ class AlphaEngine:
                             self._best_update_step = step
                             self._stagnation_steps = 0
                             self._update_factor_pool(final_val, res)
-                            # 即时保存：任何时刻进程退出都有最新最优公式（防终端回收丢策略）
+                            # 即時保存：任何時刻進程退出都有最新最優公式（防終端回收丟策略）
                             self._save_strategy_live()
                             tqdm.write(
-                                f"[!] 新最优 @ 第{step}步: 验证={final_val:.3f} "
+                                f"[!] 新最優 @ 第{step}步: 驗證={final_val:.3f} "
                                 f"(原 {old_best:.3f}，+{final_val-old_best:.3f}) "
                                 f"IC={ic_i:.4f} 暴露度={exposure:.1%} | "
                                 f"{fml}\n    {self._decode_formula(fml)}"
@@ -722,7 +722,7 @@ class AlphaEngine:
 
 
             # ── Part D: REINFORCE gradient update ────────────────────
-            # Fix 3: EMA baseline 替代 batch mean，避免全负 batch 的相对优选问题
+            # Fix 3: EMA baseline 替代 batch mean，避免全負 batch 的相對優選問題
             batch_mean = rewards.mean().item()
             batch_std  = rewards.std().clamp(min=0.1)
             if ModelConfig.REWARD_EMA_BASELINE and self._reward_ema_step >= ModelConfig.REWARD_EMA_WARMUP:
@@ -764,7 +764,7 @@ class AlphaEngine:
             ent_coeff = ModelConfig.ENTROPY_COEFF_MAX / (
                 (1.0 + ent_val) ** ModelConfig.ENTROPY_COEFF_POWER
             )
-            # Fix 1: 熵下限惩罚——当 H < threshold 时加入固定惩罚，确保探索压力不归零
+            # Fix 1: 熵下限懲罰——當 H < threshold 時加入固定懲罰，確保探索壓力不歸零
             ent_floor_loss = torch.zeros(1, device=ModelConfig.DEVICE)
             if ModelConfig.ENTROPY_FLOOR and ent_val < ModelConfig.ENTROPY_FLOOR_THRESH:
                 floor_gap = ModelConfig.ENTROPY_FLOOR_THRESH - ent_val
@@ -780,7 +780,7 @@ class AlphaEngine:
             if self.use_lord:
                 self.lord_opt.step()
 
-            # ── Part D2: 分布细化指标 ────────────────────────────────
+            # ── Part D2: 分布細化指標 ────────────────────────────────
             dst = self._distribution_stats(prev_init_dist)
             prev_init_dist = dst['dist']
             with torch.no_grad():
@@ -799,24 +799,24 @@ class AlphaEngine:
             tqdm.write(
                 f"[{step+1}/{end_step}] "
                 f"新公式={n_new} 精英={n_elite} | "
-                f"有效={ok_cnt} 无效={none_cnt} 常数={const_cnt} | "
-                f"奖励={avg_rew:.3f} 验证={avg_val:.3f} | "
-                f"IC={bim:.4f} | 熵={ent_val:.3f}(系数={ent_coeff:.3f}) | "
-                f"最优={self.best_score:.3f} 停滞={self._stagnation_steps} "
-                f"精英池={len(self._elite_pool)} 重启={self._restart_count}"
+                f"有效={ok_cnt} 無效={none_cnt} 常數={const_cnt} | "
+                f"獎勵={avg_rew:.3f} 驗證={avg_val:.3f} | "
+                f"IC={bim:.4f} | 熵={ent_val:.3f}(係數={ent_coeff:.3f}) | "
+                f"最優={self.best_score:.3f} 停滯={self._stagnation_steps} "
+                f"精英池={len(self._elite_pool)} 重啟={self._restart_count}"
             )
             tqdm.write(
-                f"   分布: 初始熵={dst['entropy']:.3f} KL均匀={dst['kl_uniform']:.3f} "
-                f"KL上步={dst['kl_prev']:.4f} 最高概率={dst['top1_prob']:.3f} "
-                f"前五概率={dst['top5_prob']:.3f} 有效词汇={dst['eff_vocab']:.2f} "
-                f"标准差={dst['prob_std']:.4f} | "
-                f"本批: 唯一符号={uniq_tokens}/{FORMULA_VOCAB.size} "
-                f"唯一公式={uniq_fmls}/{n_new} 多样性={fml_div:.2f}"
+                f"   分布: 初始熵={dst['entropy']:.3f} KL均勻={dst['kl_uniform']:.3f} "
+                f"KL上步={dst['kl_prev']:.4f} 最高機率={dst['top1_prob']:.3f} "
+                f"前五機率={dst['top5_prob']:.3f} 有效詞彙={dst['eff_vocab']:.2f} "
+                f"標準差={dst['prob_std']:.4f} | "
+                f"本批: 唯一符號={uniq_tokens}/{FORMULA_VOCAB.size} "
+                f"唯一公式={uniq_fmls}/{n_new} 多樣性={fml_div:.2f}"
             )
             pbar.set_postfix({
-                '验证': f"{avg_val:.3f}", '最优': f"{self.best_score:.3f}",
+                '驗證': f"{avg_val:.3f}", '最優': f"{self.best_score:.3f}",
                 '熵':   f"{ent_val:.2f}", 'IC':   f"{bim:.4f}",
-                '停滞': f"{self._stagnation_steps}",
+                '停滯': f"{self._stagnation_steps}",
                 '初始熵':  f"{dst['entropy']:.2f}",
                 'KL上步': f"{dst['kl_prev']:.3f}",
             })
@@ -861,11 +861,11 @@ class AlphaEngine:
 
             if (step + 1) % 20 == 0 or (step + 1) == end_step:
                 ckpt = self.save_checkpoint(step + 1)
-                tqdm.write(f"[检查点] → {ckpt} (最优={self.best_score:.3f})")
+                tqdm.write(f"[檢查點] → {ckpt} (最優={self.best_score:.3f})")
 
-            # ── Part F: Migration hook（多岛训练时交换精英）────────────
+            # ── Part F: Migration hook（多島訓練時交換精英）────────────
             if migration_hook is not None and (step + 1) % ModelConfig.MIGRATION_INTERVAL == 0:
-                tqdm.write(f"[迁移钩子 @ 第{step+1}步] 调用已注册钩子")
+                tqdm.write(f"[遷移鉤子 @ 第{step+1}步] 調用已註冊鉤子")
                 migration_hook(self, step + 1)
 
             # ── Part G: Entropy collapse detection & restart ─────────
@@ -875,7 +875,7 @@ class AlphaEngine:
                 low_entropy_streak  = 0
 
             if low_entropy_streak >= ModelConfig.ENTROPY_COLLAPSE_STEPS:
-                # ── 自适应噪声：根据 stagnation 调整 ─────────────────────
+                # ── 自適應噪聲：根據 stagnation 調整 ─────────────────────
                 self._stagnation_steps = step - self._best_update_step
                 stagnation_ratio = self._stagnation_steps / max(1, ModelConfig.STAGNATION_WINDOW)
                 base_noise = ModelConfig.RESTART_NOISE
@@ -890,22 +890,22 @@ class AlphaEngine:
                     self._restart_count  += 1
                     low_entropy_streak    = 0
 
-                    # Fix 2: 每 N 次重启做一次完全随机初始化，逃离 best_snapshot 吸引子
-                    # 深度坍塌 (H < 0.3) 时强制 full reset，不给 best_snapshot 恢复的机会
+                    # Fix 2: 每 N 次重啟做一次完全隨機初始化，逃離 best_snapshot 吸引子
+                    # 深度坍塌 (H < 0.3) 時強制 full reset，不給 best_snapshot 恢復的機會
                     do_full_reset = (
                         self._restart_count % ModelConfig.FULL_RESET_EVERY == 0
                         or ent_val < 0.3
                     )
 
                     if do_full_reset:
-                        # 完全重新初始化模型参数
+                        # 完全重新初始化模型參數
                         for layer in self.model.modules():
                             if hasattr(layer, 'reset_parameters'):
                                 layer.reset_parameters()
                         tqdm.write(
-                            f"[重启 {self._restart_count}/{max_r} @ 第{step}步] "
-                            f"模式=完全重置（脱离最优快照吸引子） "
-                            f"停滞={self._stagnation_steps} "
+                            f"[重啟 {self._restart_count}/{max_r} @ 第{step}步] "
+                            f"模式=完全重設（脫離最優快照吸引子） "
+                            f"停滯={self._stagnation_steps} "
                             f"熵={ent_val:.3f}"
                         )
                     elif self._best_snapshot is not None:
@@ -924,29 +924,29 @@ class AlphaEngine:
                                         p.add_(torch.randn_like(p) * noise)
                                         perturbed_layers.append(nm)
                         tqdm.write(
-                            f"[重启 {self._restart_count}/{max_r} @ 第{step}步] "
-                            f"模式={'部分层' if ModelConfig.PARTIAL_RESET else 'FFN/注意力'} "
-                            f"噪声={noise:.4f}(基准={base_noise:.3f}，比率={stagnation_ratio:.2f}) "
-                            f"停滞={self._stagnation_steps} "
+                            f"[重啟 {self._restart_count}/{max_r} @ 第{step}步] "
+                            f"模式={'部分層' if ModelConfig.PARTIAL_RESET else 'FFN/注意力'} "
+                            f"噪聲={noise:.4f}(基準={base_noise:.3f}，比率={stagnation_ratio:.2f}) "
+                            f"停滯={self._stagnation_steps} "
                             f"熵={ent_val:.3f} "
-                            f"扰动层数={len(perturbed_layers)}"
+                            f"擾動層數={len(perturbed_layers)}"
                         )
                     else:
                         with torch.no_grad():
                             for p in self.model.parameters():
                                 p.add_(torch.randn_like(p) * noise)
                         tqdm.write(
-                            f"[重启 {self._restart_count}/{max_r} @ 第{step}步] "
-                            f"模式=全参数 "
-                            f"噪声={noise:.4f}(基准={base_noise:.3f}，比率={stagnation_ratio:.2f}) "
-                            f"停滞={self._stagnation_steps} "
-                            f"熵={ent_val:.3f} | 无最优快照"
+                            f"[重啟 {self._restart_count}/{max_r} @ 第{step}步] "
+                            f"模式=全參數 "
+                            f"噪聲={noise:.4f}(基準={base_noise:.3f}，比率={stagnation_ratio:.2f}) "
+                            f"停滯={self._stagnation_steps} "
+                            f"熵={ent_val:.3f} | 無最優快照"
                         )
                     self.opt = torch.optim.AdamW(self.model.parameters(), lr=1e-3)
                 else:
-                    # 训练时间不敏感：超过重启上限后不再 Early Stop 终止，
-                    # 改为「全参数强扰动 + 重置流计数」继续探索，直到跑满 TRAIN_STEPS。
-                    # 从 best_snapshot 恢复（若有）以保住已发现的最优结构，再加大扰动。
+                    # 訓練時間不敏感：超過重啟上限後不再 Early Stop 終止，
+                    # 改為「全參數強擾動 + 重設流計數」繼續探索，直到跑滿 TRAIN_STEPS。
+                    # 從 best_snapshot 恢復（若有）以保住已發現的最優結構，再加大擾動。
                     low_entropy_streak = 0
                     hard_noise = min(ModelConfig.NOISE_MAX, noise * 2.0)
                     if self._best_snapshot is not None:
@@ -956,13 +956,13 @@ class AlphaEngine:
                             p.add_(torch.randn_like(p) * hard_noise)
                     self.opt = torch.optim.AdamW(self.model.parameters(), lr=1e-3)
                     tqdm.write(
-                        f"[强重启 @ 第{step}步] 已达最大重启次数={max_r} "
-                        f"熵={ent_val:.3f} 强噪声={hard_noise:.4f} "
-                        f"继续训练，不提前停止"
+                        f"[強重啟 @ 第{step}步] 已達最大重啟次數={max_r} "
+                        f"熵={ent_val:.3f} 強噪聲={hard_noise:.4f} "
+                        f"繼續訓練，不提前停止"
                     )
 
         # ── End of training ──────────────────────────────────────────
-        # 仅当跑满最终步时才保存最终 strategy 和历史
+        # 僅當跑滿最終步時才保存最終 strategy 和歷史
         if end_step == ModelConfig.TRAIN_STEPS:
             if self.best_formula is not None:
                 from .vocab import VOCAB_VERSION
@@ -986,21 +986,21 @@ class AlphaEngine:
             with open(hist_path, "w") as fp:
                 json.dump(self.training_history, fp)
 
-            print(f"\n[完成] {sym_tag}训练结束！")
-            print(f"  最优验证分数 : {self.best_score:.4f}")
-            print(f"  最优公式令牌 : {self.best_formula}")
-            print(f"  可读公式     : {self._decode_formula(self.best_formula)}")
+            print(f"\n[完成] {sym_tag}訓練結束！")
+            print(f"  最優驗證分數 : {self.best_score:.4f}")
+            print(f"  最優公式令牌 : {self.best_formula}")
+            print(f"  可讀公式     : {self._decode_formula(self.best_formula)}")
             print(f"  精英池大小   : {len(self._elite_pool)}")
-            print(f"  精英衰减     : 启用={ModelConfig.ELITE_DECAY}，半衰期={ModelConfig.ELITE_DECAY_HALF_LIFE}")
-            print(f"  自适应噪声   : 启用={ModelConfig.ADAPTIVE_NOISE}，范围=[{ModelConfig.NOISE_MIN}, {ModelConfig.NOISE_MAX}]")
-            print(f"  部分层重置   : 启用={ModelConfig.PARTIAL_RESET}，层={ModelConfig.PARTIAL_RESET_LAYERS}")
-            print(f"  重启次数     : {self._restart_count}")
+            print(f"  精英衰減     : 啟用={ModelConfig.ELITE_DECAY}，半衰期={ModelConfig.ELITE_DECAY_HALF_LIFE}")
+            print(f"  自適應噪聲   : 啟用={ModelConfig.ADAPTIVE_NOISE}，範圍=[{ModelConfig.NOISE_MIN}, {ModelConfig.NOISE_MAX}]")
+            print(f"  部分層重設   : 啟用={ModelConfig.PARTIAL_RESET}，層={ModelConfig.PARTIAL_RESET_LAYERS}")
+            print(f"  重啟次數     : {self._restart_count}")
             print(f"  策略已保存   : {save_path}")
 
 
-    # ── 实时保存最优公式（防进程意外退出丢失）────────────────────────────────
+    # ── 即時保存最優公式（防進程意外退出遺失）────────────────────────────────
     def _save_training_history_live(self) -> None:
-        """周期性写入训练曲线 JSON，供 Web UI 实时展示。"""
+        """週期性寫入訓練曲線 JSON，供 Web UI 即時展示。"""
         if not self.target_symbol:
             return
         try:
@@ -1015,8 +1015,8 @@ class AlphaEngine:
             pass
 
     def _save_strategy_live(self) -> None:
-        """每次 best_formula 更新时立即保存 strategy json。
-        即使训练中途进程被杀（OOM/终端回收/Ctrl+C），也能保留最新最优公式。
+        """每次 best_formula 更新時立即保存 strategy json。
+        即使訓練中途進程被殺（OOM/終端回收/Ctrl+C），也能保留最新最優公式。
         """
         if self.best_formula is None:
             return
@@ -1042,7 +1042,7 @@ class AlphaEngine:
                 "best_score": self.best_score,
                 "formula_decoded": self._decode_formula(self.best_formula),
             }
-            # 保留训练数据路径等元数据，避免 live 保存把 data_file 冲掉
+            # 保留訓練數據路徑等元數據，避免 live 保存把 data_file 沖掉
             for key in ("timeframe", "data_file", "mode", "train_steps"):
                 val = getattr(self, key, None)
                 if val is None:
@@ -1072,7 +1072,7 @@ class AlphaEngine:
             path = str(_CHECKPOINT_DIR / f"ckpt{sym_tag}_step_{step:04d}.pt")
         ckpt = {
             "step":                 step,
-            "vocab_version":        VOCAB_VERSION,   # task 12.2: 版本校验所需
+            "vocab_version":        VOCAB_VERSION,   # task 12.2: 版本校驗所需
             "model_state_dict":     self.model.state_dict(),
             "optimizer_state_dict": self.opt.state_dict(),
             "best_score":           self.best_score,
@@ -1094,18 +1094,18 @@ class AlphaEngine:
     def load_checkpoint(self, path: str) -> int:
         ckpt = torch.load(path, map_location=ModelConfig.DEVICE)
 
-        # ── Task 12.2：版本校验（R3.7）──────────────────────────────────────
-        # 从 checkpoint 读取 vocab_version；若字段缺失（旧版 checkpoint），视为
-        # 版本不匹配并抛错——拒绝加载、不消费任何 token。
+        # ── Task 12.2：版本校驗（R3.7）──────────────────────────────────────
+        # 從 checkpoint 讀取 vocab_version；若欄位缺失（舊版 checkpoint），視為
+        # 版本不匹配並拋錯——拒絕載入、不消費任何 token。
         artifact_version = ckpt.get("vocab_version")
         if artifact_version is None:
             raise VocabVersionMismatchError(
-                f"checkpoint '{path}' 不含 vocab_version 字段（旧版产物），"
-                f"当前词表版本 {FORMULA_VOCAB.version!r}；需重新训练后加载"
+                f"checkpoint '{path}' 不含 vocab_version 欄位（舊版產物），"
+                f"當前詞表版本 {FORMULA_VOCAB.version!r}；需重新訓練後載入"
             )
-        # verify() 版本不匹配时抛 VocabVersionMismatchError，拒绝加载
+        # verify() 版本不匹配時拋 VocabVersionMismatchError，拒絕載入
         FORMULA_VOCAB.verify(artifact_version)
-        # ── 版本校验通过，继续加载 ────────────────────────────────────────
+        # ── 版本校驗通過，繼續載入 ────────────────────────────────────────
 
         self.model.load_state_dict(ckpt["model_state_dict"])
         self.opt.load_state_dict(ckpt["optimizer_state_dict"])
@@ -1120,20 +1120,20 @@ class AlphaEngine:
         for k, v in ckpt.get("training_history", {}).items():
             self.training_history[k] = v
 
-        # 清理 elite pool 中的重复条目（保留各公式的最高分版本）
+        # 清理 elite pool 中的重複條目（保留各公式的最高分版本）
         self._elite_pool = self._dedup_elite_pool(self._elite_pool)
 
         completed = ckpt.get("step", 0)
-        tqdm.write(f"[检查点] 已从 {path} 恢复。"
-                   f" 当前步={completed}  最优={self.best_score:.4f}"
-                   f"  精英池={len(self._elite_pool)}（去重后）")
+        tqdm.write(f"[檢查點] 已從 {path} 恢復。"
+                   f" 當前步={completed}  最優={self.best_score:.4f}"
+                   f"  精英池={len(self._elite_pool)}（去重後）")
         return completed
 
     # ── Decode formula tokens to readable string ──────────────────────────────
 
     def _decode_formula(self, tokens: list[int] | None) -> str:
         if tokens is None:
-            return "无"
+            return "無"
         from .vocab import FORMULA_VOCAB
         names = FORMULA_VOCAB.token_names
         return " -> ".join(names[t] if 0 <= t < len(names) else f"?{t}"

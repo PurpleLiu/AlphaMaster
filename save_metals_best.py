@@ -1,4 +1,4 @@
-"""save_metals_best.py — 保存 metals_comm 当前 checkpoint 中的最优因子"""
+"""save_metals_best.py — 保存 metals_comm 當前 checkpoint 中的最優因子"""
 import sys, json, torch
 from pathlib import Path
 
@@ -7,7 +7,7 @@ from model_core.vocab import FORMULA_VOCAB, VOCAB_VERSION
 
 ckpts = sorted(Path('checkpoints').glob('ckpt_metals_comm_step_*.pt'))
 if not ckpts:
-    print("无 metals_comm checkpoint"); sys.exit(1)
+    print("無 metals_comm checkpoint"); sys.exit(1)
 
 latest = ckpts[-1]
 ckpt = torch.load(latest, map_location='cpu', weights_only=False)

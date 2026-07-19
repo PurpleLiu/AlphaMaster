@@ -1,7 +1,7 @@
 """Subprocess manager for run_backtest.py jobs.
 
-镜像 training_manager 的设计：用子进程运行 run_backtest.py，
-把 stdout 写入 logs/backtest_*.log，前端通过轮询读取尾部日志与阶段进度。
+鏡像 training_manager 的設計：用子進程運行 run_backtest.py，
+把 stdout 寫入 logs/backtest_*.log，前端通過輪詢讀取尾部日誌與階段進度。
 """
 from __future__ import annotations
 
@@ -25,14 +25,14 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 LOG_DIR = PROJECT_ROOT / "logs"
 LOG_DIR.mkdir(exist_ok=True)
 
-# 回测阶段：用日志关键字推断当前进行到哪一步，用于前端进度展示
+# 回測階段：用日誌關鍵字推斷當前進行到哪一步，用於前端進度展示
 BACKTEST_PHASES: list[tuple[str, str]] = [
     ("init", "初始化"),
     ("cost", "交易成本"),
-    ("strategy", "加载策略"),
-    ("data", "加载行情数据"),
-    ("compute", "回测计算"),
-    ("chart", "生成图表"),
+    ("strategy", "載入策略"),
+    ("data", "載入行情數據"),
+    ("compute", "回測計算"),
+    ("chart", "生成圖表"),
     ("done", "完成"),
 ]
 _PHASE_KEYS = [p[0] for p in BACKTEST_PHASES]
@@ -108,7 +108,7 @@ class BacktestManager:
         with self._lock:
             self._refresh_state()
             if self._proc is not None and self._proc.poll() is None:
-                raise RuntimeError("已有回测任务在运行")
+                raise RuntimeError("已有回測任務在運行")
 
             from web.strategy_file import inspect_strategy_file
 
@@ -131,7 +131,7 @@ class BacktestManager:
             ]
             if not data_file:
                 raise RuntimeError(
-                    "回测必须使用本地 Parquet（策略未记录 data_file，且未传入数据文件）"
+                    "回測必須使用本地 Parquet（策略未記錄 data_file，且未傳入數據文件）"
                 )
             cmd.extend(["--data-file", data_file])
 
@@ -181,24 +181,24 @@ class BacktestManager:
             return True
 
     def _current_phase(self) -> tuple[str, str, int]:
-        """根据日志内容推断当前回测阶段。"""
+        """根據日誌內容推斷當前回測階段。"""
         lines = self.tail_log(200)
         if not lines:
             return ("init", "初始化", 0)
         text = "\n".join(lines)
-        # 从后往前匹配最靠后的阶段关键字
+        # 從後往前匹配最靠後的階段關鍵字
         detected = "init"
-        if "交易成本" in text or "手续费=" in text:
+        if "交易成本" in text or "手續費=" in text:
             detected = "cost"
-        if "加载各品种策略" in text or re.search(r"score=", text) or "模式:" in text:
+        if "載入各品種策略" in text or re.search(r"score=", text) or "模式:" in text:
             detected = "strategy"
-        if "正在加载数据" in text:
+        if "正在載入數據" in text:
             detected = "data"
-        if re.search(r"品种:\s*\[", text) or "多因子回测报告" in text:
+        if re.search(r"品種:\s*\[", text) or "多因子回測報告" in text:
             detected = "compute"
-        if "生成 K 线图" in text or "张缩放图" in text:
+        if "生成 K 線圖" in text or "張縮放圖" in text:
             detected = "chart"
-        if "完成。" in text or "JSON 报告已保存" in text:
+        if "完成。" in text or "JSON 報告已保存" in text:
             detected = "done"
         idx = _PHASE_KEYS.index(detected) if detected in _PHASE_KEYS else 0
         label = BACKTEST_PHASES[idx][1]
@@ -235,12 +235,12 @@ class BacktestManager:
             else:
                 self._job.state = JobState.FAILED
         if self._job.state == JobState.FAILED and self._job.error is None:
-            self._job.error = f"回测进程异常退出 (exit_code={code})"
+            self._job.error = f"回測進程異常退出 (exit_code={code})"
             try:
                 if self._job.log_path:
                     path = PROJECT_ROOT / self._job.log_path
                     with path.open("a", encoding="utf-8") as fp:
-                        fp.write(f"\n[Web] 回测进程已结束，退出码: {code}\n")
+                        fp.write(f"\n[Web] 回測進程已結束，退出碼: {code}\n")
             except OSError:
                 pass
         if self._log_fp:

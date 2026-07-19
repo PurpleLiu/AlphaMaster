@@ -14,15 +14,21 @@ _DEFAULT = {
     "debug_mode": False,
     "ai_provider": "deepseek",
     "ai_api_key": "",
-    # 回测单边成本（单位 %）：手续费 0.02% + 滑点 0.01% ≈ 常见加密货币轻度成本
+    "ai_base_url": "",
+    "ai_model": "",
+    # 回測單邊成本（單位 %）：手續費 0.02% + 滑點 0.01% ≈ 常見加密貨幣輕度成本
     "bt_commission_pct": 0.02,
     "bt_slippage_pct": 0.01,
-    # 实时分析监控清单：[{source, symbol, timeframe, strategy_file}, ...]
+    # 即時分析監控清單：[{source, symbol, timeframe, strategy_file}, ...]
     "realtime_watches": [],
-    # 飞书机器人（信号转折提醒，仅文本）
+    # 飛書機器人（信號轉折提醒，僅文本）
     "feishu_enabled": False,
     "feishu_webhook_url": "",
     "feishu_secret": "",
+    # Telegram 機器人（信號轉折提醒，與飛書並行）
+    "telegram_enabled": False,
+    "telegram_bot_token": "",
+    "telegram_chat_id": "",
 }
 
 

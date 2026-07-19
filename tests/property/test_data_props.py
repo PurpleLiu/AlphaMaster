@@ -1,5 +1,5 @@
-# Feature: mt5-alphagpt-refactor, Property 1: MT5DataFetcher 返回规范 DataFrame
-# Feature: mt5-alphagpt-refactor, Property 2: 多品种时间轴对齐不变量
+# Feature: mt5-alphagpt-refactor, Property 1: MT5DataFetcher 返回規範 DataFrame
+# Feature: mt5-alphagpt-refactor, Property 2: 多品種時間軸對齊不變數
 """
 Property-based tests for data_pipeline.
 Property 1 Validates: Requirements 2.3, 2.5, 2.6
@@ -52,7 +52,7 @@ symbol_strategy = st.text(
 timeframe_strategy = st.integers(min_value=1, max_value=49153)
 
 
-# ── Property 1: MT5DataFetcher 返回规范 DataFrame ─────────────────────────────
+# ── Property 1: MT5DataFetcher 返回規範 DataFrame ─────────────────────────────
 # Validates: Requirements 2.3, 2.5, 2.6
 
 EXPECTED_COLUMNS = ["time", "open", "high", "low", "close", "tick_volume"]
@@ -97,7 +97,7 @@ def test_property1_fetcher_returns_canonical_dataframe(symbol: str, timeframe: i
     mock_mt5.copy_rates_from_pos.assert_called_once_with(symbol, timeframe, 0, 5)
 
 
-# Feature: mt5-alphagpt-refactor, Property 5: 目标收益率 open-to-open 公式
+# Feature: mt5-alphagpt-refactor, Property 5: 目標收益率 open-to-open 公式
 # Validates: Requirements 3.4
 
 import math
@@ -105,7 +105,7 @@ import torch
 from data_pipeline.data_manager import MT5DataManager
 
 
-# ── Property 5: target_ret[t] == log(open[t+2] / open[t+1])，边界为 0 ─────────
+# ── Property 5: target_ret[t] == log(open[t+2] / open[t+1])，邊界為 0 ─────────
 # Validates: Requirements 3.4
 
 @settings(max_examples=100)
@@ -161,8 +161,8 @@ def test_property5_target_ret_formula(open_prices: list, n_symbols: int):
     )
 
 
-# ── Property 2: 多品种时间轴对齐不变量 ───────────────────────────────────────
-# Feature: mt5-alphagpt-refactor, Property 2: 多品种时间轴对齐不变量
+# ── Property 2: 多品種時間軸對齊不變數 ───────────────────────────────────────
+# Feature: mt5-alphagpt-refactor, Property 2: 多品種時間軸對齊不變數
 # Validates: Requirements 3.2, 3.3
 
 # Fields that raw_dict must contain

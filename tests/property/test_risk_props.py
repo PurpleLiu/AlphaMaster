@@ -1,10 +1,10 @@
-# Feature: mt5-alphagpt-refactor, Property 10: 手数计算后处理不变量
+# Feature: mt5-alphagpt-refactor, Property 10: 手數計算後處理不變數
 """
 Property-based tests for strategy_manager.risk (MT5RiskEngine).
 
 Property 10 Validates: Requirements 9.3, 9.4
 
-Property 10: 输出手数是 volume_step 的整数倍，且在 [volume_min, volume_max] 内
+Property 10: 輸出手數是 volume_step 的整數倍，且在 [volume_min, volume_max] 內
 
 For any initial lot calculation input values and symbol specifications,
 after MT5RiskEngine post-processing:
@@ -80,7 +80,7 @@ def _make_account_info(margin_free=999_999.0):
     return info
 
 
-# ── Property 10: 手数计算后处理不变量 ────────────────────────────────────────
+# ── Property 10: 手數計算後處理不變數 ────────────────────────────────────────
 # Validates: Requirements 9.3, 9.4
 
 

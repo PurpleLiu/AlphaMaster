@@ -10,10 +10,10 @@ from docx.shared import Cm, Inches, Pt, RGBColor
 
 ROOT = Path(__file__).resolve().parents[1]
 IMG = ROOT / "docs" / "tutorial_images"
-OUT = ROOT / "docs" / "AlphaMaster使用教程.docx"
+OUT = ROOT / "docs" / "AlphaMaster使用教學.docx"
 
 
-def set_run_font(run, *, size=11, bold=False, color=None, name="微软雅黑"):
+def set_run_font(run, *, size=11, bold=False, color=None, name="微軟雅黑"):
     run.bold = bold
     run.font.size = Pt(size)
     run.font.name = name
@@ -70,7 +70,7 @@ def add_bullets(doc: Document, items: list[str]):
 
 def add_tip(doc: Document, text: str):
     p = doc.add_paragraph()
-    run = p.add_run("小贴士：")
+    run = p.add_run("小建議：")
     set_run_font(run, size=11, bold=True, color=RGBColor(0x0B, 0x6E, 0x4F))
     run2 = p.add_run(text)
     set_run_font(run2, size=11, color=RGBColor(0x1F, 0x3A, 0x33))
@@ -90,7 +90,7 @@ def add_warn(doc: Document, text: str):
 def add_img(doc: Document, name: str, *, width_cm: float = 15.5, caption: str | None = None):
     path = IMG / name
     if not path.exists():
-        add_p(doc, f"（缺少截图：{name}）", bold=True)
+        add_p(doc, f"（缺少截圖：{name}）", bold=True)
         return
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -112,73 +112,73 @@ def build() -> Path:
     section.left_margin = Cm(2.2)
     section.right_margin = Cm(2.2)
 
-    add_title(doc, "AlphaMaster 超详细使用教程（带图）")
-    add_p(doc, "适合人群：第一次接触本软件的同学（尽量写得像说明书）。", bold=True)
+    add_title(doc, "AlphaMaster 超詳細使用教學（帶圖）")
+    add_p(doc, "適合人群：第一次接觸本軟體的同學（盡量寫得像說明書）。", bold=True)
     add_p(
         doc,
-        "这份教程会带你走完完整流程：安装与启动 → 准备数据 → 训练挖因子 → 回测检验 → 实时看信号。",
+        "這份教學會帶你走完完整流程：安裝與啟動 → 準備數據 → 訓練挖因子 → 回測檢驗 → 即時看信號。",
     )
-    add_p(doc, f"对应软件路径示例：D:\\cl\\AlphaMaster　　网页地址：http://127.0.0.1:8765")
-    add_p(doc, "文档生成日期：以你电脑上打开的软件界面为准（本教程插图来自实际截图）。")
+    add_p(doc, f"對應軟體路徑範例：D:\\cl\\AlphaMaster　　網頁地址：http://127.0.0.1:8765")
+    add_p(doc, "文件生成日期：以你電腦上打開的軟體界面為準（本教學插圖來自實際截圖）。")
 
-    # 目录式大纲
-    add_h1(doc, "目录")
+    # 目錄式大綱
+    add_h1(doc, "目錄")
     add_bullets(
         doc,
         [
-            "一、这个软件是干什么的？",
-            "二、开始前要准备什么",
-            "三、怎么安装依赖（第一次必做）",
-            "四、怎么启动软件",
-            "五、打开后页面长什么样",
-            "六、准备 K 线数据文件（最关键！）",
-            "七、步骤① 训练：让电脑帮你挖因子",
-            "八、步骤② 回测：用历史数据检验策略",
-            "九、步骤③ 实时分析：盯盘出信号",
-            "十、常用按钮一览表",
-            "十一、遇到报错怎么办",
-            "十二、建议的最佳实践",
+            "一、這個軟體是幹什麼的？",
+            "二、開始前要準備什麼",
+            "三、怎麼安裝依賴（第一次必做）",
+            "四、怎麼啟動軟體",
+            "五、打開後頁面長什麼樣",
+            "六、準備 K 線數據文件（最關鍵！）",
+            "七、步驟① 訓練：讓電腦幫你挖因子",
+            "八、步驟② 回測：用歷史數據檢驗策略",
+            "九、步驟③ 即時分析：盯盤出信號",
+            "十、常用按鈕一覽表",
+            "十一、遇到報錯怎麼辦",
+            "十二、建議的最佳實踐",
         ],
     )
 
-    add_h1(doc, "一、这个软件是干什么的？")
+    add_h1(doc, "一、這個軟體是幹什麼的？")
     add_p(
         doc,
-        "一句话：AlphaMaster 会用人工智能（强化学习）在历史行情里“挖”交易因子公式，再帮你回测和实时观察信号。",
+        "一句話：AlphaMaster 會用人工智慧（強化學習）在歷史行情裡“挖”交易因子公式，再幫你回測和即時觀察信號。",
     )
     add_p(doc, "你可以把它想成下面三步：")
     add_steps(
         doc,
         [
-            "训练：喂给它一份 K 线数据，它拼命搜索更好的公式。",
-            "回测：把找到的公式放到历史行情上验成绩（看赚不赚钱、稳不稳）。",
-            "实时分析：盯着当前市场，按同一套公式报方向（涨/跌/观望）。",
+            "訓練：餵給它一份 K 線數據，它拚命搜索更好的公式。",
+            "回測：把找到的公式放到歷史行情上驗成績（看賺不賺錢、穩不穩）。",
+            "即時分析：盯著當前市場，按同一套公式報方向（漲/跌/觀望）。",
         ],
     )
-    add_tip(doc, "你不需要会写代码。多数时间只需点按钮、选文件、看图表。")
+    add_tip(doc, "你不需要會寫程式碼。多數時間只需點按鈕、選文件、看圖表。")
 
-    add_h1(doc, "二、开始前要准备什么")
+    add_h1(doc, "二、開始前要準備什麼")
     add_bullets(
         doc,
         [
-            "一台 Windows 电脑（本教程按 Windows 写）。",
-            "已安装 Python 3.10 及以上（推荐 3.11 或 3.13）。",
-            "AlphaMaster 项目文件夹（例如 D:\\cl\\AlphaMaster 或 D:\\Al_master）。",
-            "至少一份行情 Parquet 文件（后面教你命名）。",
-            "如果要用 MT5 实时数据：电脑上还要打开并登录 MetaTrader 5。",
-            "如果要用 AI 分析：准备 DeepSeek Key，或本机已开 QClaw / OpenClaw 一类本地助手。",
+            "一台 Windows 電腦（本教學按 Windows 寫）。",
+            "已安裝 Python 3.10 及以上（推薦 3.11 或 3.13）。",
+            "AlphaMaster 項目文件夾（例如 D:\\cl\\AlphaMaster 或 D:\\Al_master）。",
+            "至少一份行情 Parquet 文件（後面教你命名）。",
+            "如果要用 MT5 即時數據：電腦上還要打開並登錄 MetaTrader 5。",
+            "如果要用 AI 分析：準備 DeepSeek Key，或本機已開 QClaw / OpenClaw 一類本地助手。",
         ],
     )
 
-    add_h1(doc, "三、怎么安装依赖（第一次必做）")
-    add_p(doc, "打开「命令提示符」或 PowerShell，进入项目文件夹，输入：")
+    add_h1(doc, "三、怎麼安裝依賴（第一次必做）")
+    add_p(doc, "打開「命令提示字元」或 PowerShell，進入項目文件夾，輸入：")
     add_p(doc, "cd /d D:\\cl\\AlphaMaster", bold=True)
     add_p(doc, "python -m pip install -r requirements.txt", bold=True)
     add_warn(
         doc,
-        "请用 python -m pip，不要直接敲 pip（中文 Windows 上容易因编码报错）。",
+        "請用 python -m pip，不要直接敲 pip（中文 Windows 上容易因編碼報錯）。",
     )
-    add_p(doc, "装完可用下面一行检查关键包是否在：")
+    add_p(doc, "裝完可用下面一行檢查關鍵包是否在：")
     add_p(
         doc,
         'python -c "import torch,fastapi,MetaTrader5,pyarrow,matplotlib,multipart; print(\'OK\')"',
@@ -186,262 +186,262 @@ def build() -> Path:
     )
     add_tip(
         doc,
-        "TradingView 数据源若安装失败，可再执行："
+        "TradingView 數據源若安裝失敗，可再執行："
         "python -m pip install git+https://github.com/rongardF/tvdatafeed.git",
     )
 
-    add_h1(doc, "四、怎么启动软件")
-    add_h2(doc, "方法 A（推荐）：双击启动脚本")
+    add_h1(doc, "四、怎麼啟動軟體")
+    add_h2(doc, "方法 A（推薦）：雙擊啟動腳本")
     add_steps(
         doc,
         [
-            "进入项目文件夹，找到 start_web.bat。",
-            "双击它。脚本会：先清理被占用的端口 → 启动服务 → 等页面真正就绪 → 自动打开浏览器。",
-            "看到浏览器打开 http://127.0.0.1:8765 就成功了。",
-            "启动器窗口可以先留着；关掉启动器窗口一般不会立刻关服务（服务在另一个“AlphaMaster Server”窗口）。",
+            "進入項目文件夾，找到 start_web.bat。",
+            "雙擊它。腳本會：先清理被占用的埠 → 啟動服務 → 等頁面真正就緒 → 自動打開瀏覽器。",
+            "看到瀏覽器打開 http://127.0.0.1:8765 就成功了。",
+            "啟動器窗口可以先留著；關掉啟動器窗口一般不會立刻關服務（服務在另一個“AlphaMaster Server”窗口）。",
         ],
     )
-    add_h2(doc, "方法 B：命令行启动")
+    add_h2(doc, "方法 B：命令行啟動")
     add_p(doc, "cd /d D:\\cl\\AlphaMaster", bold=True)
     add_p(doc, "python run_web.py --host 127.0.0.1 --port 8765", bold=True)
-    add_p(doc, "然后在浏览器地址栏输入：http://127.0.0.1:8765")
+    add_p(doc, "然後在瀏覽器地址欄輸入：http://127.0.0.1:8765")
     add_warn(
         doc,
-        "如果提示端口被占用，可以改成 --port 8766，或先关闭旧的 AlphaMaster Server 窗口。",
+        "如果提示埠被占用，可以改成 --port 8766，或先關閉舊的 AlphaMaster Server 窗口。",
     )
 
-    add_h1(doc, "五、打开后页面长什么样")
-    add_p(doc, "打开网页后，最上方是软件标题，中间有三个大步骤：01 模型训练、02 策略回测、03 实时分析。")
-    add_img(doc, "01_home_top.png", caption="图1 打开软件后的首页上半部分")
-    add_img(doc, "02_stepper.png", width_cm=14.5, caption="图2 顶部三步导航：训练 → 回测 → 实时")
-    add_p(doc, "你要使用时，就从上到下按这三个步骤走。一般不要跳着乱点。")
+    add_h1(doc, "五、打開後頁面長什麼樣")
+    add_p(doc, "打開網頁後，最上方是軟體標題，中間有三個大步驟：01 模型訓練、02 策略回測、03 即時分析。")
+    add_img(doc, "01_home_top.png", caption="圖1 打開軟體後的首頁上半部分")
+    add_img(doc, "02_stepper.png", width_cm=14.5, caption="圖2 頂部三步導航：訓練 → 回測 → 即時")
+    add_p(doc, "你要使用時，就從上到下按這三個步驟走。一般不要跳著亂點。")
 
-    add_h1(doc, "六、准备 K 线数据文件（最关键！）")
+    add_h1(doc, "六、準備 K 線數據文件（最關鍵！）")
     add_p(
         doc,
-        "本软件训练和回测强制使用本地 Parquet 文件，不会在训练时偷偷联网拉行情。所以「文件名正确」非常重要。",
+        "本軟體訓練和回測強制使用本地 Parquet 文件，不會在訓練時偷偷聯網拉行情。所以「檔案名正確」非常重要。",
     )
-    add_h2(doc, "6.1 文件怎么命名")
-    add_p(doc, "标准格式：", bold=True)
-    add_p(doc, "{品种}_{周期}.parquet", bold=True)
-    add_p(doc, "正确例子：")
+    add_h2(doc, "6.1 文件怎麼命名")
+    add_p(doc, "標準格式：", bold=True)
+    add_p(doc, "{品種}_{週期}.parquet", bold=True)
+    add_p(doc, "正確例子：")
     add_bullets(
         doc,
         [
-            "XAUUSD_H1.parquet（黄金 · 1小时）",
-            "BTCUSDT_H1.parquet（比特币 · 1小时）",
-            "AAPL_H1.parquet（苹果股票 · 1小时）",
-            "002008_60min.parquet（A股代码 · 60分钟，软件会自动认成 H1）",
-            "600519_5min.parquet（会认成 M5）",
+            "XAUUSD_H1.parquet（黃金 · 1小時）",
+            "BTCUSDT_H1.parquet（比特幣 · 1小時）",
+            "AAPL_H1.parquet（蘋果股票 · 1小時）",
+            "002008_60min.parquet（A股代碼 · 60分鐘，軟體會自動認成 H1）",
+            "600519_5min.parquet（會認成 M5）",
         ],
     )
-    add_p(doc, "周期别名对照（你会用到的）：", bold=True)
+    add_p(doc, "週期別名對照（你會用到的）：", bold=True)
     add_bullets(
         doc,
         [
-            "H1 = 1小时 = 60min / 60m / 1h",
-            "M5 = 5分钟 = 5min / 5m",
-            "M15 = 15分钟 = 15min / 15m",
-            "H4 = 4小时 = 4h / 240min",
-            "D1 = 日线 = 1d / day / daily",
+            "H1 = 1小時 = 60min / 60m / 1h",
+            "M5 = 5分鐘 = 5min / 5m",
+            "M15 = 15分鐘 = 15min / 15m",
+            "H4 = 4小時 = 4h / 240min",
+            "D1 = 日線 = 1d / day / daily",
         ],
     )
-    add_h2(doc, "6.2 文件里面要有哪些列")
+    add_h2(doc, "6.2 文件裡面要有哪些列")
     add_p(doc, "Parquet 至少要有：time、open、high、low、close，以及 volume 或 tick_volume。")
-    add_p(doc, "K 线数量也不能太少，否则会提示「数据不足」。")
-    add_warn(doc, "不要选 Excel、CSV 直接训练。必须是 .parquet。")
+    add_p(doc, "K 線數量也不能太少，否則會提示「數據不足」。")
+    add_warn(doc, "不要選 Excel、CSV 直接訓練。必須是 .parquet。")
 
-    add_h1(doc, "七、步骤① 训练：让电脑帮你挖因子")
-    add_p(doc, "确保顶部导航停在「01 模型训练」。")
+    add_h1(doc, "七、步驟① 訓練：讓電腦幫你挖因子")
+    add_p(doc, "確保頂部導航停在「01 模型訓練」。")
 
-    add_h2(doc, "7.1 选择数据文件")
-    add_img(doc, "03_train_launch.png", caption="图3 训练启动区：选择数据文件 + 各类按钮")
+    add_h2(doc, "7.1 選擇數據文件")
+    add_img(doc, "03_train_launch.png", caption="圖3 訓練啟動區：選擇數據文件 + 各類按鈕")
     add_steps(
         doc,
         [
-            "点击「选择数据文件」。",
-            "在弹出的文件窗口里，找到你的 xxx_H1.parquet（或 002008_60min.parquet）。",
-            "选中后，中间卡片会显示品种、周期、K线数量。如果写「文件不存在」或红色报错，先检查路径和命名。",
-            "只有选对文件后，「开始训练」才会变成可点。",
+            "點擊「選擇數據文件」。",
+            "在彈出的文件窗口裡，找到你的 xxx_H1.parquet（或 002008_60min.parquet）。",
+            "選中後，中間卡片會顯示品種、週期、K線數量。如果寫「文件不存在」或紅色報錯，先檢查路徑和命名。",
+            "只有選對文件後，「開始訓練」才會變成可點。",
         ],
     )
 
-    add_h2(doc, "7.2 开始训练")
+    add_h2(doc, "7.2 開始訓練")
     add_steps(
         doc,
         [
-            "点击蓝色「开始训练」。右上角状态会从「空闲」变成训练中。",
-            "左侧会出现「训练曲线」：绿色是最优分数，蓝色是验证分数。",
-            "右侧「训练日志」会不断刷出进度。",
-            "下方「最优公式」会显示目前找到的最好因子写法。",
+            "點擊藍色「開始訓練」。右上角狀態會從「空閒」變成訓練中。",
+            "左側會出現「訓練曲線」：綠色是最優分數，藍色是驗證分數。",
+            "右側「訓練日誌」會不斷刷出進度。",
+            "下方「最優公式」會顯示目前找到的最好因子寫法。",
         ],
     )
-    add_img(doc, "04_train_chart.png", caption="图4 训练曲线区域（开始训练后会动）")
-    add_img(doc, "05_train_log.png", caption="图5 训练日志区域")
-    add_img(doc, "06_train_full.png", width_cm=14.0, caption="图6 训练页整页示意")
+    add_img(doc, "04_train_chart.png", caption="圖4 訓練曲線區域（開始訓練後會動）")
+    add_img(doc, "05_train_log.png", caption="圖5 訓練日誌區域")
+    add_img(doc, "06_train_full.png", width_cm=14.0, caption="圖6 訓練頁整頁示意")
 
-    add_h2(doc, "7.3 两个分数分别是什么意思（很重要）")
+    add_h2(doc, "7.3 兩個分數分別是什麼意思（很重要）")
     add_bullets(
         doc,
         [
-            "最优分数：到目前为止挖到的「最好那一条公式」的成绩。通常只升不降，抬一截说明挖到更好的了。",
-            "验证分数：最近一批公式在验证集上的平均表现，会上下波动，属正常。",
-            "不要只因为验证分数某一刻掉了就慌——软件有时会主动「重新搅一搅」去探索新公式。",
+            "最優分數：到目前為止挖到的「最好那一條公式」的成績。通常只升不降，抬一截說明挖到更好的了。",
+            "驗證分數：最近一批公式在驗證集上的平均表現，會上下波動，屬正常。",
+            "不要只因為驗證分數某一刻掉了就慌——軟體有時會主動「重新攪一攪」去探索新公式。",
         ],
     )
 
-    add_h2(doc, "7.4 「开始训练」和「重新训练」有什么区别")
+    add_h2(doc, "7.4 「開始訓練」和「重新訓練」有什麼區別")
     add_bullets(
         doc,
         [
-            "开始训练：接着上次的检查点继续挖（省时间）。",
-            "重新训练：清空检查点，从零重新搜一轮（可能挖到更好的，但更花时间）。",
-            "已有更好策略不会被随便冲掉：只有新公式更强才会覆盖。",
+            "開始訓練：接著上次的檢查點繼續挖（省時間）。",
+            "重新訓練：清空檢查點，從零重新搜一輪（可能挖到更好的，但更花時間）。",
+            "已有更好策略不會被隨便沖掉：只有新公式更強才會覆蓋。",
         ],
     )
 
-    add_h2(doc, "7.5 什么时候可以停")
+    add_h2(doc, "7.5 什麼時候可以停")
     add_bullets(
         doc,
         [
-            "最优分数长时间几乎不动，可以考虑停止。",
-            "点红色「停止」。停止后，最好策略一般已保存在 strategies 文件夹。",
-            "也可以继续挂着挖，时间越长通常机会越多（但费电费时间）。",
+            "最優分數長時間幾乎不動，可以考慮停止。",
+            "點紅色「停止」。停止後，最好策略一般已保存在 strategies 文件夾。",
+            "也可以繼續掛著挖，時間越長通常機會越多（但費電費時間）。",
         ],
     )
 
-    add_h2(doc, "7.6 导出策略 / 导出训练 / 导入训练")
+    add_h2(doc, "7.6 導出策略 / 導出訓練 / 導入訓練")
     add_bullets(
         doc,
         [
-            "导出策略：下载当前品种最优策略 JSON，方便备份或给别人回测。",
-            "导出训练：把检查点、曲线、策略打成 zip，换电脑可继续。",
-            "导入训练：上传以前导出的 zip 或 .pt，下次可断点续训。",
+            "導出策略：下載當前品種最優策略 JSON，方便備份或給別人回測。",
+            "導出訓練：把檢查點、曲線、策略打成 zip，換電腦可繼續。",
+            "導入訓練：上傳以前導出的 zip 或 .pt，下次可斷點續訓。",
         ],
     )
 
     add_h2(doc, "7.7 已保存策略列表")
-    add_img(doc, "07_strategies.png", caption="图7 已保存策略表：能看到品种、周期、分数、公式")
-    add_p(doc, "训练成功产生的策略会出现在这里。回测和实时分析经常会用到这些文件。")
+    add_img(doc, "07_strategies.png", caption="圖7 已保存策略表：能看到品種、週期、分數、公式")
+    add_p(doc, "訓練成功產生的策略會出現在這裡。回測和即時分析經常會用到這些文件。")
 
-    add_h2(doc, "7.8 AI 分析（可选）")
-    add_img(doc, "08_ai_panel.png", caption="图8 AI 分析面板")
+    add_h2(doc, "7.8 AI 分析（可選）")
+    add_img(doc, "08_ai_panel.png", caption="圖8 AI 分析面板")
     add_steps(
         doc,
         [
-            "若使用 DeepSeek：在输入框填入 API Key。",
-            "若本机有 QClaw / OpenClaw：可按界面提示切换 provider。",
-            "点击「开始分析」，AI 会用白话解释：现在训练情况如何、值不值得继续、因子大概在干什么。",
+            "若使用 DeepSeek：在輸入框填入 API Key。",
+            "若本機有 QClaw / OpenClaw：可按界面提示切換 provider。",
+            "點擊「開始分析」，AI 會用白話解釋：現在訓練情況如何、值不值得繼續、因子大概在幹什麼。",
         ],
     )
-    add_tip(doc, "AI 分析是助手，不是买卖建议。最终仍要用回测结果自己判断。")
+    add_tip(doc, "AI 分析是助手，不是買賣建議。最終仍要用回測結果自己判斷。")
 
-    add_h1(doc, "八、步骤② 回测：用历史数据检验策略")
-    add_p(doc, "点顶部「02 策略回测」。")
-    add_img(doc, "09_backtest_top.png", caption="图9 回测页顶部")
-    add_img(doc, "10_backtest_launch.png", caption="图10 选择策略、设置手续费/滑点、开始回测")
+    add_h1(doc, "八、步驟② 回測：用歷史數據檢驗策略")
+    add_p(doc, "點頂部「02 策略回測」。")
+    add_img(doc, "09_backtest_top.png", caption="圖9 回測頁頂部")
+    add_img(doc, "10_backtest_launch.png", caption="圖10 選擇策略、設置手續費/滑點、開始回測")
 
-    add_h2(doc, "8.1 怎么做回测")
+    add_h2(doc, "8.1 怎麼做回測")
     add_steps(
         doc,
         [
-            "点击「选择策略」，选 strategies 里的 best_品种.json，或你导出的策略 JSON。",
-            "（可选）改手续费、滑点。默认单边手续费 0.02%、滑点 0.01%，合计约 0.03%。",
-            "确认该策略能找到对应 Parquet（策略里常记录 data_file；没有则回退训练页同品种文件）。",
-            "点「开始回测」，等日志跑完。",
-            "查看「回测绩效」「绩效明细」和下方资金曲线。",
+            "點擊「選擇策略」，選 strategies 裡的 best_品種.json，或你導出的策略 JSON。",
+            "（可選）改手續費、滑點。默認單邊手續費 0.02%、滑點 0.01%，合計約 0.03%。",
+            "確認該策略能找到對應 Parquet（策略裡常記錄 data_file；沒有則回退訓練頁同品種文件）。",
+            "點「開始回測」，等日誌跑完。",
+            "查看「回測績效」「績效明細」和下方資金曲線。",
         ],
     )
-    add_img(doc, "11_backtest_summary.png", caption="图11 回测绩效区域（跑完后会出数字）")
-    add_img(doc, "12_backtest_full.png", width_cm=14.0, caption="图12 回测页整页示意")
+    add_img(doc, "11_backtest_summary.png", caption="圖11 回測績效區域（跑完後會出數字）")
+    add_img(doc, "12_backtest_full.png", width_cm=14.0, caption="圖12 回測頁整頁示意")
 
-    add_h2(doc, "8.2 回测结果怎么读（小学生版）")
+    add_h2(doc, "8.2 回測結果怎麼讀（小學生版）")
     add_bullets(
         doc,
         [
-            "收益：这段历史上是赚还是亏。",
-            "Sharpe / Sortino：稳不稳；越高一般越好（但也要结合交易次数看）。",
-            "盈亏比：赚的时候平均赚多少，对比亏的时候平均亏多少。",
-            "胜率：猜对方向的比例。胜率高不一定就好，还要看盈亏比。",
-            "交易数：太少不够信；多了也不等于一定稳。",
+            "收益：這段歷史上是賺還是虧。",
+            "Sharpe / Sortino：穩不穩；越高一般越好（但也要結合交易次數看）。",
+            "盈虧比：賺的時候平均賺多少，對比虧的時候平均虧多少。",
+            "勝率：猜對方向的比例。勝率高不一定就好，還要看盈虧比。",
+            "交易數：太少不夠信；多了也不等於一定穩。",
         ],
     )
     add_warn(
         doc,
-        "回测好看 ≠ 未来一定赚钱。至少换一段数据、或换手续费成本再验一次更踏实。",
+        "回測好看 ≠ 未來一定賺錢。至少換一段數據、或換手續費成本再驗一次更踏實。",
     )
     add_warn(
         doc,
-        "若报错 No module named 'matplotlib'：执行 python -m pip install matplotlib 后重试。",
+        "若報錯 No module named 'matplotlib'：執行 python -m pip install matplotlib 後重試。",
     )
 
-    add_h1(doc, "九、步骤③ 实时分析：盯盘出信号")
-    add_p(doc, "点顶部「03 实时分析」。")
-    add_img(doc, "13_realtime_top.png", caption="图13 实时分析页顶部")
-    add_img(doc, "14_realtime_form.png", caption="图14 添加监控：数据源 + 品种 + 周期 + 策略因子")
-    add_img(doc, "15_realtime_full.png", width_cm=14.0, caption="图15 实时分析整页示意")
+    add_h1(doc, "九、步驟③ 即時分析：盯盤出信號")
+    add_p(doc, "點頂部「03 即時分析」。")
+    add_img(doc, "13_realtime_top.png", caption="圖13 即時分析頁頂部")
+    add_img(doc, "14_realtime_form.png", caption="圖14 添加監控：數據源 + 品種 + 週期 + 策略因子")
+    add_img(doc, "15_realtime_full.png", width_cm=14.0, caption="圖15 即時分析整頁示意")
 
-    add_h2(doc, "9.1 添加一个监控怎么操作")
+    add_h2(doc, "9.1 添加一個監控怎麼操作")
     add_steps(
         doc,
         [
-            "选择数据源：常见是 MT5 或 TradingView（界面当前主要展示这两者）。",
-            "填写品种，例如 XAUUSD、EURUSD。也可从下拉预设里选。",
-            "选择周期，尽量和策略训练时的周期一致（例如策略是 H1，这里也选 1h）。",
-            "选择策略因子：选本机 best_xxx.json，或点导入策略。",
-            "点击添加。页面会出现一张「信号卡片」。",
+            "選擇數據源：常見是 MT5 或 TradingView（界面當前主要展示這兩者）。",
+            "填寫品種，例如 XAUUSD、EURUSD。也可從下拉預設裡選。",
+            "選擇週期，盡量和策略訓練時的週期一致（例如策略是 H1，這裡也選 1h）。",
+            "選擇策略因子：選本機 best_xxx.json，或點導入策略。",
+            "點擊添加。頁面會出現一張「信號卡片」。",
         ],
     )
 
-    add_h2(doc, "9.2 信号卡片怎么看")
+    add_h2(doc, "9.2 信號卡片怎麼看")
     add_bullets(
         doc,
         [
-            "预期上涨 / 预期下跌 / 先观望：当前公式给出的方向。",
-            "把握大小：强度翻译成白话，告诉你这拨信号有多坚定。",
-            "距离下次判断：还有多久重新算一次。",
-            "若状态是「错误」：看卡片上的红字，通常是数据源连不上或历史不够。",
+            "預期上漲 / 預期下跌 / 先觀望：當前公式給出的方向。",
+            "把握大小：強度翻譯成白話，告訴你這撥信號有多堅定。",
+            "距離下次判斷：還有多久重新算一次。",
+            "若狀態是「錯誤」：看卡片上的紅字，通常是數據源連不上或歷史不夠。",
         ],
     )
 
-    add_h2(doc, "9.3 TradingView 连不上怎么办")
+    add_h2(doc, "9.3 TradingView 連不上怎麼辦")
     add_p(
         doc,
-        "如果添加 TradingView 监控时弹出「无法使用 TradingView」，按弹窗提示做：",
+        "如果添加 TradingView 監控時彈出「無法使用 TradingView」，按彈出視窗提示做：",
     )
     add_bullets(
         doc,
         [
-            "把 VPN 设成全局，并打开 TUN（虚拟网卡）模式再试。",
-            "或按弹窗「使用云服务器」去看部署说明。",
-            "或改回 MT5 数据源（本机 MT5 已登录时更稳）。",
+            "把 VPN 設成全局，並打開 TUN（虛擬網卡）模式再試。",
+            "或按彈出視窗「使用雲端伺服器」去看部署說明。",
+            "或改回 MT5 數據源（本機 MT5 已登錄時更穩）。",
         ],
     )
 
-    add_h2(doc, "9.4 飞书提醒（可选）")
+    add_h2(doc, "9.4 飛書提醒（可選）")
     add_p(
         doc,
-        "实时页可配置飞书机器人：当方向发生转折时推送文本提醒。按页面上的帮助去开通 webhook 即可。",
+        "即時頁可配置飛書機器人：當方向發生轉折時推送文本提醒。按頁面上的幫助去開通 webhook 即可。",
     )
 
-    add_h1(doc, "十、常用按钮一览表")
+    add_h1(doc, "十、常用按鈕一覽表")
     table = doc.add_table(rows=1, cols=3)
     table.style = "Table Grid"
     hdr = table.rows[0].cells
-    hdr[0].text = "按钮"
-    hdr[1].text = "在哪一页"
-    hdr[2].text = "干什么"
+    hdr[0].text = "按鈕"
+    hdr[1].text = "在哪一頁"
+    hdr[2].text = "幹什麼"
     rows = [
-        ("选择数据文件", "训练", "挑选本地 Parquet"),
-        ("开始训练", "训练", "继续挖因子"),
-        ("重新训练", "训练", "清空检查点重搜"),
-        ("停止", "训练/回测", "停掉当前任务"),
-        ("导出策略", "训练", "下载最优策略 JSON"),
-        ("导出/导入训练", "训练", "迁移训练进度"),
-        ("开始分析", "训练·AI区", "让 AI 解释训练情况"),
-        ("选择策略", "回测", "挑选要检验的策略"),
-        ("开始回测", "回测", "跑历史绩效"),
-        ("添加监控", "实时", "挂一个实时信号任务"),
+        ("選擇數據文件", "訓練", "挑選本地 Parquet"),
+        ("開始訓練", "訓練", "繼續挖因子"),
+        ("重新訓練", "訓練", "清空檢查點重搜"),
+        ("停止", "訓練/回測", "停掉當前任務"),
+        ("導出策略", "訓練", "下載最優策略 JSON"),
+        ("導出/導入訓練", "訓練", "遷移訓練進度"),
+        ("開始分析", "訓練·AI區", "讓 AI 解釋訓練情況"),
+        ("選擇策略", "回測", "挑選要檢驗的策略"),
+        ("開始回測", "回測", "跑歷史績效"),
+        ("添加監控", "即時", "掛一個即時信號任務"),
     ]
     for a, b, c in rows:
         cells = table.add_row().cells
@@ -450,69 +450,69 @@ def build() -> Path:
         cells[2].text = c
     doc.add_paragraph()
 
-    add_h1(doc, "十一、遇到报错怎么办")
-    add_h2(doc, "11.1 页面一打开就一堆「网络错误 Failed to fetch」")
+    add_h1(doc, "十一、遇到報錯怎麼辦")
+    add_h2(doc, "11.1 頁面一打開就一堆「網路錯誤 Failed to fetch」")
     add_bullets(
         doc,
         [
-            "通常是服务刚启动，还在加载 torch，还没准备好。",
-            "请用 start_web.bat 启动（它会等接口就绪再开浏览器）。",
-            "新版本前端会自动重试几次；仍失败就等 10 秒刷新页面。",
+            "通常是服務剛啟動，還在載入 torch，還沒準備好。",
+            "請用 start_web.bat 啟動（它會等介面就緒再開瀏覽器）。",
+            "新版本前端會自動重試幾次；仍失敗就等 10 秒刷新頁面。",
         ],
     )
-    add_h2(doc, "11.2 文件名报错（例如 002008_60min.parquet）")
+    add_h2(doc, "11.2 檔案名報錯（例如 002008_60min.parquet）")
     add_p(
         doc,
-        "新版本已支持 60min/5min/1h 等别名。若仍报错，请确认你用的是已更新的 parquet_manager，并已重启 Web。",
+        "新版本已支持 60min/5min/1h 等別名。若仍報錯，請確認你用的是已更新的 parquet_manager，並已重啟 Web。",
     )
-    add_h2(doc, "11.3 回测说没有 matplotlib")
+    add_h2(doc, "11.3 回測說沒有 matplotlib")
     add_p(doc, "python -m pip install matplotlib", bold=True)
-    add_h2(doc, "11.4 选择数据文件提示缺 pyarrow")
+    add_h2(doc, "11.4 選擇數據文件提示缺 pyarrow")
     add_p(doc, "python -m pip install pyarrow", bold=True)
-    add_h2(doc, "11.5 历史训练时长一上来就很大")
+    add_h2(doc, "11.5 歷史訓練時長一上來就很大")
     add_p(
         doc,
-        "可能是仓库自带作者训练记录。清空 training_time_品种.json，并删除 logs/train_品种_*.log 后再刷新。",
+        "可能是倉庫自帶作者訓練記錄。清空 training_time_品種.json，並刪除 logs/train_品種_*.log 後再刷新。",
     )
-    add_h2(doc, "11.6 MT5 数据源不可用")
+    add_h2(doc, "11.6 MT5 數據源不可用")
     add_bullets(
         doc,
         [
-            "确认已安装 MetaTrader5 Python 包。",
-            "确认 MT5 终端已打开并登录账号。",
+            "確認已安裝 MetaTrader5 Python 包。",
+            "確認 MT5 終端已打開並登入帳號。",
         ],
     )
 
-    add_h1(doc, "十二、建议的最佳实践（照着做不容易踩坑）")
+    add_h1(doc, "十二、建議的最佳實踐（照著做不容易踩坑）")
     add_steps(
         doc,
         [
-            "一次只训练一个品种、一个周期（别同时开好多任务抢 CPU）。",
-            "文件名写清楚：品种_周期.parquet。",
-            "训练时多看「最优分数」是否还在抬升。",
-            "训完先回测，再考虑实时。",
-            "实时监控的周期尽量与策略训练周期一致。",
-            "定期导出策略和训练包做备份。",
-            "换电脑部署：复制项目 → python -m pip install -r requirements.txt → start_web.bat。",
+            "一次只訓練一個品種、一個週期（別同時開好多任務搶 CPU）。",
+            "檔案名寫清楚：品種_週期.parquet。",
+            "訓練時多看「最優分數」是否還在抬升。",
+            "訓完先回測，再考慮即時。",
+            "即時監控的週期盡量與策略訓練週期一致。",
+            "定期導出策略和訓練包做備份。",
+            "換電腦部署：複製項目 → python -m pip install -r requirements.txt → start_web.bat。",
         ],
     )
 
-    add_h1(doc, "附录：最短上手路线（10 分钟版）")
+    add_h1(doc, "附錄：最短上手路線（10 分鐘版）")
     add_steps(
         doc,
         [
-            "双击 start_web.bat，等浏览器打开。",
-            "准备好 XAUUSD_H1.parquet（或你自己的数据）。",
-            "训练页 → 选择数据文件 → 开始训练。",
-            "过一阵点停止（或等分数抬升后停）。",
-            "回测页 → 选择刚生成的策略 → 开始回测。",
-            "实时页 → 选 MT5 → 填同一品种与周期 → 选同一策略 → 添加。",
+            "雙擊 start_web.bat，等瀏覽器打開。",
+            "準備好 XAUUSD_H1.parquet（或你自己的數據）。",
+            "訓練頁 → 選擇數據文件 → 開始訓練。",
+            "過一陣點停止（或等分數抬升後停）。",
+            "回測頁 → 選擇剛生成的策略 → 開始回測。",
+            "即時頁 → 選 MT5 → 填同一品種與週期 → 選同一策略 → 添加。",
         ],
     )
-    add_p(doc, "到这里，你已经走完 AlphaMaster 的完整闭环。", bold=True)
+    add_p(doc, "到這裡，你已經走完 AlphaMaster 的完整閉環。", bold=True)
     add_p(
         doc,
-        "插图目录：docs/tutorial_images/　　本文档：docs/AlphaMaster使用教程.docx",
+        "插圖目錄：docs/tutorial_images/　　本文件：docs/AlphaMaster使用教學.docx",
     )
 
     OUT.parent.mkdir(parents=True, exist_ok=True)

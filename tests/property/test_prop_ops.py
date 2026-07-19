@@ -2,17 +2,17 @@
 Property-based tests for model_core.ops — temporal operators.
 
 Property 6: TS_RANK Output Range Constraint
-  对任意 [N, T] 输入，TS_RANK_5/10/20 输出 ∈ [0.0, 1.0)
+  對任意 [N, T] 輸入，TS_RANK_5/10/20 輸出 ∈ [0.0, 1.0)
   **Validates: 需求 F2.4**
 
 Property 7: TS_CORR_10 Correlation Coefficient Boundedness
-  对任意 [N, T] 输入，TS_CORR_10 输出 ∈ [-1.0, 1.0]；
-  当 x 或 y 为常数（窗口填满后）时，对应位置输出为 0。
+  對任意 [N, T] 輸入，TS_CORR_10 輸出 ∈ [-1.0, 1.0]；
+  當 x 或 y 為常數（窗口填滿後）時，對應位置輸出為 0。
   **Validates: 需求 F2.5**
 
 Property 8: Temporal Operators Produce No NaN or Inf
-  对任意 [N, T] 输入（包含零值、极大值等边界情况），
-  所有新增时序算子（TS_MEAN_*, TS_STD_*, TS_RANK_*, TS_CORR_10）输出
+  對任意 [N, T] 輸入（包含零值、極大值等邊界情況），
+  所有新增時序運算元（TS_MEAN_*, TS_STD_*, TS_RANK_*, TS_CORR_10）輸出
   不包含 NaN 或 Inf。
   **Validates: 需求 F2.6**
 """

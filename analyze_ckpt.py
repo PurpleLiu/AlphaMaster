@@ -91,7 +91,7 @@ for i, sym in enumerate(syms):
     avg_hold = sum(runs)/len(runs) if runs else 0
     zero_pct = (p==0).float().mean().item()*100
     total += trades
-    print(f"  {sym}: {trades}笔  per100bar={trades/T*100:.1f}  avgHold={avg_hold:.1f}bar  zero={zero_pct:.0f}%")
+    print(f"  {sym}: {trades}筆  per100bar={trades/T*100:.1f}  avgHold={avg_hold:.1f}bar  zero={zero_pct:.0f}%")
 
 avg = total/(T*len(syms))*100
 print(f"\n  All: per100bar={avg:.1f}  ~{avg*24/100:.1f} trades/day")
